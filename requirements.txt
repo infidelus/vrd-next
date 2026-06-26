@@ -1,0 +1,13 @@
+# VRD Next - Python dependencies
+#
+# Install with:  pip install -r requirements.txt
+#
+# Versions are left unpinned so you get a recent, compatible build. If you
+# want a reproducible install, run `pip freeze > requirements.txt` from a
+# known-good virtual environment to capture the exact versions you tested.
+
+PySide6        # Qt 6 GUI toolkit (the interface)
+av             # PyAV - frame-accurate decoding/muxing (used by the cutting engine)
+numpy          # array maths used during cutting
+bitstring      # bit-level parsing of the broadcast streams
+tqdm           # progress reporting in the cutting engine

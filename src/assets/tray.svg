@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4aa8ff"/>
+      <stop offset="1" stop-color="#1f8be8"/>
+    </linearGradient>
+  </defs>
+  <!-- slim red lightning bolt (VRD nod) -->
+  <polygon points="23,7 13,33 21,33 16,57 28,28 19,28 30,7"
+           fill="#ec2b34" stroke="#ffd9db" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- blue play triangle -->
+  <polygon points="30,11 30,53 56,32" fill="url(#b)"/>
+</svg>
