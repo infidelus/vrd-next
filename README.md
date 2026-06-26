@@ -76,7 +76,7 @@ Everything else lives in two places worth a look early on:
 
 ## Screenshots
 
-**Settings** — the tidy, five-page settings dialog.
+**Settings** — set your folders, external tools and preferences.
 
 ![Settings](docs/screenshots/settings.png)
 
