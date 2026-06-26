@@ -5,8 +5,7 @@ on doing one thing well — fast, frame-accurate cuts of videos and PVR/broadcas
 recordings without re-encoding — and takes its inspiration from VideoReDo,
 distilling the part many people relied on most into a free, open-source tool.
 
-<!-- SCREENSHOT: a shot of the main editor with a recording open goes well here.
-     e.g.  ![VRD Next editor](docs/screenshots/editor.png) -->
+![VRD Next editor](docs/screenshots/editor.png)
 
 ## Features
 
@@ -75,13 +74,23 @@ Everything else lives in two places worth a look early on:
 
 ## Screenshots
 
-<!-- Drop a few images in here once you've taken them, for example:
-  ![Editor](docs/screenshots/editor.png)
-  ![Settings](docs/screenshots/settings.png)
-  ![Batch Manager](docs/screenshots/batch-manager.png)
--->
+## Screenshots
 
-*(Screenshots to follow.)*
+**Settings** — the tidy, five-page settings dialog.
+
+![Settings](docs/screenshots/settings.png)
+
+**Batch Manager** — queue exports and process them in one pass.
+
+![Batch Manager](docs/screenshots/batch-manager.png)
+
+**The Watcher** — scans your recording folders and prepares projects automatically.
+
+![Watcher](docs/screenshots/watcher.png)
+
+**TV Renamer** — looks titles up on TMDB and produces media-server-friendly names.
+
+![TV Renamer](docs/screenshots/tv-renamer.png)
 
 ## Status
 
