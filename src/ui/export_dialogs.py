@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 _PHASE_LABELS = {
     "copy": "Fast Frame Copy",
     "encode": "Encoding Frames",
+    "crop": "Cropping (re-encoding)…",
     "verify": "Verifying output",
     "finalise_mkv": "Finalising MKV…",
     "recode_audio": "Recoding…",
@@ -158,7 +159,9 @@ class ExportProgressDialog(QDialog):
         # ffmpeg) and its own clock, so the bar climbs again and the ETA is
         # measured from when the recode actually started - not from the much
         # faster cut that preceded it.
-        recoding = phase in ("recode_audio", "recode_full", "rebuild_audio")
+        recoding = phase in (
+            "recode_audio", "recode_full", "rebuild_audio", "crop"
+        )
 
         if self._bar.maximum() == 0:
             self._bar.setRange(0, 100)

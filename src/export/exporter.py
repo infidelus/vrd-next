@@ -1972,6 +1972,8 @@ def export_ranges(
         audio_mode="copy",
         audio_bitrate=0,
         aspect="source",
+        crop_mode="none",
+        crop=(0, 0, 0, 0),
 ):
     """Cut and export the kept ranges.
 
@@ -2339,6 +2341,60 @@ def export_ranges(
                 except OSError:
                     pass
 
+    # Pixel crop - the one non-lossless step.  It runs last, on the finished
+    # file, so it's independent of the container/audio/aspect handling above: the
+    # black bars are simply re-encoded away.  Only when a profile asked for it
+    # and the cut itself succeeded; any failure keeps the uncropped file.
+    if success and crop_mode in ("auto", "fixed"):
+        try:
+            from export import crop as _crop
+            cw, ch = _crop.source_dimensions(out_path)
+            field_order = _crop.source_field_order(out_path)
+            interlaced = field_order in ("tt", "bb")
+            if crop_mode == "auto":
+                edges = _crop.detect_crop(out_path, cw, ch)
+            else:
+                edges = (tuple(crop) + (0, 0, 0, 0))[:4]
+            if cw and ch and any(edges):
+                rect = _crop.even_rect(cw, ch, *edges, interlaced=interlaced)
+                if (rect[0], rect[1]) != (cw, ch):
+                    n_scenes = len(keep_ranges)
+
+                    def _crop_progress(pct):
+                        if progress_cb is not None:
+                            progress_cb({
+                                "percent": pct, "phase": "crop",
+                                "scene": n_scenes, "total_scenes": n_scenes,
+                            })
+
+                    _crop_progress(0)
+                    ext = os.path.splitext(out_path)[1]
+                    tmp_crop = out_path + ".crop.tmp" + ext
+                    ok = _crop.crop_reencode(
+                        out_path, tmp_crop, rect,
+                        cap_kbps=_crop.target_cap_kbps(out_path),
+                        fps=_crop.source_fps(out_path),
+                        field_order=field_order,
+                        total_seconds=_crop.source_duration(out_path),
+                        progress_cb=_crop_progress,
+                        cancel_cb=cancel_cb,
+                    )
+                    if (ok and os.path.exists(tmp_crop)
+                            and os.path.getsize(tmp_crop) > 0):
+                        os.replace(tmp_crop, out_path)
+                        logger.info(
+                            "Cropped to %dx%d (re-encoded).", rect[0], rect[1]
+                        )
+                    else:
+                        _safe_remove(tmp_crop)
+                        logger.warning(
+                            "Crop re-encode failed; kept the uncropped output."
+                        )
+        except Exception as exc:
+            logger.warning("Crop step error (%s); kept the uncropped output.", exc)
+
+    # Stop the clock here, after the crop re-encode, so the reported time and
+    # frames/sec include it rather than just the fast cut that preceded it.
     elapsed = time.perf_counter() - start_time
 
     # The rebuild can legitimately drop a track (e.g. an HE-AAC audio-
@@ -2531,7 +2587,8 @@ class ExportWorker(QThread):
 
     def __init__(self, source_path, out_path, keep_ranges,
                  frame_index, out_format, parent=None,
-                 audio_mode="copy", audio_bitrate=0, aspect="source"):
+                 audio_mode="copy", audio_bitrate=0, aspect="source",
+                 crop_mode="none", crop=(0, 0, 0, 0)):
         super().__init__(parent)
         self.source_path = source_path
         self.out_path = out_path
@@ -2541,6 +2598,8 @@ class ExportWorker(QThread):
         self.audio_mode = audio_mode
         self.audio_bitrate = audio_bitrate
         self.aspect = aspect
+        self.crop_mode = crop_mode
+        self.crop = crop
         self._cancel = False
 
     def cancel(self):
@@ -2557,6 +2616,8 @@ class ExportWorker(QThread):
                 audio_mode=self.audio_mode,
                 audio_bitrate=self.audio_bitrate,
                 aspect=self.aspect,
+                crop_mode=self.crop_mode,
+                crop=self.crop,
                 progress_cb=self.progress.emit,
                 cancel_cb=lambda: self._cancel,
             )

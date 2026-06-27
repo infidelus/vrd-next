@@ -134,8 +134,37 @@ def format_path(pattern, meta):
     on its own and empty segments - a code that rendered blank - are dropped, so
     a missing year never leaves a stray empty folder.  Returns a '/'-joined
     string, or '' if nothing rendered.
+
+    Specials (season 0) get the conventional folder name ``Specials`` instead of
+    ``Season 0``: every common media server (Plex, Jellyfin, Emby, Kodi)
+    recognises it, and it reads better in a file browser.  Only the season
+    *folder* is renamed - the file keeps its ``S00Exx`` numbering, which is what
+    the scrapers actually match on.
     """
     rendered = _render(pattern, meta)
-    parts = [sanitise(seg) for seg in rendered.split("/")]
+    # The pattern's literal '/' are the only separators left in ``rendered``
+    # (each value had its own slashes neutralised), so the rendered segments line
+    # up one-for-one with the pattern's own segments.
+    pattern_segments = pattern.split("/")
+    rendered_segments = rendered.split("/")
+    last = len(rendered_segments) - 1
+    specials = _is_specials(meta.get("season"))
+
+    parts = []
+    for i, seg in enumerate(rendered_segments):
+        is_folder = i < last
+        uses_season = i < len(pattern_segments) and "%S" in pattern_segments[i]
+        if specials and is_folder and uses_season:
+            parts.append("Specials")          # the season-0 folder, by convention
+        else:
+            parts.append(sanitise(seg))
     parts = [p for p in parts if p]
     return "/".join(parts)
+
+
+def _is_specials(season):
+    """True when ``season`` represents season 0 (a special)."""
+    try:
+        return season is not None and int(season) == 0
+    except (TypeError, ValueError):
+        return False

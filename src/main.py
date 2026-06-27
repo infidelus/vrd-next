@@ -57,7 +57,6 @@ from version import (
     VERSION_STRING,
     APP_NAME,
     VERSION,
-    BUILD_NUMBER,
 )
 from media.fetcher import (
     FrameFetcher,
@@ -908,8 +907,7 @@ class MainWindow(QMainWindow):
         body = QLabel(
             "<div style='text-align:center'>"
             f"<h2 style='margin:6px 0 2px 0'>{APP_NAME}</h2>"
-            f"<p style='margin:0;color:#9aa0a6'>Version {VERSION} "
-            f"(build {BUILD_NUMBER})</p>"
+            f"<p style='margin:0;color:#9aa0a6'>Version {VERSION}</p>"
             "<p style='margin:12px 0 2px 0'>An open-source, Linux-native, "
             "frame-accurate video cutter, heavily inspired by VideoReDo.</p>"
             f"<p style='margin:10px 0 0 0'>"
@@ -2422,6 +2420,7 @@ class MainWindow(QMainWindow):
         dialog = SaveVideoDialog(
             self.config, suggested, source_ext, self,
             default_container=default_container,
+            sample_source=getattr(self, "current_filename", "") or "",
         )
         if dialog.exec() != QDialog.Accepted:
             return    # cancelled
@@ -2462,12 +2461,15 @@ class MainWindow(QMainWindow):
             audio_mode=profile.audio,
             audio_bitrate=profile.audio_bitrate,
             aspect=profile.aspect,
+            crop_mode=getattr(profile, "crop_mode", "none"),
+            crop=getattr(profile, "crop", (0, 0, 0, 0)),
         )
 
     def open_profile_manager(self):
         """Open the output-profile manager (Tools -> Manage Profiles)."""
         from ui.profile_manager_dialog import ProfileManagerDialog
-        ProfileManagerDialog(self.config, self).exec()
+        sample = getattr(self, "current_filename", "") or ""
+        ProfileManagerDialog(self.config, self, sample_source=sample).exec()
 
     def open_batch_manager(self):
         """Open (or re-show) the Batch Manager window, non-modally, so a batch
@@ -2946,6 +2948,8 @@ class MainWindow(QMainWindow):
             audio_mode="copy",
             audio_bitrate=0,
             aspect="source",
+            crop_mode="none",
+            crop=(0, 0, 0, 0),
     ):
         from ui.export_dialogs import (
             ExportProgressDialog,
@@ -2966,6 +2970,8 @@ class MainWindow(QMainWindow):
             audio_mode=audio_mode,
             audio_bitrate=audio_bitrate,
             aspect=aspect,
+            crop_mode=crop_mode,
+            crop=crop,
         )
 
         # Keep a reference so the thread isn't garbage-collected.

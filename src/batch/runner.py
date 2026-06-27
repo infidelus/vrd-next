@@ -156,6 +156,8 @@ def _index_and_export(
         audio_mode=profile.audio,
         audio_bitrate=profile.audio_bitrate,
         aspect=profile.aspect,
+        crop_mode=getattr(profile, "crop_mode", "none"),
+        crop=getattr(profile, "crop", (0, 0, 0, 0)),
     )
 
 

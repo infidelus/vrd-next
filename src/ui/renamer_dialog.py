@@ -884,14 +884,186 @@ class RenamerDialog(QDialog):
             "episodes": episodes,
         }
 
+    def _pick_episode(self, row):
+        """Modal picker: browse the matched show's seasons and episodes on TMDB
+        and choose the exact season/episode for this file.
+
+        Seasons (Specials included) come from ``tv_details``; the chosen season's
+        episodes from ``tv_season``.  The file's current match is pre-selected,
+        and a 'Change show…' button falls through to the search chooser.  Returns
+        ``{"series": {...}, "season": int, "episodes": [int, ...]}`` or ``None``
+        if cancelled.
+        """
+        client = self._client()
+        if client is None:
+            return None
+        if not row.series or not row.series.get("id"):
+            # Nothing matched yet - search for the show first.
+            return self._pick_show(row.parsed.show or "", row)
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Pick episode")
+        dlg.setMinimumWidth(460)
+        v = QVBoxLayout(dlg)
+
+        head = QHBoxLayout()
+        show_lbl = QLabel()
+        head.addWidget(show_lbl, 1)
+        change_btn = QPushButton("Change show…")
+        head.addWidget(change_btn)
+        v.addLayout(head)
+
+        srow = QHBoxLayout()
+        srow.addWidget(QLabel("Season:"))
+        season_combo = QComboBox()
+        srow.addWidget(season_combo, 1)
+        v.addLayout(srow)
+
+        ep_list = QListWidget()
+        ep_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        v.addWidget(ep_list, 1)
+
+        hint = QLabel("Pick the episode (Ctrl-click for a two-parter).")
+        hint.setStyleSheet("color: gray;")
+        v.addWidget(hint)
+
+        buttons = QHBoxLayout()
+        ok = QPushButton("Select episode")
+        ok.setEnabled(False)
+        cancel = QPushButton("Cancel")
+        buttons.addStretch(1)
+        buttons.addWidget(ok)
+        buttons.addWidget(cancel)
+        v.addLayout(buttons)
+
+        # ``series`` may be swapped by Change show…; ``episodes`` holds the dicts
+        # for the season currently shown, so the list rows map back to numbers.
+        state = {"series": dict(row.series), "episodes": []}
+
+        def set_show_label():
+            s = state["series"]
+            yr = s.get("year")
+            show_lbl.setText(
+                "<b>%s</b>%s"
+                % (s.get("name", "?"), (" (%s)" % yr) if yr else "")
+            )
+
+        def load_episodes(season_number, preselect=None):
+            ep_list.clear()
+            state["episodes"] = []
+            if season_number is None:
+                ok.setEnabled(False)
+                return
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            err = None
+            try:
+                data = client.tv_season(state["series"]["id"], season_number)
+            except TmdbError as e:
+                err, data = str(e), {}
+            finally:
+                QApplication.restoreOverrideCursor()
+            if err:
+                QMessageBox.warning(dlg, "TV Renamer", err)
+                return
+            eps = data.get("episodes", []) or []
+            state["episodes"] = eps
+            want = set(preselect or [])
+            for ep in eps:
+                num = ep.get("episode_number")
+                label = "%3s   %s" % (num, ep.get("name", "") or "")
+                air = ep.get("air_date") or ""
+                if air:
+                    label += "   (%s)" % air
+                ep_list.addItem(label)
+                if num in want:
+                    ep_list.item(ep_list.count() - 1).setSelected(True)
+            ok.setEnabled(bool(ep_list.selectedItems()))
+
+        def load_seasons(select_season, preselect=None):
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            err = None
+            try:
+                details = client.tv_details(state["series"]["id"])
+            except TmdbError as e:
+                err, details = str(e), {}
+            finally:
+                QApplication.restoreOverrideCursor()
+            if err:
+                QMessageBox.warning(dlg, "TV Renamer", err)
+                return
+            nums = sorted({
+                s.get("season_number")
+                for s in (details.get("seasons", []) or [])
+                if s.get("season_number") is not None
+            })
+            season_combo.blockSignals(True)
+            season_combo.clear()
+            for n in nums:
+                season_combo.addItem("Specials" if n == 0 else "Season %d" % n, n)
+            idx = season_combo.findData(select_season)
+            season_combo.setCurrentIndex(idx if idx >= 0 else 0)
+            season_combo.blockSignals(False)
+            cur = season_combo.currentData()
+            # On the file's own season, pre-select its episode(s) by default.
+            if preselect is None and cur == row.season:
+                preselect = row.episodes
+            load_episodes(cur, preselect=preselect)
+
+        def on_change_show():
+            picked = self._pick_show(state["series"].get("name", ""), row)
+            if not picked:
+                return
+            state["series"] = picked["series"]
+            set_show_label()
+            target_season = (
+                picked["season"] if picked["season"] is not None else row.season
+            )
+            load_seasons(target_season, preselect=picked["episodes"])
+
+        season_combo.currentIndexChanged.connect(
+            lambda _i: load_episodes(season_combo.currentData())
+        )
+        ep_list.itemSelectionChanged.connect(
+            lambda: ok.setEnabled(bool(ep_list.selectedItems()))
+        )
+        ep_list.itemDoubleClicked.connect(
+            lambda *_: dlg.accept() if ep_list.selectedItems() else None
+        )
+        change_btn.clicked.connect(on_change_show)
+        ok.clicked.connect(dlg.accept)
+        cancel.clicked.connect(dlg.reject)
+
+        set_show_label()
+        load_seasons(row.season)
+
+        if dlg.exec() != QDialog.Accepted:
+            return None
+        picked_nums = sorted(
+            state["episodes"][i].get("episode_number")
+            for i in range(ep_list.count())
+            if ep_list.item(i).isSelected()
+            and state["episodes"][i].get("episode_number") is not None
+        )
+        if not picked_nums:
+            return None
+        return {
+            "series": state["series"],
+            "season": season_combo.currentData(),
+            "episodes": picked_nums,
+        }
+
     def _row_double_clicked(self, row_index, _col):
         if row_index < 0 or row_index >= len(self.rows):
             return
         target = self.rows[row_index]
         if target.status == "done":
             return
-        query = (target.series or {}).get("name") or target.parsed.show or ""
-        result = self._pick_show(query, target)
+        # A matched show -> browse its episodes live; otherwise search first.
+        if target.series and target.series.get("id"):
+            result = self._pick_episode(target)
+        else:
+            query = (target.series or {}).get("name") or target.parsed.show or ""
+            result = self._pick_show(query, target)
         if not result:
             return
 

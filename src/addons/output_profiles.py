@@ -22,6 +22,7 @@ _CONTAINER_LABELS = {
 
 AUDIO_MODES = ("copy", "aac")          # smart copy (lossless) | re-encode AAC
 ASPECT_MODES = ("source", "4:3", "16:9")
+CROP_MODES = ("none", "auto", "fixed")  # off | auto-detect bars | fixed pixels
 AAC_AUTO = 0                            # 0 == let the bitrate follow the source
 AAC_BITRATES = (128, 160, 192, 224, 256, 288, 315, 320, 384)
 
@@ -30,13 +31,20 @@ class OutputProfile:
     """One named output profile."""
 
     def __init__(self, name, container, *, audio="copy", audio_bitrate=AAC_AUTO,
-                 aspect="source", output_dir="", favourite=False,
-                 enabled=True, builtin=False):
+                 aspect="source", crop_mode="none", crop=(0, 0, 0, 0),
+                 output_dir="", favourite=False, enabled=True, builtin=False):
         self.name = name
         self.container = container          # "match" | "mkv" | "mp4"
         self.audio = audio                  # "copy" | "aac"
         self.audio_bitrate = audio_bitrate  # kbps, or AAC_AUTO (0) for automatic
         self.aspect = aspect                # "source" | "4:3" | "16:9"
+        # Cropping re-encodes the video.  "none" leaves the lossless path alone;
+        # "auto" detects the black bars per file at export time; "fixed" uses the
+        # pixel amounts in ``crop`` = (top, bottom, left, right).
+        self.crop_mode = crop_mode if crop_mode in CROP_MODES else "none"
+        self.crop = tuple(int(x) for x in crop)[:4] if crop else (0, 0, 0, 0)
+        if len(self.crop) != 4:
+            self.crop = (0, 0, 0, 0)
         self.output_dir = output_dir        # per-profile default destination
         self.favourite = favourite
         self.enabled = enabled
@@ -67,6 +75,24 @@ class OutputProfile:
             self.aspect, self.aspect
         )
 
+    def crop_label(self):
+        """Short description of the crop setting, for the profile list/summary."""
+        if self.crop_mode == "auto":
+            return "Auto-detect bars (re-encode)"
+        if self.crop_mode == "fixed":
+            t, b, l, r = self.crop
+            parts = []
+            if t:
+                parts.append("T%d" % t)
+            if b:
+                parts.append("B%d" % b)
+            if l:
+                parts.append("L%d" % l)
+            if r:
+                parts.append("R%d" % r)
+            return ("Crop " + " ".join(parts) + " (re-encode)") if parts else "None"
+        return "None"
+
     def extension(self, source_ext):
         """The output file extension.  ``match`` keeps the source's own
         extension (e.g. .ts for Freeview recordings)."""
@@ -84,6 +110,8 @@ class OutputProfile:
             "audio": self.audio,
             "audio_bitrate": self.audio_bitrate,
             "aspect": self.aspect,
+            "crop_mode": self.crop_mode,
+            "crop": list(self.crop),
             "output_dir": self.output_dir,
             "favourite": self.favourite,
             "enabled": self.enabled,
@@ -98,6 +126,8 @@ class OutputProfile:
             audio=d.get("audio", "copy"),
             audio_bitrate=int(d.get("audio_bitrate", AAC_AUTO)),
             aspect=d.get("aspect", "source"),
+            crop_mode=d.get("crop_mode", "none"),
+            crop=d.get("crop", (0, 0, 0, 0)),
             output_dir=d.get("output_dir", ""),
             favourite=bool(d.get("favourite", False)),
             enabled=bool(d.get("enabled", True)),

@@ -34,13 +34,14 @@ class SaveVideoDialog(QDialog):
     """Pick an output profile and a destination file in one step."""
 
     def __init__(self, config, suggested_path, source_ext, parent=None,
-                 default_container=None):
+                 default_container=None, sample_source=""):
         super().__init__(parent)
         self.setWindowTitle("Save Video")
         self.setMinimumWidth(640)
         self.setMinimumHeight(460)
 
         self.config = config
+        self._sample_source = sample_source
         self._source_ext = source_ext or ".ts"
         self._preselect_container = default_container
         self._result_path = None
@@ -147,7 +148,9 @@ class SaveVideoDialog(QDialog):
         if base is None:
             QMessageBox.information(self, "Save Video", "Please choose a profile.")
             return
-        dlg = ProfileEditDialog(base.copy(), self)
+        dlg = ProfileEditDialog(
+            base.copy(), self, sample_source=self._sample_source
+        )
         if dlg.exec() != QDialog.Accepted:
             return
         edited = dlg.result()

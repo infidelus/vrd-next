@@ -227,8 +227,8 @@ def save_vprj(path, keep_ranges, markers, source_filename, index):
 
     root = ET.Element("VideoReDoProject", Version="5")
 
-    from version import APP_NAME, VERSION, BUILD_NUMBER
-    ver = ET.SubElement(root, "VideoReDoVersion", BuildNumber=str(BUILD_NUMBER))
+    from version import APP_NAME, VERSION, build_stamp
+    ver = ET.SubElement(root, "VideoReDoVersion", BuildNumber=str(build_stamp()))
     ver.text = f"{APP_NAME} {VERSION}"
 
     ET.SubElement(root, "Filename").text = source_filename or ""
@@ -306,8 +306,8 @@ def save_vprj_from_cuts(path, source_filename, cut_ranges_seconds,
 
     root = ET.Element("VideoReDoProject", Version="5")
 
-    from version import APP_NAME, VERSION, BUILD_NUMBER
-    ver = ET.SubElement(root, "VideoReDoVersion", BuildNumber=str(BUILD_NUMBER))
+    from version import APP_NAME, VERSION, build_stamp
+    ver = ET.SubElement(root, "VideoReDoVersion", BuildNumber=str(build_stamp()))
     ver.text = f"{APP_NAME} {VERSION}"
 
     ET.SubElement(root, "Filename").text = source_filename or ""
