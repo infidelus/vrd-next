@@ -52,6 +52,38 @@ class ToolsPage(SettingsPage):
             "mkvmerge (part of MKVToolNix) is used for lossless MKV exports."
         ))
 
+        # ffmpeg / ffprobe: the core tools behind export, join and stream
+        # probing.  Auto-fill from PATH when the user hasn't set a path, so a
+        # normal install is ready to save without browsing.
+        ffmpeg_value = p.get("ffmpeg_binary", "") or (
+            shutil.which("ffmpeg") or ""
+        )
+        self._ffmpeg_row = FileRow(
+            "ffmpeg program:",
+            ffmpeg_value,
+            "(path to ffmpeg - auto-detected if on PATH)",
+            "All files (*)",
+        )
+        self.add(self._ffmpeg_row)
+
+        ffprobe_value = p.get("ffprobe_binary", "") or (
+            shutil.which("ffprobe") or ""
+        )
+        self._ffprobe_row = FileRow(
+            "ffprobe program:",
+            ffprobe_value,
+            "(path to ffprobe - auto-detected if on PATH)",
+            "All files (*)",
+        )
+        self.add(self._ffprobe_row)
+        self.add(hint(
+            "ffmpeg and ffprobe do the cutting, joining and stream probing. "
+            "They aren't included with VRD Next and aren't always pre-installed "
+            "- if they're on your PATH they're detected automatically here, "
+            "otherwise install them (or download a build) and set the paths. "
+            "Point these at a specific build if you want a particular version."
+        ))
+
         key_label = QLabel("TMDB API key")
         key_label.setStyleSheet("font-weight: bold;")
         self.add(key_label)
@@ -75,3 +107,5 @@ class ToolsPage(SettingsPage):
         paths["comskip_binary"] = self._comskip_bin_row.value()
         paths["comskip_ini"] = self._comskip_ini_row.value()
         paths["mkvmerge_binary"] = self._mkvmerge_row.value()
+        paths["ffmpeg_binary"] = self._ffmpeg_row.value()
+        paths["ffprobe_binary"] = self._ffprobe_row.value()

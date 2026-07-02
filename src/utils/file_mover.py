@@ -19,6 +19,9 @@ would overflow.
 import errno
 import os
 import shutil
+import logging
+
+log = logging.getLogger("vrd-next")
 
 _CHUNK = 4 * 1024 * 1024            # 4 MiB per read/write
 _SYNC_EVERY = 16 * 1024 * 1024      # force data out to the NAS ~every 16 MiB
@@ -144,6 +147,7 @@ def move_jobs(jobs, overwrite, progress_cb, label_for):
         count = " (%d of %d)" % (idx + 1, n)
         old_name = label_for(row)
         new_name = os.path.basename(target)
+        src = row.path                      # original path, before reassignment
         renamed = old_name != new_name
         moved = (os.path.abspath(os.path.dirname(row.path))
                  != os.path.abspath(os.path.dirname(target)))
@@ -165,12 +169,16 @@ def move_jobs(jobs, overwrite, progress_cb, label_for):
 
         if os.path.abspath(target) == os.path.abspath(row.path):
             row.status = "done"                        # already correctly placed
+            log.debug("renamer: already in place: %s", src)
             copied += sizes[idx]
             continue
 
         exists = os.path.exists(target)
         if exists and not overwrite:
             skipped += 1                               # don't clobber
+            log.info(
+                "renamer: skipped (target exists, not overwriting): %s", target
+            )
             copied += sizes[idx]
             continue
 
@@ -178,6 +186,7 @@ def move_jobs(jobs, overwrite, progress_cb, label_for):
             os.makedirs(os.path.dirname(target), exist_ok=True)
             if exists:                                 # overwrite was requested
                 os.remove(target)
+                log.info("renamer: overwrote existing target: %s", target)
             # Now show the move (the second message) before the transfer starts,
             # for a file that was both renamed and is changing folder.
             if move_label and rename_label:
@@ -188,13 +197,25 @@ def move_jobs(jobs, overwrite, progress_cb, label_for):
                 row.path, target, copied, total_bytes, work_label, progress_cb
             )
             if cancelled:
+                log.info("renamer: cancelled part-way through: %s", src)
                 break
             row.path = target
             row.status = "done"
             done += 1
-        except (OSError, shutil.Error):
+            if renamed and moved:
+                log.info("renamer: renamed & moved: %s → %s", src, target)
+            elif moved:
+                log.info("renamer: moved: %s → %s", src, target)
+            else:
+                log.info("renamer: renamed: %s → %s", src, target)
+        except (OSError, shutil.Error) as exc:
             failed += 1
+            log.warning("renamer: FAILED: %s → %s (%s)", src, target, exc)
         copied += sizes[idx]
 
     progress_cb(1000, 1000, "")
+    log.info(
+        "renamer: finished - %d renamed/moved, %d skipped, %d failed",
+        done, skipped, failed,
+    )
     return done, skipped, failed

@@ -22,6 +22,9 @@ in the full PySide6 / PySide6-Addons package.)
 
 import time
 import threading
+import logging
+
+log = logging.getLogger("vrd-next")
 
 try:
     import av
@@ -97,10 +100,70 @@ class _DecodeThread(threading.Thread):
     def stop(self):
         self._stop_event.set()
 
+    def _pump(self, gen, resampler, start_offset, tb):
+        """Decode/resample/write audio from `gen` until stopped or EOF.
+
+        Returns (decoded, written, skipped, decode_errs, resample_errs).
+        Decodes packet-by-packet so a single undecodable packet (common in
+        broadcast TS, and after a QSF remux) is skipped rather than aborting the
+        whole decode - aborting would silently kill playback for many seconds.
+        """
+        n_decoded = n_written = n_skipped = dec_err = res_err = 0
+        for packet in gen:
+            if self._stop_event.is_set():
+                break
+
+            try:
+                frames = packet.decode()
+            except Exception:
+                dec_err += 1
+                continue    # skip the bad packet, keep going
+
+            for frame in frames:
+                n_decoded += 1
+                # Seeking lands on a packet at or before the target; skip the
+                # few frames that precede where we actually want to start.
+                # Compare in container-relative (0-based) seconds.
+                if frame.pts is not None and tb:
+                    base0 = (frame.pts - start_offset) * tb
+                    if base0 < self._start - 0.05:
+                        n_skipped += 1
+                        continue
+
+                try:
+                    chunks = resampler.resample(frame)
+                except Exception:
+                    res_err += 1
+                    continue
+
+                if not isinstance(chunks, list):
+                    chunks = [chunks]
+
+                for out in chunks:
+                    if out is None:
+                        continue
+                    try:
+                        self._buffer.write(out.to_ndarray().tobytes())
+                        n_written += 1
+                    except Exception:
+                        pass
+
+            # Stay only just ahead - wait here if we've buffered enough.
+            while (
+                    not self._stop_event.is_set()
+                    and self._buffer.size() > _MAX_BUFFER_BYTES
+            ):
+                time.sleep(0.02)
+
+        return n_decoded, n_written, n_skipped, dec_err, res_err
+
     def run(self):
+        import os
+        name = os.path.basename(self._path)
         try:
             container = av.open(self._path)
-        except Exception:
+        except Exception as exc:
+            log.warning("audio: could not open %s (%s)", name, exc)
             return
 
         try:
@@ -109,6 +172,7 @@ class _DecodeThread(threading.Thread):
                 None,
             )
             if astream is None:
+                log.warning("audio: %s has no audio stream", name)
                 return
 
             try:
@@ -117,68 +181,101 @@ class _DecodeThread(threading.Thread):
                     layout="stereo",
                     rate=_RATE,
                 )
-            except Exception:
+            except Exception as exc:
+                log.warning("audio: resampler init failed (%s)", exc)
                 return
 
+            codec = getattr(astream.codec_context, "name", "?")
             start_offset = astream.start_time or 0
             tb = float(astream.time_base) if astream.time_base else 0.0
+            seek_mode = "none"
+            totals = (0, 0, 0, 0, 0)
 
-            if self._start > 0 and astream.time_base:
-                try:
-                    container.seek(
-                        start_offset + int(self._start / astream.time_base),
-                        stream=astream,
-                        backward=True,
-                    )
-                except Exception:
-                    pass
+            if self._start <= 0:
+                totals = self._pump(
+                    container.demux(astream), resampler, start_offset, tb
+                )
+            else:
+                # Seek to the requested time, then decode the audio stream from
+                # there.  Two seek strategies, ordered by container:
+                #
+                #   * audio-stream seek - lands right on the target and seeks in
+                #     the audio timeline, so it copes natively with an audio/
+                #     video start-time offset (common in broadcast MPEG-TS) and
+                #     keeps preview A/V perfectly in sync.
+                #   * video-stream seek - uses the video keyframe index.  Needed
+                #     for disc rips (Matroska), whose audio has no seek index -
+                #     there an audio seek blocks for tens of seconds and lands
+                #     nowhere.  Disc rips have no start-time offset, so leading
+                #     with the video index introduces no drift.
+                #
+                # So: audio-first for MPEG-TS captures (tight sync), video-first
+                # for everything else (robust).  A whole-container seek is the
+                # last resort.  We keep the first strategy that produces sound.
+                vstream = next(
+                    (s for s in container.streams if s.type == "video"), None
+                )
+                fmt = (getattr(container.format, "name", "") or "").lower()
+                ts_like = "mpegts" in fmt or "mpeg2video" in fmt
 
-            # Decode packet-by-packet so a single undecodable packet (common in
-            # broadcast TS, and after a QSF remux) is skipped rather than
-            # aborting the whole decode - the previous container.decode() loop
-            # threw on the first bad packet, which silently killed the decode
-            # thread and dropped audio for the rest of playback (sometimes for
-            # many seconds).  This mirrors how the video fetcher demuxes.
-            for packet in container.demux(astream):
-                if self._stop_event.is_set():
-                    break
+                audio_attempt = (
+                    ("stream", astream,
+                     start_offset + int(self._start / astream.time_base))
+                    if astream.time_base else None
+                )
+                video_attempt = (
+                    ("video", vstream,
+                     (vstream.start_time or 0)
+                     + int(self._start / vstream.time_base))
+                    if (vstream is not None and vstream.time_base) else None
+                )
 
-                try:
-                    frames = packet.decode()
-                except Exception:
-                    continue    # skip the bad packet, keep going
+                if ts_like:
+                    ordered = [audio_attempt, video_attempt]
+                else:
+                    ordered = [video_attempt, audio_attempt]
 
-                for frame in frames:
-                    # Seeking lands on a packet at or before the target; skip
-                    # the few frames that precede where we actually want to
-                    # start.  Compare in container-relative (0-based) seconds.
-                    if frame.pts is not None and tb:
-                        base0 = (frame.pts - start_offset) * tb
-                        if base0 < self._start - 0.05:
-                            continue
-
+                attempts = [a for a in ordered if a is not None]
+                attempts.append(
+                    ("container", None, int(self._start * 1_000_000))
+                )
+                for mode, strm, offset in attempts:
+                    if self._stop_event.is_set():
+                        break
                     try:
-                        chunks = resampler.resample(frame)
-                    except Exception:
+                        if strm is not None:
+                            container.seek(offset, stream=strm, backward=True)
+                        else:
+                            container.seek(offset, backward=True)
+                    except Exception as exc:
+                        log.debug(
+                            "audio: %s-seek to %.2fs failed (%s)",
+                            mode, self._start, exc,
+                        )
                         continue
+                    totals = self._pump(
+                        container.demux(astream), resampler, start_offset, tb
+                    )
+                    seek_mode = mode
+                    # Keep the first strategy that produced sound (or stop early
+                    # if a newer seek has already superseded this one).
+                    if totals[1] > 0 or self._stop_event.is_set():
+                        break
 
-                    if not isinstance(chunks, list):
-                        chunks = [chunks]
+            n_decoded, n_written, n_skipped, dec_err, res_err = totals
 
-                    for out in chunks:
-                        if out is None:
-                            continue
-                        try:
-                            self._buffer.write(out.to_ndarray().tobytes())
-                        except Exception:
-                            pass
-
-                # Stay only just ahead - wait here if we've buffered enough.
-                while (
-                        not self._stop_event.is_set()
-                        and self._buffer.size() > _MAX_BUFFER_BYTES
-                ):
-                    time.sleep(0.02)
+            if n_written == 0 and (n_decoded or dec_err or n_skipped):
+                log.warning(
+                    "audio: no sound from %s [codec=%s start=%.2fs seek=%s "
+                    "decoded=%d skipped=%d wrote=%d decode_err=%d resample_err=%d]",
+                    name, codec, self._start, seek_mode,
+                    n_decoded, n_skipped, n_written, dec_err, res_err,
+                )
+            else:
+                log.debug(
+                    "audio: %s start=%.2fs seek=%s decoded=%d wrote=%d skipped=%d",
+                    name, self._start, seek_mode, n_decoded, n_written, n_skipped,
+                )
         except Exception:
             pass
         finally:
@@ -296,6 +393,15 @@ class AudioController:
                             a.time_base or 0
                         )
                         self._av_start_delay = v_start - a_start
+                        # The broadcast audio/video offset is always small (well
+                        # under a second to a couple of seconds).  Some files -
+                        # notably Blu-ray MKVs that carry a large first-frame
+                        # timecode - report a huge video start_time, which would
+                        # otherwise push the audio seek far past the end of the
+                        # file so nothing decodes and playback is silent.  Ignore
+                        # any implausibly large value and play from the start.
+                        if abs(self._av_start_delay) > 10.0:
+                            self._av_start_delay = 0.0
                 finally:
                     container.close()
             except Exception:
@@ -320,6 +426,10 @@ class AudioController:
         # position is on the video timeline, so shift it by the video/audio
         # start-time difference to land on the matching sound.
         decode_from = max(0.0, float(seconds) + self._av_start_delay)
+        log.debug(
+            "audio: play_from seconds=%.2f av_start_delay=%.3f decode_from=%.2f",
+            float(seconds), self._av_start_delay, decode_from,
+        )
 
         self._decoder = _DecodeThread(self._buffer, self._source, decode_from)
         self._decoder.start()

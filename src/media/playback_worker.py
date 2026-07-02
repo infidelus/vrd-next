@@ -91,8 +91,31 @@ class PlaybackWorker(QObject):
         self._mutex.unlock()
 
     def set_size(self, width, height):
+        """Change the output size for future frames.
+
+        On a genuine change while playing, drop the frames already scaled to the
+        old size and re-decode from just after the frame currently on screen, so
+        the picture snaps to the new size straight away instead of showing the
+        ~0.5s of old-size look-ahead still sitting in the queue - the maximise/
+        restore "bounce".
+        """
+        new_size = (max(1, int(width)), max(1, int(height)))
         self._mutex.lock()
-        self._size = (max(1, int(width)), max(1, int(height)))
+        if new_size != self._size:
+            self._size = new_size
+            if self._playing and self._seek_to is None:
+                # Resume decoding from the frame after the one on screen (or the
+                # head of the look-ahead if nothing has been shown yet), so the
+                # refill is re-scaled to the new size without skipping frames.
+                if self._target is not None:
+                    resume = self._target + 1
+                elif self._queue:
+                    resume = self._queue[0][0]
+                else:
+                    resume = self._next_index
+                self._queue.clear()
+                self._next_index = resume
+                self._cond.wakeOne()
         self._mutex.unlock()
 
     def take(self, target):

@@ -1998,8 +1998,12 @@ def export_ranges(
     if not keep_ranges:
         raise ExportError("No segments to export.")
 
-    if shutil.which("ffmpeg") is None:
-        raise ExportError("ffmpeg was not found on PATH.")
+    missing = [t for t in ("ffmpeg", "ffprobe") if shutil.which(t) is None]
+    if missing:
+        raise ExportError(
+            "%s could not be found. Install ffmpeg, or set the path in "
+            "Settings > External tools." % " and ".join(missing)
+        )
 
     source = MediaContainer(source_path)
     n_audio = len(source.audio_tracks)

@@ -5,6 +5,41 @@ All notable changes to VRD Next are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-07-02
+
+### Added
+
+- **External tool paths.** A new **Settings → External tools** page for
+  ffmpeg, ffprobe, mkvmerge and Comskip. Paths are auto-detected from your `PATH`,
+  or you can point at a specific build (for example a newer ffmpeg than your
+  distribution ships). You're warned if a required tool is missing, or if a path
+  you've set no longer exists.
+- **Rename/move logging.** Every operation in the TV and Film renamers is now
+  recorded in the application log, so you can see exactly where each finished file
+  ended up.
+- **Source information in the log.** Opening a file now writes an ffprobe-style
+  summary (container, codecs, stream layout and timing) to the log, to help with
+  troubleshooting.
+
+### Changed
+
+- The renamers' **"Rename Ticked"** button is now **"Process Ticked"**, since the
+  step may move files as well as rename them.
+- **Open Recent** now keeps entries whose source has since been moved or deleted,
+  showing them greyed-out and marked "(missing)" rather than dropping them.
+- Guide and troubleshooting text brought up to date.
+
+### Fixed
+
+- **Preview audio on Blu-ray and other disc rips.** Audio now plays reliably on
+  MKV rips (DTS, DTS-HD MA, AC3) that previously fell silent when seeking. The
+  seek strategy is chosen to suit the source, so broadcast recordings keep their
+  tight, in-sync preview while disc rips seek by the video index. Exported cuts
+  are made straight from the source and stay perfectly in sync regardless of the
+  preview.
+- Maximising or resizing the window during playback now updates the picture
+  smoothly, instead of leaving it briefly at the old size.
+
 ## [1.1.0] - 2026-06-27
 
 ### Added
@@ -41,5 +76,6 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 - Initial public release.
 
+[1.2.0]: https://github.com/infidelus/vrd-next/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/infidelus/vrd-next/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/infidelus/vrd-next/releases/tag/v1.0.0

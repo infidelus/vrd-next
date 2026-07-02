@@ -17,3 +17,8 @@ env/
 
 # Local config / logs (VRD Next stores these under ~/.config/vrd-next)
 *.log
+
+# Unpacked delivery archives — better still, unpack these outside the repo
+vrd-next-changes/
+vrd-next-[0-9]*/
+*-changes.zip

@@ -107,6 +107,13 @@ DEFAULT_CONFIG = {
         # mkvmerge.
         "mkvmerge_binary": "",
 
+        # ffmpeg / ffprobe: the workhorses behind export, join and stream
+        # probing.  Empty means "auto" - use whatever's found on PATH; set a
+        # path here (Settings > External tools) to point at a specific build.
+        # A configured build's folder is prepended to PATH at startup.
+        "ffmpeg_binary": "",
+        "ffprobe_binary": "",
+
     },
 
     "shortcuts": {

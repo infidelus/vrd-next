@@ -289,7 +289,7 @@ class FilmRenamerDialog(QDialog):
         actions = QHBoxLayout()
         self.status_label = QLabel("")
         actions.addWidget(self.status_label, 1)
-        self.rename_btn = QPushButton("Rename Ticked")
+        self.rename_btn = QPushButton("Process Ticked")
         self.rename_btn.clicked.connect(self._do_rename)
         self.rename_btn.setEnabled(False)
         self.clear_btn = QPushButton("Clear Completed")

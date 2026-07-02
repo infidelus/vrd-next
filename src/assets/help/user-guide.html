@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>VRD Next User Guide</title>
+<style>
+  body {
+    font-family: "Segoe UI", "DejaVu Sans", sans-serif;
+    font-size: 14px;
+    color: #d6d6d6;
+    background-color: #1e1e22;
+    line-height: 1.5;
+    margin: 16px 24px;
+  }
+  h1 { color: #ffffff; font-size: 26px; margin: 0 0 4px 0; }
+  h2 {
+    color: #5aa9ff;
+    font-size: 20px;
+    margin: 28px 0 8px 0;
+    border-bottom: 1px solid #34343a;
+    padding-bottom: 4px;
+  }
+  h3 { color: #cfd3d6; font-size: 16px; margin: 18px 0 4px 0; }
+  p { margin: 8px 0; }
+  a { color: #5aa9ff; text-decoration: none; }
+  ul, ol { margin: 6px 0 6px 4px; }
+  li { margin: 3px 0; }
+  code, kbd {
+    font-family: "DejaVu Sans Mono", monospace;
+    background-color: #2a2a30;
+    color: #e6c07b;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+  table { border-collapse: collapse; margin: 10px 0; }
+  th, td {
+    border: 1px solid #3a3a42;
+    padding: 5px 12px;
+    text-align: left;
+  }
+  th { background-color: #2a2a30; color: #ffffff; }
+  .lead { color: #9aa0a6; font-size: 15px; }
+  .toc a { display: block; margin: 3px 0; }
+  .note {
+    background-color: #26262c;
+    border-left: 3px solid #5aa9ff;
+    padding: 8px 12px;
+    margin: 12px 0;
+  }
+  figure {
+    margin: 16px 0;
+  }
+  .cap {
+    color: #9aa0a6;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  /* An image on its own line inherits the body line-height (1.5), which makes
+     the line box 1.5x the image height and leaves a large gap beneath it in the
+     in-app viewer.  line-height:1 keeps the box tight to the image. */
+  .figrow {
+    line-height: 1;
+    margin: 16px 0;
+  }
+  /* In a web browser, let the screenshots scale with the window (up to their
+     native size, so they stay crisp). The in-app QTextBrowser ignores @media
+     rules, so it keeps the fixed width from each image's width attribute. */
+  @media screen {
+    .gimg { width: 100%; height: auto; }
+    .m800 { max-width: 800px; }
+    .m762 { max-width: 762px; }
+    .m640 { max-width: 640px; }
+    .m566 { max-width: 566px; }
+    .m560 { max-width: 560px; }
+    .m460 { max-width: 460px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>VRD Next User Guide</h1>
+<p class="lead">A frame-accurate, lossless video cutter for Linux &mdash; inspired
+by VideoReDo.</p>
+
+<h2>Contents</h2>
+<div class="toc">
+  <a href="#intro">1. Introduction</a>
+  <a href="#start">2. Getting started</a>
+  <a href="#cutting">3. Marking and cutting</a>
+  <a href="#detect">4. Automatic ad detection and projects</a>
+  <a href="#saving">5. Saving video</a>
+  <a href="#renaming">6. Renaming recordings</a>
+  <a href="#automation">7. Automation: the watcher and batch manager</a>
+  <a href="#settings">8. Settings reference</a>
+  <a href="#shortcuts">9. Keyboard shortcuts</a>
+  <a href="#tips">10. Tips and troubleshooting</a>
+</div>
+
+<h2 id="intro">1. Introduction</h2>
+<p>VRD Next cuts unwanted sections &mdash; such as adverts &mdash; out of video
+recordings frame-accurately and, wherever possible, <strong>losslessly</strong>: the
+kept video is stream-copied rather than re-encoded, so there is no quality loss and
+exports are fast. It handles common broadcast and file formats, including H.264 and
+MPEG-2, and works with most videos rather than any one source in particular.</p>
+<p>If VRD Next feels familiar, that is deliberate. I have used <strong>VideoReDo</strong>
+for around two decades, and I have kept the interface as close to it as I sensibly can
+&mdash; comfortable and familiar for anyone moving across &mdash; and made the
+functionality work in a VideoReDo-like way wherever possible. Think of it as a
+<strong>lighter alternative</strong>, though: VRD Next brings the core VideoReDo workflow
+to a native Linux application, but it does not aim to match VideoReDo's full feature set.</p>
+<p>Beyond cutting, VRD Next can detect commercials automatically with Comskip, rename
+recordings using data from TMDB, and help semi-automate the whole record-to-library
+routine through a folder watcher and a batch queue. It does not run end-to-end on its own
+&mdash; you stay in the loop &mdash; but it takes a lot of the manual work out.</p>
+<div class="note">VRD Next needs <code>ffmpeg</code> and <code>ffprobe</code> on your
+system. Comskip is optional but recommended for automatic ad detection (see section 4).</div>
+
+<h2 id="start">2. Getting started</h2>
+<p>Open a recording with <strong>File &rarr; Open Video</strong> (<kbd>Ctrl+O</kbd>),
+or pick a recent one from <strong>File &rarr; Open Recent</strong>. The editor window
+has four main areas:</p>
+<ul>
+  <li><strong>Preview</strong> &mdash; the current frame.</li>
+  <li><strong>Thumbnail bar</strong> &mdash; a strip of frames around the cursor, for
+  finding cut points precisely. Click a thumbnail to jump to it.</li>
+  <li><strong>Scene list</strong> &mdash; the segments you have chosen to keep.</li>
+  <li><strong>Transport controls</strong> &mdash; play, step and seek, with the current
+  scene's start, end and duration shown alongside.</li>
+</ul>
+<p align="center" class="figrow"><img class="gimg m800" src="img/editor-overview.png" width="800" height="532" alt="The VRD Next editor window"></p>
+<p align="center" class="cap">The editor window: &#9312; preview &middot; &#9313; scene list &middot;
+&#9314; thumbnail bar and timeline (green&nbsp;=&nbsp;keep, red&nbsp;=&nbsp;cut) &middot;
+&#9315; transport controls.</p>
+<p>The first time you open a recording, VRD Next builds a frame index so it can seek
+accurately. This is cached, so opening the same file again is instant.</p>
+<div class="note">VRD Next ships with an installer script that creates a desktop launcher
+(a <code>.desktop</code> entry), so you can start it from your applications menu like any
+other program. See the notes in the <code>packaging</code> folder.</div>
+
+<h2 id="cutting">3. Marking and cutting</h2>
+<p>VRD Next works by marking the parts you want to <strong>keep</strong>, not the parts
+you want to remove. When cutting adverts, for instance, you mark the programme; the
+adverts are simply the gaps between kept scenes.</p>
+<h3>Navigating</h3>
+<p>Use the transport buttons or the keyboard to move through the recording: step one
+frame at a time, jump by 10, 30 or 120 seconds, or jump to the start or end. Watch the
+thumbnail bar as you step &mdash; it makes finding the exact frame of a cut much easier.
+To jump to a specific timecode, use <strong>Goto</strong> (<kbd>Ctrl+G</kbd>).</p>
+<h3>Marking a scene</h3>
+<ol>
+  <li>Move to where the section you want to keep starts and press <strong>Mark In</strong>
+  (<kbd>F3</kbd>).</li>
+  <li>Move to where it ends and press <strong>Mark Out</strong> (<kbd>F4</kbd>).</li>
+  <li>Press <strong>Add Selection</strong> (<kbd>Insert</kbd>) to commit that scene.</li>
+</ol>
+<p>Repeat for each segment you want to keep. If you mark In/Out across an existing scene,
+the new selection replaces it, so correcting a cut is just a matter of re-marking it.</p>
+<p><strong>Add Unselected</strong> (<kbd>Ctrl+Insert</kbd>) does the inverse: it fills in
+every gap as a kept scene &mdash; handy when it is quicker to mark the parts you want to
+remove and then invert. <strong>Clear All Scenes</strong> (<kbd>Shift+Insert</kbd>) starts
+over.</p>
+
+<h2 id="detect">4. Automatic ad detection and projects</h2>
+<h3>Comskip</h3>
+<p>Rather than mark everything by hand, you can let <strong>Comskip</strong> find the
+adverts. Run it from the <strong>Tools</strong> menu (<kbd>Ctrl+A</kbd>); it analyses the
+recording in the background and turns its results into kept scenes, which you can then
+fine-tune by eye.</p>
+<p>Comskip is a separate, free program and is <strong>not</strong> bundled with VRD Next,
+so you will need to download and install it first from its home on GitHub:
+<a href="https://github.com/erikkaashoek/Comskip">github.com/erikkaashoek/Comskip</a>.
+Once it is installed, point VRD Next at the Comskip binary and your <code>.ini</code> file
+under <strong>Settings &rarr; External tools</strong>.</p>
+<h3>Projects</h3>
+<p>Your cuts can be saved and reloaded as a project. <strong>Import Project</strong> reads
+VideoReDo <code>.vprj</code> files (both the V5 VRD and V3 Comskip dialects) and EDL files;
+<strong>Export Project</strong> writes them back out. This lets you move edits between
+VRD Next and other tools, or keep a record of your cuts without re-exporting the video.</p>
+<div class="note">When a project is moved between VRD Next and VideoReDo, individual cut
+marks may shift by a frame or two &mdash; the two editors index frames slightly differently
+internally. The resulting cut is still frame-accurate; only the displayed mark positions
+differ.</div>
+
+<h2 id="saving">5. Saving video</h2>
+<p>When your scenes are ready, choose <strong>File &rarr; Save Video</strong>
+(<kbd>Ctrl+S</kbd>). You pick an <strong>output profile</strong> and a destination file in
+one step.</p>
+<p align="center" class="figrow"><img class="gimg m640" src="img/save-video.png" width="640" height="492" alt="The Save Video dialog"></p>
+<p align="center" class="cap">The Save Video dialog, with the output profile and destination chosen together.</p>
+<p>The cut is lossless wherever it can be: the kept video is stream-copied, not re-encoded.
+The only routine exception is a handful of frames at each cut boundary, which are briefly
+re-encoded so the cut can land on exactly the frame you chose rather than the nearest
+keyframe. A <strong>full</strong> re-encode of the whole video &mdash; which is
+significantly slower than a lossless save &mdash; only happens if you crop the video, or
+save to a container that the source's streams are not compatible with.</p>
+<h3>Output profiles</h3>
+<p>Manage profiles under <strong>Tools &rarr; Manage Profiles</strong>. A profile controls:</p>
+<ul>
+  <li><strong>Container</strong> &mdash; match the source, or force MKV or MP4.</li>
+  <li><strong>Audio</strong> &mdash; smart copy (lossless) or re-encode to AAC at a chosen
+  or automatic bitrate.</li>
+  <li><strong>Display aspect</strong> &mdash; leave as the source, or stamp 4:3 or 16:9.
+  This is applied losslessly by correcting the aspect signalling, without re-encoding.</li>
+  <li><strong>Cropping</strong> &mdash; remove black bars (see below).</li>
+  <li><strong>Default directory</strong> &mdash; a per-profile destination folder.</li>
+</ul>
+<p align="center" class="figrow"><img class="gimg m460" src="img/profile-editor.png" width="460" height="473" alt="The output profile editor"></p>
+<p align="center" class="cap">Editing an output profile.</p>
+<h3>Cropping</h3>
+<p>Cropping removes letterbox or pillarbox black bars. Because the bars are part of the
+picture, cropping triggers the full re-encode mentioned above, so it is much slower than a
+normal lossless export. Choose <strong>Auto-detect</strong> to find the bars per file, or
+<strong>Fixed pixels</strong> to set them by hand. With a recording open, the
+<strong>Preview&hellip;</strong> button shows a real frame with the crop shaded in; use the
+slider to pick a frame, adjust the edges by eye, or let it auto-detect.</p>
+<div class="note">Cropping re-encodes at the source's own bitrate as a ceiling, so a cropped
+file is never larger than the original. The scan type is preserved &mdash; interlaced stays
+interlaced, progressive stays progressive.</div>
+<p align="center" class="figrow"><img class="gimg m566" src="img/crop-preview.png" width="566" height="475" alt="The crop preview, showing the crop shaded on a real frame"></p>
+<p align="center" class="cap">The crop preview shades the area to be removed over a real frame.</p>
+
+<h2 id="renaming">6. Renaming recordings</h2>
+<p>VRD Next can rename recordings into a tidy layout that media servers like
+<strong>Plex</strong>, <strong>Jellyfin</strong>, <strong>Emby</strong> and
+<strong>Kodi</strong> understand, using data from <strong>TMDB</strong> (The Movie Database).
+There are separate renamers for TV and film, reached from the <strong>Tools</strong> menu.</p>
+<div class="note">The renamers need a free <strong>TMDB API key</strong>. Create an account
+at <a href="https://www.themoviedb.org">themoviedb.org</a>, request an API key, and enter it
+under <strong>Settings</strong>. (TVDB is not offered as an alternative: its current API
+requires each application to ship a single licensed key rather than letting you use your own
+&mdash; at a potentially significant cost once the free tier's cap is reached.)</div>
+<h3>TV renamer</h3>
+<p>Add recordings and the renamer matches each to a show and episode. Double-click a matched
+row to open the <strong>episode picker</strong>, where you can choose the exact season and
+episode; Ctrl-click two episodes for a two-part story, or use <strong>Change show&hellip;</strong>
+if the auto-match was wrong. Season 0 episodes are filed into a <strong>Specials</strong>
+folder. A naming <strong>pattern</strong> controls the folder and file names, and is
+remembered between runs.</p>
+<p align="center" class="figrow"><img class="gimg m762" src="img/tv-renamer.png" width="762" height="592" alt="The TV renamer with the episode picker open"></p>
+<p align="center" class="cap">The TV renamer, with the episode picker open over the recording list.</p>
+<h3>Film renamer</h3>
+<p>The film renamer works the same way for films, matching each recording to a title and
+year from TMDB.</p>
+
+<h2 id="automation">7. Automation: the watcher and batch manager</h2>
+<h3>The watcher</h3>
+<p>The watcher takes the donkey-work out of finding the adverts. It monitors your chosen
+recording folder(s) and, when a new recording appears, runs Comskip to mark where it thinks
+the adverts are, saving the result as a <strong>project file</strong>. It does not cut or
+rename anything itself &mdash; it prepares the cuts for you. You stay in control: open a
+project in the editor to check and adjust the marks by eye, or add it to the Batch Manager
+to process as-is.</p>
+<p align="center" class="figrow"><img class="gimg m560" src="img/watcher.png" width="560" height="655" alt="The watcher window"></p>
+<p align="center" class="cap">The watcher: the folders it monitors, its schedule, and where it saves projects.</p>
+<div class="note">The watcher runs in the system tray and works <strong>completely
+independently</strong> of the main editor &mdash; you do not need VRD Next open for it to do
+its job.</div>
+<h3>Batch manager</h3>
+<p>The Batch Manager is where the actual cutting happens for several files at once. Queue the
+current recording from the editor with <strong>Queue to Batch</strong> (<kbd>Ctrl+B</kbd>), or
+feed it the project files the watcher has prepared, then run the queue from
+<strong>Tools &rarr; Batch Manager</strong>. Each job uses an output profile, so profile-based
+options such as cropping apply here too. (Renaming is a separate step, handled by the
+renamers &mdash; the Batch Manager itself does not rename.) You can close the Batch Manager
+window while a batch is running &mdash; the batch keeps going in the background, and reopening
+it from <strong>Tools &rarr; Batch Manager</strong> shows the live progress.</p>
+<div class="note">If the Batch Manager runs into a problem with a file &mdash; most often one
+that needs a Quick Stream Fix &mdash; it pauses that job and waits for you. Open the project,
+sort it out (for example run QSF), save it again, and it is requeued the next time you open
+the Batch Manager.</div>
+
+<h2 id="settings">8. Settings reference</h2>
+<p>Open <strong>Tools &rarr; Settings</strong>. The pages are:</p>
+<ul>
+  <li><strong>General</strong> &mdash; overall behaviour and appearance options.</li>
+  <li><strong>Files</strong> &mdash; your recording, output and working folders.</li>
+  <li><strong>External tools</strong> &mdash; paths to external programs (ffmpeg, ffprobe,
+  mkvmerge, and Comskip with its <code>.ini</code>).</li>
+  <li><strong>Logs</strong> &mdash; view and manage the application log.</li>
+  <li><strong>Maintenance</strong> &mdash; housekeeping such as clearing cached indexes.</li>
+</ul>
+<p>Keyboard shortcuts can also be viewed and customised here, through the built-in config
+editor.</p>
+
+<h2 id="shortcuts">9. Keyboard shortcuts</h2>
+<p>These are the defaults; all of them can be changed in Settings.</p>
+<table>
+  <tr><th>Action</th><th>Shortcut</th></tr>
+  <tr><td>Open Video</td><td><kbd>Ctrl+O</kbd></td></tr>
+  <tr><td>Save Video</td><td><kbd>Ctrl+S</kbd></td></tr>
+  <tr><td>Close Video</td><td><kbd>Ctrl+F4</kbd></td></tr>
+  <tr><td>Open / Save / Save Project As</td><td><kbd>Ctrl+Shift+O</kbd> / <kbd>Ctrl+P</kbd> / <kbd>Ctrl+Shift+P</kbd></td></tr>
+  <tr><td>Queue to Batch</td><td><kbd>Ctrl+B</kbd></td></tr>
+  <tr><td>Play / Pause</td><td><kbd>Space</kbd></td></tr>
+  <tr><td>Step one frame back / forward</td><td><kbd>Left</kbd> / <kbd>Right</kbd></td></tr>
+  <tr><td>Jump 10s back / forward</td><td><kbd>Ctrl+Shift+Left</kbd> / <kbd>Ctrl+Shift+Right</kbd></td></tr>
+  <tr><td>Jump 30s back / forward</td><td><kbd>Ctrl+Left</kbd> / <kbd>Ctrl+Right</kbd></td></tr>
+  <tr><td>Jump 120s back / forward</td><td><kbd>Shift+Left</kbd> / <kbd>Shift+Right</kbd></td></tr>
+  <tr><td>Jump to start / end</td><td><kbd>Home</kbd> / <kbd>End</kbd></td></tr>
+  <tr><td>Mark In / Mark Out</td><td><kbd>F3</kbd> / <kbd>F4</kbd></td></tr>
+  <tr><td>Add Selection</td><td><kbd>Insert</kbd></td></tr>
+  <tr><td>Add Unselected</td><td><kbd>Ctrl+Insert</kbd></td></tr>
+  <tr><td>Clear All Scenes</td><td><kbd>Shift+Insert</kbd></td></tr>
+  <tr><td>Clear current selection</td><td><kbd>Delete</kbd></td></tr>
+  <tr><td>Previous / Next scene</td><td><kbd>F5</kbd> / <kbd>F6</kbd></td></tr>
+  <tr><td>Go to scene start / end</td><td><kbd>S</kbd> / <kbd>E</kbd></td></tr>
+  <tr><td>Toggle scene at cursor</td><td><kbd>A</kbd></td></tr>
+  <tr><td>Detect commercials (Comskip)</td><td><kbd>Ctrl+A</kbd></td></tr>
+  <tr><td>Go to timecode</td><td><kbd>Ctrl+G</kbd></td></tr>
+  <tr><td>Show video program info</td><td><kbd>Ctrl+L</kbd></td></tr>
+  <tr><td>Undo / Redo</td><td><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd></td></tr>
+</table>
+
+<h2 id="tips">10. Tips and troubleshooting</h2>
+<ul>
+  <li><strong>Nothing opens / export fails:</strong> check that <code>ffmpeg</code> and
+  <code>ffprobe</code> are installed and, if needed, set their paths under
+  <strong>Settings &rarr; External tools</strong>.</li>
+  <li><strong>Comskip results look off:</strong> Comskip is configured through its
+  <code>.ini</code> file and benefits from being tuned to your source &mdash; in particular
+  its frame rate. A well-tuned ini makes a big difference to detection quality.</li>
+  <li><strong>A cropped file looks soft or large:</strong> cropping re-encodes, so a little
+  change is expected; it is capped at the source bitrate so it should never grow. Auto-detect
+  samples a run of frames, so pick a representative (bright) frame in the preview if you adjust
+  by hand.</li>
+  <li><strong>Something went wrong:</strong> the application log (under
+  <strong>Settings &rarr; Logs</strong>) records the detail behind each export and is the first
+  place to look.</li>
+  <li><strong>Preview audio is slightly out of sync:</strong> occasionally, and more often on
+  high-definition sources, the sound in the preview window can sit a little ahead of or behind
+  the picture. This affects the preview only &mdash; the exported file is always in sync,
+  because cutting works directly from the source rather than from the preview.</li>
+  <li><strong>Cutting a Blu-ray or 4K file is slow and memory-hungry:</strong> very large,
+  high-bitrate sources (Blu-ray and UHD) take far longer to analyse for cut points than a
+  broadcast recording, and can use several gigabytes of RAM while doing so &mdash; the cut
+  itself is still lossless. This is expected for that class of file; VRD Next is aimed at
+  broadcast TV recordings, which cut quickly and lightly.</li>
+</ul>
+
+<p class="lead">VRD Next is open source &mdash;
+<a href="https://github.com/infidelus/vrd-next">github.com/infidelus/vrd-next</a>.</p>
+
+</body>
+</html>

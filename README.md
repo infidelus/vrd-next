@@ -1,4 +1,6 @@
-# VRD Next
+<p align="center">
+  <img src="docs/vrd-next-logo.png" alt="VRD Next" width="440">
+</p>
 
 **VRD Next is a lightweight, frame-accurate video cutter for Linux.** It focuses
 on doing one thing well — fast, frame-accurate cuts of videos and PVR/broadcast

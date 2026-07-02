@@ -80,6 +80,10 @@ from utils.timecode import (
     frame_to_timecode,
     marker_text,
 )
+from utils.tool_paths import (
+    apply_tool_paths,
+    tool_issues,
+)
 from ui.thumbnail_bar import ThumbnailBar
 from project.scenes import (
     SceneManager,
@@ -131,6 +135,10 @@ class MainWindow(QMainWindow):
         self.config = (
             ensure_config()
         )
+
+        # Prepend any user-configured ffmpeg/ffprobe build to PATH, so every
+        # export/join/probe call (which invokes them by bare name) uses it.
+        apply_tool_paths(self.config)
 
         # Prune stale on-disk caches (frame indices + QSF registry) once at
         # startup, by age.  Best-effort and quick; never blocks launch.
@@ -531,6 +539,27 @@ class MainWindow(QMainWindow):
             self.scene_list.setMaximumHeight(
                 self.preview.height()
             )
+            # While playing, the background worker pre-scales each frame to a
+            # fixed size, so a resize/maximise wouldn't otherwise take effect
+            # until the next pause re-rendered.  Two steps keep it smooth:
+            #   * immediately rescale the frame already on screen to the new
+            #     size, so no old-size picture is left sitting in the resized
+            #     window; then
+            #   * tell the worker the new size - it flushes its old-size
+            #     look-ahead and refills at the new size (see set_size).
+            if self.playing and self.playback_worker is not None:
+                pm = self.preview.pixmap()
+                if pm is not None and not pm.isNull():
+                    self.preview.setPixmap(pm.scaled(
+                        self.preview.width(),
+                        self.preview.height(),
+                        Qt.KeepAspectRatio,
+                        Qt.SmoothTransformation,
+                    ))
+                self.playback_worker.set_size(
+                    self.preview.width(),
+                    self.preview.height(),
+                )
 
         self.preview.resizeEvent = _sync_scene_list_height
 
@@ -878,8 +907,19 @@ class MainWindow(QMainWindow):
         #
         help_menu = self.menuBar().addMenu("Help")
 
+        guide_action = help_menu.addAction("User Guide")
+        guide_action.setShortcut("F1")
+        guide_action.triggered.connect(self.show_user_guide)
+
+        help_menu.addSeparator()
+
         about_action = help_menu.addAction(f"About {APP_NAME}")
         about_action.triggered.connect(self.show_about)
+
+    def show_user_guide(self):
+        """Open the in-app User Guide (Help -> User Guide)."""
+        from ui.help_dialog import UserGuideDialog
+        UserGuideDialog(self).exec()
 
     def show_about(self):
         """Modal About dialog: app icon, version, GitHub link and developer."""
@@ -1750,6 +1790,11 @@ class MainWindow(QMainWindow):
             save_config(self.config)
             # open_video / export read self.config each time, so the new
             # paths take effect immediately - no restart needed.
+            apply_tool_paths(self.config)
+            # Re-check the tool paths now, so setting a bad one is flagged at
+            # once rather than only on the next Open.
+            self._warned_missing_tools = False
+            self._warn_if_tools_missing()
             self._reconfigure_logging()
             self._apply_frame_type_display()
             self._apply_shortcut_changes()
@@ -1760,6 +1805,7 @@ class MainWindow(QMainWindow):
             # clashes are caught in the editor at save time, so there's nothing
             # to re-check here.
             self.config = ensure_config()
+            apply_tool_paths(self.config)
             self._reconfigure_logging()
             self._apply_frame_type_display()
             self._apply_shortcut_changes()
@@ -1962,6 +2008,41 @@ class MainWindow(QMainWindow):
             )
         return path
 
+    def _log_source_info(self, filename):
+        """Log a concise, ffprobe-style summary of the opened source, so a
+        troubleshooting log shows exactly what kind of file is involved
+        (container, codecs, stream layout and seek-relevant timing)."""
+        try:
+            import av
+            with av.open(filename) as c:
+                dur = float(c.duration) / 1e6 if c.duration else 0.0
+                log.info(
+                    "source: format=%s duration=%.1fs streams=%d",
+                    getattr(c.format, "name", "?"), dur, len(c.streams),
+                )
+                for s in c.streams:
+                    cc = s.codec_context
+                    if s.type == "video":
+                        log.info(
+                            "  video[%d] %s profile=%s %sx%s field=%s "
+                            "tb=%s start=%s",
+                            s.index, cc.name, getattr(cc, "profile", None),
+                            getattr(cc, "width", None),
+                            getattr(cc, "height", None),
+                            getattr(cc, "field_order", None),
+                            s.time_base, s.start_time,
+                        )
+                    elif s.type == "audio":
+                        log.info(
+                            "  audio[%d] %s profile=%s %sHz %sch tb=%s start=%s",
+                            s.index, cc.name, getattr(cc, "profile", None),
+                            getattr(cc, "sample_rate", None),
+                            getattr(cc, "channels", None),
+                            s.time_base, s.start_time,
+                        )
+        except Exception as exc:
+            log.info("source: could not probe %s (%s)", filename, exc)
+
     def open_video(self):
 
         filename, _ = (
@@ -1980,6 +2061,28 @@ class MainWindow(QMainWindow):
         self._remember_dir("open", filename)
         self._open_video_path(filename)
 
+    def _warn_if_tools_missing(self):
+        """Warn once per session about ffmpeg/ffprobe problems.
+
+        Covers both a tool that can't be found at all and a configured path
+        that points at a missing file (silently ignored otherwise).  The
+        preview needs neither tool, but export, join and stream probing do -
+        so flagging it on open gives the user a chance to fix it in Settings
+        before it bites at export time.
+        """
+        if getattr(self, "_warned_missing_tools", False):
+            return
+        issues = tool_issues(self.config)
+        if not issues:
+            return
+        self._warned_missing_tools = True
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.warning(
+            self, "External tools",
+            "The preview works without them, but exporting, joining and "
+            "showing stream info need ffmpeg and ffprobe.\n\n" + "\n\n".join(issues),
+        )
+
     def _open_video_path(self, filename):
         """Open a video by path - shared by Open Video and the Recent menu."""
         if not os.path.exists(filename):
@@ -1990,6 +2093,11 @@ class MainWindow(QMainWindow):
             )
             self._forget_recent(filename)
             return
+
+        # Heads-up (once per session) if ffmpeg/ffprobe can't be found: the
+        # preview needs neither, but export/join/probe do, so flag it now rather
+        # than let it surprise the user at export time.
+        self._warn_if_tools_missing()
 
         # Warn before discarding unsaved scene edits from the current video.
         if not self._confirm_discard_changes("Open Video"):
@@ -2051,19 +2159,28 @@ class MainWindow(QMainWindow):
             save_config(self.config)
 
     def _populate_recent_menu(self, recent_menu):
-        """(Re)fill the File > Open Recent submenu from the saved list."""
+        """(Re)fill the File > Open Recent submenu from the saved list.
+
+        Missing files are still listed - a recent list is a history - but shown
+        greyed-out with a "(missing)" marker rather than hidden, so a source
+        that has since been deleted or moved doesn't silently vanish.
+        """
         recent_menu.clear()
-        recent = [
-            p for p in self.config.get("recent_files", [])
-            if os.path.exists(p)
-        ]
+        recent = self.config.get("recent_files", [])
         if not recent:
             act = recent_menu.addAction("(no recent files)")
             act.setEnabled(False)
             return
         for path in recent:
-            act = recent_menu.addAction(os.path.basename(path))
+            exists = os.path.exists(path)
+            label = os.path.basename(path)
+            if not exists:
+                label += "  (missing)"
+            act = recent_menu.addAction(label)
             act.setToolTip(path)
+            if not exists:
+                act.setEnabled(False)
+                continue
             if path.lower().endswith(".vprj"):
                 act.triggered.connect(
                     lambda checked=False, p=path: self.load_project_file(p)
@@ -2146,6 +2263,7 @@ class MainWindow(QMainWindow):
         #
 
         log.info("Opening video: %s", filename)
+        self._log_source_info(filename)
 
         self._reset_media_state()
 
@@ -4721,6 +4839,20 @@ class MainWindow(QMainWindow):
 
         if self.frames:
             self.update_preview_only()
+
+            #
+            # If the window is resized or maximised *during* playback, tell the
+            # background decoder the new preview size too.  Otherwise it keeps
+            # emitting frames at the old size and the video only catches up when
+            # playback next pauses.
+            #
+
+            worker = getattr(self, "playback_worker", None)
+            if worker is not None:
+                worker.set_size(
+                    self.preview.width(),
+                    self.preview.height(),
+                )
 
     def closeEvent(
             self,

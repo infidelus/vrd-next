@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QGridLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -264,7 +265,7 @@ class ProfileEditDialog(QDialog):
     def __init__(self, profile, parent=None, sample_source=""):
         super().__init__(parent)
         self.setWindowTitle("Output Profile")
-        self.setMinimumWidth(460)
+        self.setMinimumWidth(440)
         self._result = None
         self._sample_source = sample_source
 
@@ -302,23 +303,45 @@ class ProfileEditDialog(QDialog):
         self.crop_combo.currentIndexChanged.connect(self._on_crop_changed)
 
         # Edge amounts for "Fixed pixels"; greyed out unless that mode is chosen.
+        # Laid out as Top/Bottom on one line and Left/Right below, so the dialog
+        # stays narrow.  The grid lines up with the dropdowns above, and the
+        # Preview button sits to the right of the four boxes.
         crop_row = QHBoxLayout()
         clab = QLabel("Crop pixels:")
         clab.setMinimumWidth(140)
+        clab.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         crop_row.addWidget(clab)
+
         self.crop_spins = {}
         cur_crop = getattr(profile, "crop", (0, 0, 0, 0))
-        for i, key in enumerate(("Top", "Bottom", "Left", "Right")):
-            crop_row.addWidget(QLabel(key))
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(4)
+        # (label, value index in the stored (top, bottom, left, right) tuple,
+        #  grid row, grid column for the label)
+        spec = (
+            ("Top", 0, 0, 0),
+            ("Bottom", 1, 0, 2),
+            ("Left", 2, 1, 0),
+            ("Right", 3, 1, 2),
+        )
+        for key, vi, grow, gcol in spec:
+            grid.addWidget(QLabel(key), grow, gcol)
             sp = QSpinBox()
             sp.setRange(0, 4000)
             sp.setSingleStep(2)
-            sp.setValue(int(cur_crop[i]) if i < len(cur_crop) else 0)
-            crop_row.addWidget(sp)
+            sp.setMaximumWidth(64)
+            sp.setValue(int(cur_crop[vi]) if vi < len(cur_crop) else 0)
+            grid.addWidget(sp, grow, gcol + 1)
             self.crop_spins[key.lower()] = sp
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(3, 1)
+        crop_row.addLayout(grid, 1)
+
         self.crop_preview_btn = QPushButton("Preview…")
         self.crop_preview_btn.clicked.connect(self._open_crop_preview)
-        crop_row.addWidget(self.crop_preview_btn)
+        crop_row.addWidget(self.crop_preview_btn, 0, Qt.AlignVCenter)
         layout.addLayout(crop_row)
 
         # Default output directory (read-only field + Choose/Clear).
@@ -360,6 +383,10 @@ class ProfileEditDialog(QDialog):
         self._keep_builtin = profile.builtin
         self._on_audio_changed()
         self._on_crop_changed()
+
+        # Open narrow-and-tall: at this slim width the help text wraps to a
+        # couple more lines, so size the height to suit rather than opening wide.
+        self.resize(460, 480)
 
     def _on_crop_changed(self):
         mode = self.crop_combo.currentData()
