@@ -9,6 +9,9 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **In-app user guide.** A full illustrated user guide, reached from
+  **Help → User Guide**, walks through the editor, cutting, profiles, the
+  renamers, Comskip and the watcher/batch, with annotated screenshots.
 - **External tool paths.** A new **Settings → External tools** page for
   ffmpeg, ffprobe, mkvmerge and Comskip. Paths are auto-detected from your `PATH`,
   or you can point at a specific build (for example a newer ffmpeg than your
@@ -27,7 +30,6 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
   step may move files as well as rename them.
 - **Open Recent** now keeps entries whose source has since been moved or deleted,
   showing them greyed-out and marked "(missing)" rather than dropping them.
-- Guide and troubleshooting text brought up to date.
 
 ### Fixed
 
