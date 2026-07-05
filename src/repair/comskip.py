@@ -31,6 +31,39 @@ class ComskipError(Exception):
 _PERCENT_RE = re.compile(r"(\d{1,3}(?:\.\d+)?)\s*%")
 
 
+def pick_comskip_ini(filename, default_ini, prefix="comskip_"):
+    """Choose the Comskip .ini for one recording.
+
+    When per-channel selection is on, look next to ``default_ini`` for files
+    named ``Comskip_<name>.ini``; if ``<name>`` appears in the recording's
+    filename, that file is used - the longest, most specific match winning, so
+    ``Comskip_BBC One.ini`` beats ``Comskip_BBC.ini``.  With no match, no
+    folder, or no default set, the caller's ``default_ini`` is kept.  Matching
+    is case-insensitive.  This only helps when the recorder writes the channel
+    into the filename (e.g. Tvheadend's ``$c``).
+    """
+    if not default_ini:
+        return default_ini
+    folder = os.path.dirname(default_ini)
+    if not folder or not os.path.isdir(folder):
+        return default_ini
+    name = os.path.basename(filename).lower()
+    best = None                       # (match_length, path)
+    try:
+        entries = os.listdir(folder)
+    except OSError:
+        return default_ini
+    for entry in entries:
+        low = entry.lower()
+        if not (low.startswith(prefix) and low.endswith(".ini")):
+            continue
+        key = entry[len(prefix):-4]   # the <name> between "Comskip_" and ".ini"
+        if key and key.lower() in name:
+            if best is None or len(key) > best[0]:
+                best = (len(key), os.path.join(folder, entry))
+    return best[1] if best else default_ini
+
+
 def run_comskip(binary, ini, source_path, out_dir,
                 progress_cb=None, cancel_cb=None):
     """Run Comskip on source_path, writing output into out_dir.

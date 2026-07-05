@@ -1974,6 +1974,7 @@ def export_ranges(
         aspect="source",
         crop_mode="none",
         crop=(0, 0, 0, 0),
+        video_mode="copy",
 ):
     """Cut and export the kept ranges.
 
@@ -2347,55 +2348,78 @@ def export_ranges(
 
     # Pixel crop - the one non-lossless step.  It runs last, on the finished
     # file, so it's independent of the container/audio/aspect handling above: the
-    # black bars are simply re-encoded away.  Only when a profile asked for it
-    # and the cut itself succeeded; any failure keeps the uncropped file.
-    if success and crop_mode in ("auto", "fixed"):
+    # black bars are simply re-encoded away.  The same pass also re-encodes the
+    # video to HEVC when a profile asks for a smaller file (video_mode="hevc") -
+    # crop and HEVC share one encode, so a cropped HEVC output is a single pass.
+    # Only when the cut itself succeeded; any failure keeps the previous file.
+    reencode_hevc = video_mode == "hevc"
+    if success and (crop_mode in ("auto", "fixed") or reencode_hevc):
         try:
             from export import crop as _crop
             cw, ch = _crop.source_dimensions(out_path)
             field_order = _crop.source_field_order(out_path)
             interlaced = field_order in ("tt", "bb")
-            if crop_mode == "auto":
-                edges = _crop.detect_crop(out_path, cw, ch)
-            else:
-                edges = (tuple(crop) + (0, 0, 0, 0))[:4]
-            if cw and ch and any(edges):
-                rect = _crop.even_rect(cw, ch, *edges, interlaced=interlaced)
-                if (rect[0], rect[1]) != (cw, ch):
-                    n_scenes = len(keep_ranges)
-
-                    def _crop_progress(pct):
-                        if progress_cb is not None:
-                            progress_cb({
-                                "percent": pct, "phase": "crop",
-                                "scene": n_scenes, "total_scenes": n_scenes,
-                            })
-
-                    _crop_progress(0)
-                    ext = os.path.splitext(out_path)[1]
-                    tmp_crop = out_path + ".crop.tmp" + ext
-                    ok = _crop.crop_reencode(
-                        out_path, tmp_crop, rect,
-                        cap_kbps=_crop.target_cap_kbps(out_path),
-                        fps=_crop.source_fps(out_path),
-                        field_order=field_order,
-                        total_seconds=_crop.source_duration(out_path),
-                        progress_cb=_crop_progress,
-                        cancel_cb=cancel_cb,
+            rect = None
+            if crop_mode in ("auto", "fixed"):
+                if crop_mode == "auto":
+                    edges = _crop.detect_crop(out_path, cw, ch)
+                else:
+                    edges = (tuple(crop) + (0, 0, 0, 0))[:4]
+                if cw and ch and any(edges):
+                    candidate = _crop.even_rect(
+                        cw, ch, *edges, interlaced=interlaced
                     )
-                    if (ok and os.path.exists(tmp_crop)
-                            and os.path.getsize(tmp_crop) > 0):
-                        os.replace(tmp_crop, out_path)
+                    if (candidate[0], candidate[1]) != (cw, ch):
+                        rect = candidate
+            # Re-encode when we have a crop to apply, or HEVC was requested.
+            if rect is not None or reencode_hevc:
+                codec = "libx265" if reencode_hevc else "libx264"
+                phase = "encode" if reencode_hevc else "crop"
+                n_scenes = len(keep_ranges)
+
+                def _reenc_progress(pct):
+                    if progress_cb is not None:
+                        progress_cb({
+                            "percent": pct, "phase": phase,
+                            "scene": n_scenes, "total_scenes": n_scenes,
+                        })
+
+                _reenc_progress(0)
+                ext = os.path.splitext(out_path)[1]
+                tmp_re = out_path + ".reenc.tmp" + ext
+                ok = _crop.crop_reencode(
+                    out_path, tmp_re, rect,
+                    codec=codec,
+                    cap_kbps=_crop.target_cap_kbps(out_path),
+                    fps=_crop.source_fps(out_path),
+                    field_order=field_order,
+                    total_seconds=_crop.source_duration(out_path),
+                    progress_cb=_reenc_progress,
+                    cancel_cb=cancel_cb,
+                )
+                if (ok and os.path.exists(tmp_re)
+                        and os.path.getsize(tmp_re) > 0):
+                    os.replace(tmp_re, out_path)
+                    if reencode_hevc and rect is not None:
+                        logger.info(
+                            "Cropped to %dx%d and re-encoded to HEVC.",
+                            rect[0], rect[1],
+                        )
+                    elif reencode_hevc:
+                        logger.info("Re-encoded video to HEVC.")
+                    else:
                         logger.info(
                             "Cropped to %dx%d (re-encoded).", rect[0], rect[1]
                         )
-                    else:
-                        _safe_remove(tmp_crop)
-                        logger.warning(
-                            "Crop re-encode failed; kept the uncropped output."
-                        )
+                else:
+                    _safe_remove(tmp_re)
+                    logger.warning(
+                        "Finishing re-encode failed; kept the previous output."
+                    )
         except Exception as exc:
-            logger.warning("Crop step error (%s); kept the uncropped output.", exc)
+            logger.warning(
+                "Finishing re-encode error (%s); kept the previous output.", exc
+            )
 
     # Stop the clock here, after the crop re-encode, so the reported time and
     # frames/sec include it rather than just the fast cut that preceded it.
@@ -2592,7 +2616,7 @@ class ExportWorker(QThread):
     def __init__(self, source_path, out_path, keep_ranges,
                  frame_index, out_format, parent=None,
                  audio_mode="copy", audio_bitrate=0, aspect="source",
-                 crop_mode="none", crop=(0, 0, 0, 0)):
+                 crop_mode="none", crop=(0, 0, 0, 0), video_mode="copy"):
         super().__init__(parent)
         self.source_path = source_path
         self.out_path = out_path
@@ -2604,6 +2628,7 @@ class ExportWorker(QThread):
         self.aspect = aspect
         self.crop_mode = crop_mode
         self.crop = crop
+        self.video_mode = video_mode
         self._cancel = False
 
     def cancel(self):
@@ -2622,6 +2647,7 @@ class ExportWorker(QThread):
                 aspect=self.aspect,
                 crop_mode=self.crop_mode,
                 crop=self.crop,
+                video_mode=self.video_mode,
                 progress_cb=self.progress.emit,
                 cancel_cb=lambda: self._cancel,
             )

@@ -32,12 +32,17 @@ class OutputProfile:
 
     def __init__(self, name, container, *, audio="copy", audio_bitrate=AAC_AUTO,
                  aspect="source", crop_mode="none", crop=(0, 0, 0, 0),
+                 video="copy",
                  output_dir="", favourite=False, enabled=True, builtin=False):
         self.name = name
         self.container = container          # "match" | "mkv" | "mp4"
         self.audio = audio                  # "copy" | "aac"
         self.audio_bitrate = audio_bitrate  # kbps, or AAC_AUTO (0) for automatic
         self.aspect = aspect                # "source" | "4:3" | "16:9"
+        # Video handling.  "copy" is the lossless default (the video is copied,
+        # re-encoding only where a container demands it); "hevc" deliberately
+        # re-encodes to HEVC/H.265 for a smaller file (lossy and slower).
+        self.video = video if video in ("copy", "hevc") else "copy"
         # Cropping re-encodes the video.  "none" leaves the lossless path alone;
         # "auto" detects the black bars per file at export time; "fixed" uses the
         # pixel amounts in ``crop`` = (top, bottom, left, right).
@@ -53,7 +58,9 @@ class OutputProfile:
     # -- display helpers for the list columns ------------------------------
     @property
     def codec_label(self):
-        return "Match Source"               # VRD Next always copies the video
+        if self.video == "hevc":
+            return "HEVC (re-encode)"
+        return "Match Source"               # otherwise the video is copied
 
     @property
     def container_label(self):
@@ -112,6 +119,7 @@ class OutputProfile:
             "aspect": self.aspect,
             "crop_mode": self.crop_mode,
             "crop": list(self.crop),
+            "video": self.video,
             "output_dir": self.output_dir,
             "favourite": self.favourite,
             "enabled": self.enabled,
@@ -128,6 +136,7 @@ class OutputProfile:
             aspect=d.get("aspect", "source"),
             crop_mode=d.get("crop_mode", "none"),
             crop=d.get("crop", (0, 0, 0, 0)),
+            video=d.get("video", "copy"),
             output_dir=d.get("output_dir", ""),
             favourite=bool(d.get("favourite", False)),
             enabled=bool(d.get("enabled", True)),

@@ -294,39 +294,56 @@ def _run_progress(cmd, total_seconds, progress_cb, cancel_cb):
     return proc.returncode == 0
 
 
-def crop_reencode(in_path, out_path, rect, *, cap_kbps, fps, sar=None,
-                  field_order="", total_seconds=0.0, progress_cb=None,
-                  cancel_cb=None):
-    """Re-encode ``in_path`` to ``out_path`` with the given crop rectangle.
+def crop_reencode(in_path, out_path, rect=None, *, cap_kbps, fps, sar=None,
+                  field_order="", codec="libx264", crf=None,
+                  total_seconds=0.0, progress_cb=None, cancel_cb=None):
+    """Re-encode ``in_path`` to ``out_path``, optionally cropping.
 
-    ``rect`` is (w, h, x, y) from :func:`even_rect`.  The video is re-encoded
-    with libx264 at constant quality (CRF), capped at ``cap_kbps`` so it can
-    never exceed the source's budget; audio and subtitles are copied.  ``sar``
-    optionally sets the output sample aspect ratio as ``(num, den)``.
+    ``rect`` is (w, h, x, y) from :func:`even_rect`, or ``None`` to re-encode
+    the whole frame (used when the point of the pass is a codec change rather
+    than a crop).  ``codec`` is "libx264" (default) or "libx265" for a smaller
+    HEVC output.  The video is encoded at constant quality (CRF), capped at
+    ``cap_kbps`` so it can never exceed the source's budget; audio and subtitles
+    are copied.  ``sar`` optionally sets the output sample aspect ratio as
+    ``(num, den)``.
 
-    ``field_order`` keeps the scan type unchanged: "tt"/"bb" encode interlaced
-    with that field order (so an interlaced source stays interlaced), anything
-    else encodes progressive.  ``total_seconds`` and ``progress_cb`` drive a
-    0-100% progress report as the encode runs.  Returns True on success.
+    ``field_order`` keeps H.264 output's scan type unchanged ("tt"/"bb" encode
+    interlaced with that field order); HEVC output is always deinterlaced, since
+    interlaced HEVC is poorly supported.  ``total_seconds`` and ``progress_cb``
+    drive a 0-100% progress report as the encode runs.  Returns True on success.
     """
-    w, h, x, y = rect
-    vf = "crop=%d:%d:%d:%d" % (w, h, x, y)
+    hevc = codec == "libx265"
+    filters = []
+    if rect:
+        w, h, x, y = rect
+        filters.append("crop=%d:%d:%d:%d" % (w, h, x, y))
+    if hevc and field_order in ("tt", "bb"):
+        filters.append("yadif")            # HEVC: deinterlace to progressive
     if sar:
-        vf += ",setsar=%d/%d" % (sar[0], sar[1])
+        filters.append("setsar=%d/%d" % (sar[0], sar[1]))
     fps_i = max(1, int(round(fps)))
+    if crf is None:
+        crf = 24 if hevc else 20           # HEVC needs a touch less to match
     cmd = [
         "ffmpeg", "-hide_banner", "-nostats", "-y",
         "-i", in_path, "-map", "0",
-        "-vf", vf,
-        "-c:v", "libx264", "-preset", "faster",
-        "-crf", "20",
+    ]
+    if filters:
+        cmd += ["-vf", ",".join(filters)]
+    cmd += [
+        "-c:v", codec, "-preset", "faster",
+        "-crf", str(crf),
         "-maxrate", "%dk" % cap_kbps,
         "-bufsize", "%dk" % (cap_kbps * 2),
         "-g", str(fps_i), "-keyint_min", str(fps_i),
         "-pix_fmt", "yuv420p",
     ]
-    # Keep interlaced sources interlaced, with the original field order.
-    if field_order in ("tt", "bb"):
+    if hevc:
+        # hvc1 tagging keeps HEVC-in-MP4 playable in Apple/QuickTime; harmless
+        # in other containers.
+        cmd += ["-tag:v", "hvc1"]
+    elif field_order in ("tt", "bb"):
+        # H.264: keep interlaced sources interlaced, with the original order.
         cmd += ["-flags", "+ilme+ildct",
                 "-x264-params", "tff=1" if field_order == "tt" else "bff=1"]
     cmd += ["-c:a", "copy", "-c:s", "copy", "-progress", "pipe:1", out_path]

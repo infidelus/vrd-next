@@ -44,6 +44,7 @@ from addons.output_profiles import (
 )
 
 _CONTAINERS = [("Match Source", "match"), ("Matroska MKV", "mkv"), ("MP4", "mp4")]
+_VIDEO = [("Copy (lossless)", "copy"), ("HEVC (re-encode)", "hevc")]
 _AUDIO = [("Smart copy (lossless)", "copy"), ("Re-encode to AAC", "aac")]
 _ASPECT = [("Source", "source"), ("4:3", "4:3"), ("16:9", "16:9")]
 _CROP = [
@@ -285,6 +286,9 @@ class ProfileEditDialog(QDialog):
         self.container_combo = row("Container:", _combo(_CONTAINERS))
         _select_data(self.container_combo, profile.container)
 
+        self.video_combo = row("Video:", _combo(_VIDEO))
+        _select_data(self.video_combo, getattr(profile, "video", "copy"))
+
         self.audio_combo = row("Audio:", _combo(_AUDIO))
         _select_data(self.audio_combo, profile.audio)
         self.audio_combo.currentIndexChanged.connect(self._on_audio_changed)
@@ -448,6 +452,7 @@ class ProfileEditDialog(QDialog):
             audio=self.audio_combo.currentData(),
             audio_bitrate=self.bitrate_combo.currentData(),
             aspect=self.aspect_combo.currentData(),
+            video=self.video_combo.currentData(),
             crop_mode=self.crop_combo.currentData(),
             crop=(
                 self.crop_spins["top"].value(),

@@ -20,7 +20,7 @@ import time
 
 from project.edl import parse_edl_cuts
 from project.vprj import save_vprj_from_cuts
-from repair.comskip import run_comskip, ComskipError
+from repair.comskip import run_comskip, ComskipError, pick_comskip_ini
 
 log = logging.getLogger("vrd-next.watch")
 
@@ -293,8 +293,16 @@ def scan_once(cfg, processed, comskip_binary=None, comskip_ini=None,
 
         log.info("Processing: %s", name)
         emit("processing", ProcessResult(source))
+        source_ini = comskip_ini
+        if cfg.ini_by_channel:
+            source_ini = pick_comskip_ini(source, comskip_ini)
+        log.info(
+            "  Comskip .ini: %s",
+            os.path.basename(source_ini) if source_ini
+            else "(none - Comskip defaults)",
+        )
         result = _process(
-            source, comskip_binary, comskip_ini, cfg.output_dir,
+            source, comskip_binary, source_ini, cfg.output_dir,
             cancel_cb=cancel_cb,
             save_when_empty=cfg.save_when_no_adverts,
         )

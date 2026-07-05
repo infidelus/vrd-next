@@ -12,12 +12,13 @@ from utils.timecode import (
     frame_to_timecode,
     parse_timecode,
 )
-from PySide6.QtCore import Qt, QTimer, QSize
+from PySide6.QtCore import Qt, QTimer, QSize, QEvent
 from PySide6.QtGui import (
     QShortcut,
     QKeySequence,
     QFont,
     QFontMetrics,
+    QPalette,
 )
 from utils.icons import load_icon
 
@@ -36,11 +37,6 @@ class TimeBox(QFrame):
             QFrame.Box
         )
 
-        self.setStyleSheet("""
-            background:#111;
-            border:1px solid #444;
-        """)
-
         layout = QHBoxLayout(
             self
         )
@@ -53,14 +49,11 @@ class TimeBox(QFrame):
         )
 
         # A blank title means no label - just the timecode (VRD-style IN/OUT).
-        label = None
+        self._label = None
         if title:
-            label = QLabel(
+            self._label = QLabel(
                 title
             )
-            label.setStyleSheet("""
-                color:#bbb;
-            """)
 
         if editable:
 
@@ -82,21 +75,58 @@ class TimeBox(QFrame):
                 Qt.AlignCenter
             )
 
-        self.value.setStyleSheet("""
-            color:white;
-            font-weight:bold;
-            background:#111;
-            border:none;
-        """)
-
-        if label is not None:
+        if self._label is not None:
             layout.addWidget(
-                label
+                self._label
             )
 
         layout.addWidget(
             self.value
         )
+
+        # Colour the box, text and label from the active palette, so the IN/OUT
+        # readouts follow the Light/Dark theme instead of staying black.
+        self._applying_palette = False
+        self._apply_palette()
+
+    def _apply_palette(self):
+        # setStyleSheet below re-polishes the widget, which re-posts a
+        # PaletteChange event; without this guard changeEvent would call back in
+        # and recurse until the stack overflows.  Re-entrant calls are ignored.
+        if self._applying_palette:
+            return
+        self._applying_palette = True
+        try:
+            # Read the *application* palette, not self.palette(): once this
+            # widget has a stylesheet, its own palette becomes the stylesheet's
+            # resolved colours and stops tracking app theme changes, so on a
+            # live switch self.palette() would hand back the previous theme's
+            # colours.  QApplication.palette() is always the current theme.
+            from PySide6.QtWidgets import QApplication
+            pal = QApplication.palette()
+            base = pal.color(QPalette.Base).name()
+            text = pal.color(QPalette.Text).name()
+            border = pal.color(QPalette.Mid).name()
+            label = pal.color(QPalette.Disabled, QPalette.Text).name()
+            self.setStyleSheet(
+                "QFrame { background:%s; border:1px solid %s; }" % (base, border)
+            )
+            self.value.setStyleSheet(
+                "color:%s; font-weight:bold; background:%s; border:none;"
+                % (text, base)
+            )
+            if self._label is not None:
+                self._label.setStyleSheet(
+                    "color:%s; background:%s;" % (label, base)
+                )
+        finally:
+            self._applying_palette = False
+
+    def changeEvent(self, event):
+        # Re-colour when the application palette changes (a theme switch).
+        if event.type() == QEvent.PaletteChange:
+            self._apply_palette()
+        super().changeEvent(event)
 
 
 class TransportPanel(QWidget):
@@ -202,36 +232,9 @@ class TransportPanel(QWidget):
                 Qt.NoFocus
             )
 
-            # Explicit selectors with :hover / :pressed states.  Without these,
-            # a custom-styled QPushButton loses Qt's native press feedback - so
-            # the old plain rule made the IN/OUT buttons look inert when clicked.
-            # The [flash="true"] rule is a brief post-click highlight (see
-            # _flash_button) so a quick click is unmistakable.
-            button.setStyleSheet("""
-                QPushButton {
-                    background:#222;
-                    color:white;
-                    border:1px solid #555;
-                    padding:4px;
-                }
-                QPushButton:hover {
-                    background:#2c2c2c;
-                    border:1px solid #777;
-                }
-                QPushButton:pressed {
-                    background:#0d5bd0;
-                    border:1px solid #4faaff;
-                }
-                QPushButton:disabled {
-                    background:#1a1a1a;
-                    color:#666;
-                    border:1px solid #3a3a3a;
-                }
-                QPushButton[flash="true"] {
-                    background:#0d5bd0;
-                    border:1px solid #4faaff;
-                }
-            """)
+            # No custom stylesheet: the mark buttons use the same native theme
+            # style as the playback buttons, so their normal / hover / pressed
+            # look matches the rest of the transport row in every theme.
 
         self.mark_in_btn.clicked.connect(
             self.window.mark_in
@@ -333,6 +336,14 @@ class TransportPanel(QWidget):
         )
 
         layout.addStretch()
+
+    def refresh_theme(self):
+        """Re-colour the readouts and reload the mark-button icons after a live
+        Light/Dark theme switch, so the panel updates without a restart."""
+        self.mark_in_btn.setIcon(load_icon("mark_in"))
+        self.mark_out_btn.setIcon(load_icon("mark_out"))
+        for box in self.findChildren(TimeBox):
+            box._apply_palette()
 
     def _flash_button(self, button):
         """Briefly highlight a button just after it's clicked, so it's obvious
@@ -574,7 +585,7 @@ class TransportControls(QWidget):
         self.forward_30_btn = QPushButton()
         self.forward_120_btn = QPushButton()
 
-        icon_for = {
+        self._icon_for = {
             self.back_120_btn: "seek_back_far",
             self.back_30_btn: "seek_back",
             self.frame_back_btn: "step_back",
@@ -583,7 +594,7 @@ class TransportControls(QWidget):
             self.forward_30_btn: "seek_forward",
             self.forward_120_btn: "seek_forward_far",
         }
-        for _btn, _name in icon_for.items():
+        for _btn, _name in self._icon_for.items():
             _btn.setIcon(load_icon(_name))
 
         buttons = [
@@ -793,6 +804,13 @@ class TransportControls(QWidget):
             self.play_btn.setIcon(
                 load_icon("play")
             )
+
+    def refresh_theme(self):
+        """Reload the playback-button icons for the current theme (called after
+        a live Light/Dark switch, once the icon cache has been cleared)."""
+        for btn, name in self._icon_for.items():
+            btn.setIcon(load_icon(name))
+        self.update_buttons()          # play/pause reflects the current state
 
 class ActionBar(QWidget):
     """Bottom row: Add Selection, Add Unselected, Save Video."""

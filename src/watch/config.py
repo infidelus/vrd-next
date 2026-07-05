@@ -181,6 +181,22 @@ class WatchConfig:
         self._data["save_when_no_adverts"] = bool(value)
 
     @property
+    def ini_by_channel(self):
+        """Whether to pick the Comskip .ini per channel from the filename.
+
+        Read from the shared editor config (Settings > External tools), so the
+        watcher and the manual "Detect Commercials" always agree - the setting
+        lives next to the Comskip paths it relates to.
+        """
+        try:
+            cfg = ensure_config()
+            return bool(
+                cfg.get("paths", {}).get("comskip_ini_by_channel", False)
+            )
+        except Exception:
+            return False
+
+    @property
     def ignore(self):
         return set(self._data.get("ignore", []))
 

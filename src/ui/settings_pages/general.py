@@ -12,6 +12,12 @@ _FRAME_TYPE_OPTIONS = [
     ("Both", "both"),
 ]
 
+_THEME_OPTIONS = [
+    ("Follow system", "system"),
+    ("Light", "light"),
+    ("Dark", "dark"),
+]
+
 
 class GeneralPage(SettingsPage):
     TITLE = "General"
@@ -45,6 +51,25 @@ class GeneralPage(SettingsPage):
             "corner of the thumbnail strip and/or the preview."
         ))
 
+        theme_row = QHBoxLayout()
+        theme_row.addWidget(QLabel("Theme:"))
+        self._theme = QComboBox()
+        for label_text, _val in _THEME_OPTIONS:
+            self._theme.addItem(label_text)
+        current_theme = s.get("theme", "system")
+        for i, (_label, val) in enumerate(_THEME_OPTIONS):
+            if val == current_theme:
+                self._theme.setCurrentIndex(i)
+                break
+        theme_row.addStretch(1)
+        theme_row.addWidget(self._theme)
+        self.add_layout(theme_row)
+        self.add(hint(
+            "Follow the desktop's own colours, or pin a Light or Dark look for "
+            "VRD Next. The editor's timeline and thumbnail bars stay dark in "
+            "every theme. The change applies straight away."
+        ))
+
         self._restore_size_btn = QPushButton("Restore default window size")
         self._restore_size_btn.clicked.connect(self._ctx.restore_window_size)
         self.add(self._restore_size_btn)
@@ -56,3 +81,4 @@ class GeneralPage(SettingsPage):
         settings["frame_type_display"] = _FRAME_TYPE_OPTIONS[
             self._frame_type_display.currentIndex()
         ][1]
+        settings["theme"] = _THEME_OPTIONS[self._theme.currentIndex()][1]

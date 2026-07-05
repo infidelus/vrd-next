@@ -16,10 +16,13 @@ import re
 
 # S05E11 / s05e11 / S05.E11, optionally followed by further episodes that must
 # each carry their own 'E' (E12, -E12, E12E13).  Requiring the 'E' on extras
-# stops quality tags like '1080' being mistaken for an episode number.
+# stops quality tags like '1080' being mistaken for an episode number, and the
+# extra separator excludes whitespace so a Plex-style title that follows a
+# " - " (e.g. "S03E21 - E2", where "E2" is the episode title) isn't swallowed
+# as a second episode.
 _SXXEXX = re.compile(
     r"[Ss](?P<season>\d{1,2})[\s._-]*[Ee](?P<ep>\d{1,3})"
-    r"(?P<extra>(?:[\s._-]*[Ee]\d{1,3})+)?"
+    r"(?P<extra>(?:[._-]*[Ee]\d{1,3})+)?"
 )
 
 # 1x02 / 01x02 / 12x05, with optional multi-parters 1x02-03 or 1x02x03.  The
@@ -93,7 +96,14 @@ def _match_se(stem):
         season = int(m.group("season"))
         episodes = [int(m.group("ep"))]
         for extra_ep in re.findall(r"\d{1,3}", m.group("extra") or ""):
-            episodes.append(int(extra_ep))
+            n = int(extra_ep)
+            # A genuine multi-episode tag ascends (E21E22).  Anything not
+            # greater than the previous episode is a title fragment that merely
+            # looks like an episode - e.g. a title of "E2" after S03E21 - so
+            # stop here rather than inventing a nonsensical two-parter.
+            if n <= episodes[-1]:
+                break
+            episodes.append(n)
         return m.start(), season, episodes
     return None
 

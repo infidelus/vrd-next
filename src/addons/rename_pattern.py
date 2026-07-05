@@ -168,3 +168,39 @@ def _is_specials(season):
         return season is not None and int(season) == 0
     except (TypeError, ValueError):
         return False
+
+
+# --- user-defined naming presets -----------------------------------------
+#
+# The renamers offer a handful of ready-made presets plus a free-form "Custom"
+# pattern.  These helpers let the user save a custom pattern under a name so it
+# joins the preset list and can be reused without retyping.  They're stored per
+# renamer under config["settings"][key] as a list of [label, pattern] pairs.
+
+
+def load_user_presets(config, key):
+    """Return the user's saved presets for ``key`` as (label, pattern) pairs.
+
+    Malformed entries (from a hand-edited config, say) are skipped rather than
+    allowed to crash the renamer.
+    """
+    raw = (config or {}).get("settings", {}).get(key, [])
+    presets = []
+    if isinstance(raw, list):
+        for item in raw:
+            if not isinstance(item, (list, tuple)) or len(item) < 2:
+                continue
+            label, pattern = item[0], item[1]
+            if (isinstance(label, str) and isinstance(pattern, str)
+                    and label.strip() and pattern.strip()):
+                presets.append((label, pattern))
+    return presets
+
+
+def store_user_presets(config, key, presets):
+    """Write (label, pattern) preset pairs back to config["settings"][key].
+
+    Does not save the config to disk - the caller does that once it's ready.
+    """
+    config.setdefault("settings", {})[key] = [[label, pattern]
+                                              for label, pattern in presets]

@@ -30,8 +30,8 @@ distilling the part many people relied on most into a free, open-source tool.
 ## Requirements
 
 - **Linux.** Developed and tested on Linux Mint; other distributions should
-  work but are less tested. Windows is untested but should run — see
-  [Status](#status) for the caveats.
+  work but are less tested. Windows has had basic testing — it installs and
+  runs — see [Status](#status) for the caveats.
 - **Python 3.10 or newer.**
 - **Python packages:** PySide6, PyAV (`av`), numpy, bitstring, tqdm — see
   [`requirements.txt`](requirements.txt).
@@ -43,6 +43,28 @@ distilling the part many people relied on most into a free, open-source tool.
   key is available from your account at themoviedb.org.
 
 ## Installation
+
+The quickest way is the one-step installer for your platform, which sets up the
+dependencies, a virtual environment, and menu/desktop shortcuts.
+
+**Linux (Debian / Ubuntu / Mint):**
+
+```bash
+git clone https://github.com/infidelus/vrd-next.git
+cd vrd-next/src/packaging
+chmod +x install-linux.sh
+./install-linux.sh
+```
+
+**Windows 10 / 11:** clone or download the repository, then right-click
+`src/packaging/install-windows.ps1` and choose **Run with PowerShell** (it uses
+winget to fetch Python, ffmpeg and mkvmerge if they're missing).
+
+See [`src/packaging/README.md`](src/packaging/README.md) for details.
+
+### Manual installation
+
+If you'd rather set things up yourself:
 
 ```bash
 git clone https://github.com/infidelus/vrd-next.git
@@ -99,15 +121,16 @@ recordings on Linux Mint — that's the path that's had the most real-world use.
 Other sources and distributions may well work, but haven't been exercised as
 thoroughly.
 
-It hasn't been tested on Windows, but the core is cross-platform Python
-(PySide6 and PyAV), so the editor and cutting should run there too. A couple of
-Linux-only conveniences won't carry over — most notably the Watcher's
-start-on-login — and on Windows the settings land in a `.config` folder under
-your user profile rather than the usual location.
+It's had basic testing on Windows — it installs (via the installer above) and
+runs — though it hasn't been through extensive functionality testing there. The
+core is cross-platform Python (PySide6 and PyAV), so the editor and cutting work
+as expected. A couple of Linux-only conveniences won't carry over — most notably
+the Watcher's start-on-login — and on Windows the settings land in a `.config`
+folder under your user profile rather than the usual location.
 
 It's shared as-is, in the hope that others find it useful. The issue tracker is
-turned off, and updates are likely to be occasional — chiefly theming support
-and the odd bug fix. I dip into
+turned off, and updates are likely to be occasional — chiefly the odd bug fix
+and refinement. I dip into
 [r/videoredo](https://www.reddit.com/r/videoredo/) now and then, but if you hit
 a problem or want it to do more, the best thing you can do is **fork it and make
 it your own** — exactly what the licence is here to allow.

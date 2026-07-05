@@ -39,7 +39,12 @@ from PySide6.QtWidgets import (
 from config.loader import save_config
 from addons.filename_parse import parse_filename
 from addons.match_cache import get_match, put_match, get_checked, save as save_cache
-from addons.rename_pattern import DEFAULT_MOVIE_PATTERN, format_path
+from addons.rename_pattern import (
+    DEFAULT_MOVIE_PATTERN,
+    format_path,
+    load_user_presets,
+    store_user_presets,
+)
 from addons.tmdb_client import TmdbClient, TmdbError, year_of
 from ui.match_worker import MatchRunner
 from utils.file_mover import move_jobs
@@ -208,12 +213,20 @@ class FilmRenamerDialog(QDialog):
         preset_row = QHBoxLayout()
         preset_row.addWidget(QLabel("Preset:"))
         self.preset_combo = QComboBox()
-        for label, pat in FILM_PRESETS:
-            self.preset_combo.addItem(label, pat)
-        self.preset_combo.addItem("Custom…", None)
         self.preset_combo.currentIndexChanged.connect(self._on_preset_changed)
         preset_row.addWidget(self.preset_combo, 1)
+        self.save_preset_btn = QPushButton("Save…")
+        self.save_preset_btn.setToolTip(
+            "Save the current pattern as a named preset"
+        )
+        self.save_preset_btn.clicked.connect(self._save_preset)
+        preset_row.addWidget(self.save_preset_btn)
+        self.delete_preset_btn = QPushButton("Delete")
+        self.delete_preset_btn.setToolTip("Delete the selected saved preset")
+        self.delete_preset_btn.clicked.connect(self._delete_preset)
+        preset_row.addWidget(self.delete_preset_btn)
         layout.addLayout(preset_row)
+        self._populate_preset_combo()
 
         pattern_row = QHBoxLayout()
         pattern_row.addWidget(QLabel("Pattern:"))
@@ -502,6 +515,7 @@ class FilmRenamerDialog(QDialog):
     def _on_preset_changed(self, _index):
         """Drop the chosen preset's pattern into the box (unless 'Custom…'),
         then apply it."""
+        self._update_delete_enabled()
         if self._syncing_preset:
             return
         pattern = self.preset_combo.currentData()
@@ -525,6 +539,95 @@ class FilmRenamerDialog(QDialog):
             self.preset_combo.setCurrentIndex(idx)
         finally:
             self._syncing_preset = False
+        self._update_delete_enabled()
+
+    # --- naming presets ---------------------------------------------------
+
+    _PRESET_KEY = "renamer_presets_film"
+
+    def _populate_preset_combo(self):
+        """(Re)fill the Preset selector: built-in layouts, then the user's saved
+        presets, then 'Custom…'.  Guarded so rebuilding it doesn't fire
+        ``_on_preset_changed``."""
+        self._syncing_preset = True
+        try:
+            self.preset_combo.clear()
+            for label, pat in FILM_PRESETS:
+                self.preset_combo.addItem(label, pat)
+            self._builtin_count = len(FILM_PRESETS)
+            user = load_user_presets(self.config, self._PRESET_KEY)
+            for label, pat in user:
+                self.preset_combo.addItem(label, pat)
+            self._user_count = len(user)
+            self.preset_combo.addItem("Custom…", None)
+        finally:
+            self._syncing_preset = False
+
+    def _current_is_user_preset(self):
+        """True when the selected preset is one the user saved (not a built-in
+        or 'Custom…'), i.e. one that can be deleted."""
+        idx = self.preset_combo.currentIndex()
+        builtin = getattr(self, "_builtin_count", 0)
+        user = getattr(self, "_user_count", 0)
+        return builtin <= idx < builtin + user
+
+    def _update_delete_enabled(self):
+        self.delete_preset_btn.setEnabled(self._current_is_user_preset())
+
+    def _save_preset(self):
+        """Save the current pattern under a name the user chooses, so it joins
+        the Preset list for reuse."""
+        from PySide6.QtWidgets import QInputDialog
+        pattern = self.pattern_edit.text().strip()
+        if not pattern:
+            QMessageBox.information(
+                self, "Save preset", "There's no pattern to save."
+            )
+            return
+        name, ok = QInputDialog.getText(
+            self, "Save preset", "Name for this preset:"
+        )
+        name = name.strip() if ok else ""
+        if not name:
+            return
+        presets = [(l, p) for l, p in
+                   load_user_presets(self.config, self._PRESET_KEY)
+                   if l != name]           # replace one with the same name
+        presets.append((name, pattern))
+        store_user_presets(self.config, self._PRESET_KEY, presets)
+        try:
+            save_config(self.config)
+        except Exception:
+            pass
+        self._populate_preset_combo()
+        i = self.preset_combo.findText(name)
+        if i >= 0:
+            self._syncing_preset = True
+            try:
+                self.preset_combo.setCurrentIndex(i)
+            finally:
+                self._syncing_preset = False
+        self._update_delete_enabled()
+
+    def _delete_preset(self):
+        """Delete the selected saved preset (built-ins can't be deleted)."""
+        if not self._current_is_user_preset():
+            return
+        label = self.preset_combo.currentText()
+        if QMessageBox.question(
+            self, "Delete preset", "Delete the preset '%s'?" % label
+        ) != QMessageBox.Yes:
+            return
+        presets = [(l, p) for l, p in
+                   load_user_presets(self.config, self._PRESET_KEY)
+                   if l != label]
+        store_user_presets(self.config, self._PRESET_KEY, presets)
+        try:
+            save_config(self.config)
+        except Exception:
+            pass
+        self._populate_preset_combo()
+        self._sync_preset_combo()
 
     def _example_meta(self):
         """Metadata + extension for the example line: the first matched film if

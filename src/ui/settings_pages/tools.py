@@ -2,7 +2,7 @@
 
 import shutil
 
-from PySide6.QtWidgets import QLabel, QLineEdit
+from PySide6.QtWidgets import QLabel, QLineEdit, QCheckBox
 
 from ui.settings_pages import SettingsPage
 from ui.settings_widgets import FileRow, hint
@@ -33,6 +33,19 @@ class ToolsPage(SettingsPage):
         self.add(hint(
             "Comskip detects the commercial breaks for the Watcher. The .ini "
             "is optional - leave it blank to use Comskip's built-in defaults."
+        ))
+
+        self._comskip_by_channel = QCheckBox(
+            "Pick the .ini by channel name in the filename"
+        )
+        self._comskip_by_channel.setChecked(
+            bool(p.get("comskip_ini_by_channel", False))
+        )
+        self.add(self._comskip_by_channel)
+        self.add(hint(
+            "For recorders that write the channel into the filename (e.g. "
+            "Tvheadend). Put per-channel files named Comskip_<channel>.ini in "
+            "the same folder as the .ini above. See the user guide for details."
         ))
 
         # mkvmerge (mkvtoolnix): used for lossless MKV exports.  If the user
@@ -106,6 +119,7 @@ class ToolsPage(SettingsPage):
         paths = config.setdefault("paths", {})
         paths["comskip_binary"] = self._comskip_bin_row.value()
         paths["comskip_ini"] = self._comskip_ini_row.value()
+        paths["comskip_ini_by_channel"] = self._comskip_by_channel.isChecked()
         paths["mkvmerge_binary"] = self._mkvmerge_row.value()
         paths["ffmpeg_binary"] = self._ffmpeg_row.value()
         paths["ffprobe_binary"] = self._ffprobe_row.value()

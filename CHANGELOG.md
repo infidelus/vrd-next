@@ -5,6 +5,44 @@ All notable changes to VRD Next are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-07-05
+
+### Added
+
+- **Light and dark themes.** A **Theme** setting (Follow system, Light or Dark)
+  under **Settings → General**, applied live without a restart. The Light theme
+  echoes the classic VideoReDo look; the timeline and thumbnail bars stay dark in
+  every theme by design.
+- **HEVC output.** Output profiles gain a **Video** option — **Copy** (the
+  lossless default) or **HEVC (re-encode)** to H.265 for much smaller files. It's
+  opt-in per profile, and the lossless cutting path is unchanged when it's set to
+  Copy. Interlaced sources are deinterlaced when re-encoding to HEVC.
+- **Renamer presets.** Save your own naming patterns as named presets in the TV
+  and Film renamers (each keeps its own list), with **Save…** and **Delete**.
+- **More input formats.** `.mp4`, `.m2ts`, `.mov` and `.avi` can be opened
+  alongside `.ts` and `.mkv`, with an "All files" fall-back.
+- **Per-channel Comskip `.ini`.** When a recording's filename contains the
+  channel name (for example Tvheadend, via its `$c`), the watcher and manual
+  detection can pick a `Comskip_<channel>.ini` from beside the main `.ini` — the
+  longest, case-insensitive match winning. Enabled under
+  **Settings → External tools**.
+- **One-step installers.** `packaging/install-linux.sh` (Debian/Ubuntu/Mint) and
+  `packaging/install-windows.ps1` (Windows, via winget) set up the dependencies, a
+  virtual environment and menu/desktop shortcuts. A multi-resolution app icon is
+  included for the shortcuts.
+
+### Changed
+
+- Theme changes now apply live across the whole interface — chrome, transport
+  readouts, icons and buttons — rather than needing a restart.
+
+### Fixed
+
+- A crash (stack overflow) when switching theme, caused by a palette-change
+  recursion in the transport panel.
+- The TV renamer no longer misreads an episode whose title looks like an episode
+  number — for example a title of "E2" after `S03E21` — as a two-parter.
+
 ## [1.2.0] - 2026-07-02
 
 ### Added
@@ -78,6 +116,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 - Initial public release.
 
+[1.3.0]: https://github.com/infidelus/vrd-next/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/infidelus/vrd-next/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/infidelus/vrd-next/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/infidelus/vrd-next/releases/tag/v1.0.0

@@ -53,6 +53,7 @@ DEFAULT_CONFIG = {
         # Show picture type (I/P/B) on frames: "none", "thumbnails", "preview"
         # or "both".
         "frame_type_display": "none",
+        "theme": "system",          # "system" | "light" | "dark"
 
         # Playback audio volume, 0-100.  Audio plays only during real-time
         # playback (not while frame-stepping or jumping).
@@ -99,6 +100,11 @@ DEFAULT_CONFIG = {
         # prompt the user to set these in Settings.
         "comskip_binary": "",
         "comskip_ini": "",
+        # When set, the Watcher (and manual "Detect Commercials") pick a
+        # per-channel Comskip .ini named Comskip_<name>.ini beside comskip_ini,
+        # matched against the recording's filename.  Only useful when the
+        # recorder writes the channel into the filename (e.g. Tvheadend's $c).
+        "comskip_ini_by_channel": False,
 
         # mkvmerge (mkvtoolnix): used to mux MKV exports so the broadcast LATM
         # AAC is repackaged into native A_AAC (widely compatible) rather than

@@ -122,6 +122,15 @@ VIDEO_SAVE_FILTER = (
     "Videos (*.ts *.m2ts *.mkv *.mp4 *.mpg *.mpeg);;All files (*)"
 )
 
+# Name filter for "open a video" dialogs.  The cutter decodes through ffmpeg,
+# so the mainstream containers all open; ".ts" and ".mkv" remain the primary
+# formats, with the others offered for convenience and "All files" as a
+# fall-back so nothing is ever blocked from opening.  ".avi" is old but still
+# turns up in older recordings, so it's included too.
+VIDEO_OPEN_FILTER = (
+    "Videos (*.ts *.m2ts *.mkv *.mp4 *.mov *.avi);;All files (*)"
+)
+
 
 log = logging.getLogger("vrd-next")
 
@@ -1394,6 +1403,18 @@ class MainWindow(QMainWindow):
         binary = self.config.get("paths", {}).get("comskip_binary", "")
         ini = self.config.get("paths", {}).get("comskip_ini", "")
 
+        # Same per-channel .ini selection the Watcher uses (Settings > External
+        # tools), matched against the open recording's filename.
+        if self.config.get("paths", {}).get("comskip_ini_by_channel", False):
+            from repair.comskip import pick_comskip_ini
+            picked = pick_comskip_ini(self.current_filename, ini)
+            if picked != ini:
+                log.info(
+                    "Detect Commercials: using channel Comskip .ini: %s",
+                    os.path.basename(picked),
+                )
+            ini = picked
+
         if not binary or not os.path.isfile(binary):
             QMessageBox.information(
                 self,
@@ -1569,7 +1590,7 @@ class MainWindow(QMainWindow):
                 self,
                 "Locate video for project",
                 start_dir,
-                "Video (*.ts *.mkv);;All files (*)",
+                VIDEO_OPEN_FILTER,
             )
             if not source:
                 return False
@@ -1798,6 +1819,7 @@ class MainWindow(QMainWindow):
             self._reconfigure_logging()
             self._apply_frame_type_display()
             self._apply_shortcut_changes()
+            self._apply_theme()
 
         elif result == SettingsDialog.EDITED_EXTERNALLY:
             # The user edited config.json directly (or restored defaults); reload
@@ -1809,6 +1831,35 @@ class MainWindow(QMainWindow):
             self._reconfigure_logging()
             self._apply_frame_type_display()
             self._apply_shortcut_changes()
+            self._apply_theme()
+
+    def _apply_theme(self):
+        """Re-apply the chosen appearance (System / Light / Dark) live.
+
+        After swapping the palette we clear the icon cache and ask every widget
+        that knows how (the transport panel and controls) to re-colour its
+        readouts and reload its icons, so the whole interface updates without a
+        restart.
+        """
+        try:
+            from PySide6.QtWidgets import QApplication
+            from ui.theme import apply_theme
+            from utils.icons import clear_cache
+            mode = self.config.get("settings", {}).get("theme", "system")
+            app = QApplication.instance()
+            apply_theme(app, mode, wrap_style=_SlowTooltipStyle)
+            # Cached icons were rendered in the previous theme's colour; drop
+            # them so they re-render, then refresh the widgets that hold them.
+            clear_cache()
+            for widget in app.allWidgets():
+                refresh = getattr(widget, "refresh_theme", None)
+                if callable(refresh):
+                    try:
+                        refresh()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
     def _apply_shortcut_changes(self):
         """Re-bind keyboard shortcuts and rebuild the menus from the current
@@ -2051,7 +2102,7 @@ class MainWindow(QMainWindow):
                 self,
                 "Open Video",
                 self._start_dir("open"),
-                "Video (*.ts *.mkv)"
+                VIDEO_OPEN_FILTER
             )
         )
 
@@ -2581,6 +2632,7 @@ class MainWindow(QMainWindow):
             aspect=profile.aspect,
             crop_mode=getattr(profile, "crop_mode", "none"),
             crop=getattr(profile, "crop", (0, 0, 0, 0)),
+            video_mode=getattr(profile, "video", "copy"),
         )
 
     def open_profile_manager(self):
@@ -3068,6 +3120,7 @@ class MainWindow(QMainWindow):
             aspect="source",
             crop_mode="none",
             crop=(0, 0, 0, 0),
+            video_mode="copy",
     ):
         from ui.export_dialogs import (
             ExportProgressDialog,
@@ -3090,6 +3143,7 @@ class MainWindow(QMainWindow):
             aspect=aspect,
             crop_mode=crop_mode,
             crop=crop,
+            video_mode=video_mode,
         )
 
         # Keep a reference so the thread isn't garbage-collected.
@@ -4978,25 +5032,22 @@ except Exception:
     # Never let a logging problem stop the app launching.
     pass
 
-# Tooltips: make them readable on the dark theme (the default is dark text on
-# a dark box, which looked like an empty black square), and slow them down so
-# they only appear after a brief hover.
-app.setStyleSheet(
-    "QToolTip { color:#f0f0f0; background-color:#2b2b2b;"
-    " border:1px solid #555; padding:4px 6px; }"
-)
-
-# Lengthen the hover delay without changing the look: wrap a fresh copy of the
-# CURRENT style (so palette/appearance are untouched) and only override the
-# delay.  If we can't recreate the current style, leave the delay as-is rather
-# than risk altering the theme.
+# Appearance: apply the user's chosen theme (System / Light / Dark).  This sets
+# the palette, the Fusion style for Light/Dark (or the desktop's own for
+# System), and a readable tooltip style - wrapped in the slow-tooltip proxy so
+# hints still appear after a brief pause rather than instantly.
 try:
-    _style_key = app.style().name()
-    _base_style = QStyleFactory.create(_style_key) if _style_key else None
-    if _base_style is not None:
-        app.setStyle(_SlowTooltipStyle(_base_style))
+    from ui.theme import apply_theme
+
+    _theme_mode = _boot_cfg.get("settings", {}).get("theme", "system")
+    apply_theme(app, _theme_mode, wrap_style=_SlowTooltipStyle)
 except Exception:
-    pass
+    # If theming fails for any reason, fall back to the plain readable tooltip
+    # so the app still launches looking sensible.
+    app.setStyleSheet(
+        "QToolTip { color:#f0f0f0; background-color:#2b2b2b;"
+        " border:1px solid #555; padding:4px 6px; }"
+    )
 
 class _TooltipGate(QObject):
     """When tooltips are switched off in Settings, this app-wide filter quietly
