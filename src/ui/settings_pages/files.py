@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QCheckBox, QFrame
 
 from ui.settings_pages import SettingsPage
 from ui.settings_widgets import PathRow, hint
+from PySide6.QtCore import QT_TRANSLATE_NOOP
 
 
 def _divider():
@@ -14,28 +15,28 @@ def _divider():
 
 
 class FilesPage(SettingsPage):
-    TITLE = "Files & folders"
+    TITLE = QT_TRANSLATE_NOOP("Settings", "Files & folders")
 
     def build(self):
         s = self._settings()
         p = self._paths()
 
-        self._qsf_on_open = QCheckBox("Quick Stream Fix on open")
+        self._qsf_on_open = QCheckBox(self.tr("Quick Stream Fix on open"))
         self._qsf_on_open.setChecked(s.get("qsf_on_open", False))
         self.add(self._qsf_on_open)
         self.add(hint(
-            "When enabled, opened files are remuxed first to repair broken "
-            "broadcast streams before loading."
+            self.tr("When enabled, opened files are remuxed first to repair broken "
+            "broadcast streams before loading.")
         ))
 
         self._qsf_no_rewarn = QCheckBox(
-            "Don't warn when re-running Quick Stream Fix"
+            self.tr("Don't warn when re-running Quick Stream Fix")
         )
         self._qsf_no_rewarn.setChecked(s.get("qsf_no_rewarn", False))
         self.add(self._qsf_no_rewarn)
         self.add(hint(
-            "VRD Next remembers files it has already Quick Stream Fixed and "
-            "asks before repairing one again. Tick this to skip that prompt."
+            self.tr("VRD Next remembers files it has already Quick Stream Fixed and "
+            "asks before repairing one again. Tick this to skip that prompt.")
         ))
 
         self.add(_divider())

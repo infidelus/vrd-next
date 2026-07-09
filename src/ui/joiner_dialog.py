@@ -68,16 +68,16 @@ class TitleEditorDialog(QDialog):
 
     def __init__(self, entry=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Title Card")
+        self.setWindowTitle(self.tr("Title Card"))
         self._bg = QColor(entry.bg_color if entry else "#000000")
         self._fg = QColor(entry.text_color if entry else "#FFFFFF")
         self._bg_image = entry.bg_image if entry else ""
 
         form = QFormLayout(self)
         self.ed_title = QLineEdit(entry.text if entry else "")
-        self.ed_title.setPlaceholderText("Main text")
+        self.ed_title.setPlaceholderText(self.tr("Main text"))
         self.ed_sub = QLineEdit(entry.subtitle if entry else "")
-        self.ed_sub.setPlaceholderText("Optional second line")
+        self.ed_sub.setPlaceholderText(self.tr("Optional second line"))
 
         self.sp_dur = QDoubleSpinBox()
         self.sp_dur.setRange(0.5, 120.0)
@@ -97,7 +97,7 @@ class TitleEditorDialog(QDialog):
         # how an odd-shaped image maps onto the card's frame.
         self.btn_img = QPushButton()
         self.btn_img.clicked.connect(self._pick_image)
-        self.btn_img_clear = QPushButton("Clear")
+        self.btn_img_clear = QPushButton(self.tr("Clear"))
         self.btn_img_clear.clicked.connect(self._clear_image)
         img_row = QHBoxLayout()
         img_row.setContentsMargins(0, 0, 0, 0)
@@ -105,20 +105,20 @@ class TitleEditorDialog(QDialog):
         img_row.addWidget(self.btn_img_clear)
 
         self.cb_scaling = QComboBox()
-        self.cb_scaling.addItem("Fill frame (may crop edges)", "fill")
-        self.cb_scaling.addItem("Fit inside (letterbox)", "fit")
-        self.cb_scaling.addItem("Stretch (may distort)", "stretch")
+        self.cb_scaling.addItem(self.tr("Fill frame (may crop edges)"), "fill")
+        self.cb_scaling.addItem(self.tr("Fit inside (letterbox)"), "fit")
+        self.cb_scaling.addItem(self.tr("Stretch (may distort)"), "stretch")
         want = (entry.bg_scaling if entry else "fill") or "fill"
         self.cb_scaling.setCurrentIndex(max(0, self.cb_scaling.findData(want)))
         self._update_image_state()
 
-        form.addRow("Title:", self.ed_title)
-        form.addRow("Subtitle:", self.ed_sub)
-        form.addRow("Duration:", self.sp_dur)
-        form.addRow("Background colour:", self.btn_bg)
-        form.addRow("Background image:", img_row)
-        form.addRow("Image scaling:", self.cb_scaling)
-        form.addRow("Text colour:", self.btn_fg)
+        form.addRow(self.tr("Title:"), self.ed_title)
+        form.addRow(self.tr("Subtitle:"), self.ed_sub)
+        form.addRow(self.tr("Duration:"), self.sp_dur)
+        form.addRow(self.tr("Background colour:"), self.btn_bg)
+        form.addRow(self.tr("Background image:"), img_row)
+        form.addRow(self.tr("Image scaling:"), self.cb_scaling)
+        form.addRow(self.tr("Text colour:"), self.btn_fg)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok
@@ -160,14 +160,14 @@ class TitleEditorDialog(QDialog):
             self.btn_img.setText(os.path.basename(self._bg_image))
             self.btn_img.setToolTip(self._bg_image)
         else:
-            self.btn_img.setText("Choose image…")
+            self.btn_img.setText(self.tr("Choose image…"))
             self.btn_img.setToolTip("")
         self.btn_img_clear.setEnabled(bool(self._bg_image))
         self.cb_scaling.setEnabled(bool(self._bg_image))
 
     def _pick_image(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Choose background image", "",
+            self, self.tr("Choose background image"), "",
             "Images (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.tif *.tiff)"
             ";;All files (*)")
         if path:
@@ -195,7 +195,7 @@ class JoinerDialog(QDialog):
     def __init__(self, joiner_list, joiner_dir="", parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Joiner editing")
+        self.setWindowTitle(self.tr("Joiner editing"))
         self.resize(660, 430)
 
         # Work on a copy so Cancel discards and OK keeps.
@@ -212,10 +212,10 @@ class JoinerDialog(QDialog):
 
         # ---- File menu --------------------------------------------------
         menubar = QMenuBar(self)
-        file_menu = menubar.addMenu("File")
-        file_menu.addAction("Load Joiner List…", self._load)
-        file_menu.addAction("Save Joiner List", self._save)
-        file_menu.addAction("Save Joiner List As…", self._save_as)
+        file_menu = menubar.addMenu(self.tr("File"))
+        file_menu.addAction(self.tr("Load Joiner List…"), self._load)
+        file_menu.addAction(self.tr("Save Joiner List"), self._save)
+        file_menu.addAction(self.tr("Save Joiner List As…"), self._save_as)
         outer.setMenuBar(menubar)
 
         # ---- List + side buttons ---------------------------------------
@@ -223,7 +223,8 @@ class JoinerDialog(QDialog):
 
         self.tree = QTreeWidget()
         self.tree.setColumnCount(3)
-        self.tree.setHeaderLabels(["Filename", "Description", "Duration"])
+        self.tree.setHeaderLabels(
+            [self.tr("Filename"), self.tr("Description"), self.tr("Duration")])
         self.tree.setRootIsDecorated(False)
         self.tree.setUniformRowHeights(True)
         self.tree.setSelectionMode(
@@ -236,17 +237,17 @@ class JoinerDialog(QDialog):
         mid.addWidget(self.tree, 1)
 
         side = QVBoxLayout()
-        self.btn_up = QPushButton("Up")
+        self.btn_up = QPushButton(self.tr("Up"))
         self.btn_up.clicked.connect(lambda: self._move(-1))
-        self.btn_down = QPushButton("Down")
+        self.btn_down = QPushButton(self.tr("Down"))
         self.btn_down.clicked.connect(lambda: self._move(1))
-        self.btn_remove = QPushButton("Remove")
+        self.btn_remove = QPushButton(self.tr("Remove"))
         self.btn_remove.clicked.connect(self._remove)
-        self.btn_desc = QPushButton("Description")
+        self.btn_desc = QPushButton(self.tr("Description"))
         self.btn_desc.clicked.connect(self._edit_description)
-        self.btn_edit = QPushButton("Edit selection")
+        self.btn_edit = QPushButton(self.tr("Edit selection"))
         self.btn_edit.clicked.connect(self._edit_selection)
-        self.btn_title = QPushButton("Add title")
+        self.btn_title = QPushButton(self.tr("Add title"))
         self.btn_title.clicked.connect(self._add_title)
         for b in (self.btn_up, self.btn_down, self.btn_remove,
                   self.btn_desc, self.btn_edit, self.btn_title):
@@ -257,9 +258,9 @@ class JoinerDialog(QDialog):
 
         # ---- Toggles ----------------------------------------------------
         toggles = QHBoxLayout()
-        self.chk_fullpath = QCheckBox("Display full path name")
+        self.chk_fullpath = QCheckBox(self.tr("Display full path name"))
         self.chk_fullpath.toggled.connect(lambda *_: self._refresh())
-        self.chk_clear_after = QCheckBox("Clear after successful save/queue")
+        self.chk_clear_after = QCheckBox(self.tr("Clear after successful save/queue"))
         toggles.addWidget(self.chk_fullpath)
         toggles.addStretch(1)
         toggles.addWidget(self.chk_clear_after)
@@ -269,10 +270,10 @@ class JoinerDialog(QDialog):
         # Reflects the selected entry; edits write straight back to it.  A
         # non-zero fade forces the whole join to be re-encoded.
         self._loading_fade = False
-        fade_box = QGroupBox("Fade to/from black (selected clip)")
+        fade_box = QGroupBox(self.tr("Fade to/from black (selected clip)"))
         fade_row = QHBoxLayout(fade_box)
 
-        fade_row.addWidget(QLabel("In:"))
+        fade_row.addWidget(QLabel(self.tr("In:")))
         self.sp_fade_in = QDoubleSpinBox()
         self.sp_fade_in.setRange(0.0, 10.0)
         self.sp_fade_in.setSingleStep(0.5)
@@ -282,7 +283,7 @@ class JoinerDialog(QDialog):
         fade_row.addWidget(self.sp_fade_in)
 
         fade_row.addSpacing(16)
-        fade_row.addWidget(QLabel("Out:"))
+        fade_row.addWidget(QLabel(self.tr("Out:")))
         self.sp_fade_out = QDoubleSpinBox()
         self.sp_fade_out.setRange(0.0, 10.0)
         self.sp_fade_out.setSingleStep(0.5)
@@ -296,14 +297,14 @@ class JoinerDialog(QDialog):
 
         # ---- Bottom buttons --------------------------------------------
         bottom = QHBoxLayout()
-        self.btn_clear_all = QPushButton("Clear all")
+        self.btn_clear_all = QPushButton(self.tr("Clear all"))
         self.btn_clear_all.clicked.connect(self._clear_all)
-        self.btn_create = QPushButton("Create video from joiner list…")
+        self.btn_create = QPushButton(self.tr("Create video from joiner list…"))
         self.btn_create.clicked.connect(self._create_video)
-        self.btn_ok = QPushButton("OK")
+        self.btn_ok = QPushButton(self.tr("OK"))
         self.btn_ok.setDefault(True)
         self.btn_ok.clicked.connect(self.accept)
-        self.btn_cancel = QPushButton("Cancel")
+        self.btn_cancel = QPushButton(self.tr("Cancel"))
         self.btn_cancel.clicked.connect(self.reject)
         bottom.addWidget(self.btn_clear_all)
         bottom.addWidget(self.btn_create)
@@ -347,7 +348,7 @@ class JoinerDialog(QDialog):
                 # Grey out and flag entries whose file is missing.
                 for col in range(3):
                     item.setForeground(col, QColor("gray"))
-                item.setToolTip(0, "File not found: %s" % (entry.source,))
+                item.setToolTip(0, self.tr("File not found: %s") % (entry.source,))
             self.tree.addTopLevelItem(item)
 
         if select is not None and 0 <= select < self.tree.topLevelItemCount():
@@ -408,7 +409,8 @@ class JoinerDialog(QDialog):
             return
         entry = self._list.entries[i]
         text, ok = QInputDialog.getText(
-            self, "Description", "Description:", text=entry.description
+            self, self.tr("Description"), self.tr("Description:"),
+            text=entry.description
         )
         if ok:
             entry.description = text
@@ -468,7 +470,7 @@ class JoinerDialog(QDialog):
         via accept() so the caller adopts the edited list first."""
         if not self._list.entries:
             QMessageBox.information(
-                self, "Joiner", "The joiner list is empty.")
+                self, self.tr("Joiner"), self.tr("The joiner list is empty."))
             return
         self.create_requested = True
         self.accept()
@@ -477,8 +479,8 @@ class JoinerDialog(QDialog):
         if not self._list.entries:
             return
         resp = QMessageBox.question(
-            self, "Clear all",
-            "Remove all entries from the joiner list?",
+            self, self.tr("Clear all"),
+            self.tr("Remove all entries from the joiner list?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -495,8 +497,8 @@ class JoinerDialog(QDialog):
 
     def _load(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Load Joiner List", self._start_dir(),
-            "Joiner list (*%s);;All files (*)" % (JOINER_EXT,),
+            self, self.tr("Load Joiner List"), self._start_dir(),
+            self.tr("Joiner list (*%s);;All files (*)") % (JOINER_EXT,),
         )
         if not path:
             return
@@ -504,9 +506,9 @@ class JoinerDialog(QDialog):
         append = False
         if self._list.entries:
             resp = QMessageBox.question(
-                self, "Load Joiner List",
-                "Add the loaded entries to the current list?\n\n"
-                "Yes = append,  No = replace the current list.",
+                self, self.tr("Load Joiner List"),
+                self.tr("Add the loaded entries to the current list?\n\n"
+                "Yes = append,  No = replace the current list."),
                 QMessageBox.StandardButton.Yes
                 | QMessageBox.StandardButton.No
                 | QMessageBox.StandardButton.Cancel,
@@ -520,8 +522,8 @@ class JoinerDialog(QDialog):
             self._list.load_into(path, append=append)
         except (OSError, ValueError) as exc:
             QMessageBox.critical(
-                self, "Load Joiner List",
-                "Could not load the joiner list:\n\n%s" % (exc,))
+                self, self.tr("Load Joiner List"),
+                self.tr("Could not load the joiner list:\n\n%s") % (exc,))
             return
         self._refresh()
 
@@ -533,8 +535,8 @@ class JoinerDialog(QDialog):
 
     def _save_as(self):
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save Joiner List", self._start_dir(),
-            "Joiner list (*%s);;All files (*)" % (JOINER_EXT,),
+            self, self.tr("Save Joiner List"), self._start_dir(),
+            self.tr("Joiner list (*%s);;All files (*)") % (JOINER_EXT,),
         )
         if not path:
             return
@@ -547,5 +549,5 @@ class JoinerDialog(QDialog):
             self._list.save(path)
         except OSError as exc:
             QMessageBox.critical(
-                self, "Save Joiner List",
-                "Could not save the joiner list:\n\n%s" % (exc,))
+                self, self.tr("Save Joiner List"),
+                self.tr("Could not save the joiner list:\n\n%s") % (exc,))

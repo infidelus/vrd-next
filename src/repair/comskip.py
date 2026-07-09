@@ -17,6 +17,7 @@ import subprocess
 import tempfile
 
 from PySide6.QtCore import (
+    QCoreApplication,
     QThread,
     Signal,
 )
@@ -105,7 +106,8 @@ def run_comskip(binary, ini, source_path, out_dir,
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     proc.kill()
-                raise ComskipError("Commercial detection cancelled.")
+                raise ComskipError(QCoreApplication.translate(
+                    "Comskip", "Commercial detection cancelled."))
 
             if progress_cb:
                 m = _PERCENT_RE.search(line)

@@ -32,7 +32,7 @@ class GoToTimecodeDialog(QDialog):
     ):
         super().__init__(parent)
 
-        self.setWindowTitle("Go to timecode")
+        self.setWindowTitle(self.tr("Go to timecode"))
         self._current_frame = current_frame
         self._max_frame = max_frame
         self.frame = None
@@ -40,7 +40,7 @@ class GoToTimecodeDialog(QDialog):
         layout = QVBoxLayout(self)
 
         layout.addWidget(
-            QLabel("Enter a timecode:")
+            QLabel(self.tr("Enter a timecode:"))
         )
 
         self._edit = QLineEdit(
@@ -50,7 +50,7 @@ class GoToTimecodeDialog(QDialog):
         layout.addWidget(self._edit)
 
         hint = QLabel(
-            "Precede with + or - for a relative jump"
+            self.tr("Precede with + or - for a relative jump")
         )
         hint.setStyleSheet("color:#9aa0a6;")
         layout.addWidget(hint)
@@ -103,7 +103,7 @@ class GoToTimecodeDialog(QDialog):
         )
 
         if frame is None:
-            self._error.setText("That isn't a valid timecode.")
+            self._error.setText(self.tr("That isn't a valid timecode."))
             self._error.setVisible(True)
             self._edit.selectAll()
             self._edit.setFocus()

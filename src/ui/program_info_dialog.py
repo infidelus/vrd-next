@@ -5,7 +5,7 @@ sections, with a Copy to clipboard button.  Opened from Tools > Show Video
 Programme Info or the configured shortcut (Ctrl+L by default).
 """
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -20,7 +20,11 @@ from PySide6.QtWidgets import (
     QApplication,
 )
 
-from utils.program_info import gather_program_info, to_plaintext
+from utils.program_info import (
+    gather_program_info,
+    to_plaintext,
+    translate_text,
+)
 
 
 class ProgramInfoDialog(QDialog):
@@ -28,7 +32,7 @@ class ProgramInfoDialog(QDialog):
     def __init__(self, source_path, frame_count=None, fps=None, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Programme Information")
+        self.setWindowTitle(self.tr("Programme Information"))
         self._sections = gather_program_info(source_path, frame_count, fps)
 
         outer = QVBoxLayout(self)
@@ -49,10 +53,16 @@ class ProgramInfoDialog(QDialog):
         # notably the filename - wraps down the window rather than stretching it
         # sideways.  These go in their own horizontal row rather than the grid,
         # because QGridLayout mis-handles the height of a wrapped, spanned cell.
+        # Section titles, labels and values are gathered in English and
+        # translated for display; translate_text also handles the audio section
+        # title, which is built from a pattern.
+        _t = translate_text
+
+        # Matched against the English key, which is what gather_program_info stores.
         full_width = {"Name"}
 
         for title, rows in self._sections:
-            header = QLabel(title)
+            header = QLabel(_t(title))
             font = header.font()
             font.setBold(True)
             header.setFont(font)
@@ -67,8 +77,8 @@ class ProgramInfoDialog(QDialog):
                 row = QHBoxLayout()
                 row.setContentsMargins(8, 0, 0, 0)
                 row.setSpacing(8)
-                lab = QLabel(f"{label}:")
-                val = QLabel(str(value))
+                lab = QLabel("%s:" % _t(label))
+                val = QLabel(_t(value))
                 val.setWordWrap(True)
                 val.setAlignment(Qt.AlignLeft | Qt.AlignTop)
                 val.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -92,8 +102,8 @@ class ProgramInfoDialog(QDialog):
                 r = idx // 2
                 c = (idx % 2) * 2
 
-                lab = QLabel(f"{label}:")
-                val = QLabel(str(value))
+                lab = QLabel("%s:" % _t(label))
+                val = QLabel(_t(value))
                 val.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
                 grid.addWidget(lab, r, c, Qt.AlignLeft | Qt.AlignTop)
@@ -108,13 +118,13 @@ class ProgramInfoDialog(QDialog):
         # Buttons: Copy to clipboard (left), OK (right).
         buttons = QHBoxLayout()
 
-        copy_button = QPushButton("Copy to clipboard")
+        copy_button = QPushButton(self.tr("Copy to clipboard"))
         copy_button.clicked.connect(self._copy_to_clipboard)
         buttons.addWidget(copy_button)
 
         buttons.addStretch(1)
 
-        ok_button = QPushButton("OK")
+        ok_button = QPushButton(self.tr("OK"))
         ok_button.setDefault(True)
         ok_button.clicked.connect(self.accept)
         buttons.addWidget(ok_button)
@@ -124,6 +134,15 @@ class ProgramInfoDialog(QDialog):
         self.resize(560, 520)
 
     def _copy_to_clipboard(self):
+        # Copy what's actually on screen: the gathered sections keep English
+        # keys internally, so translate the titles, labels and values before
+        # rendering them, otherwise a German user would paste English text.
+        _t = translate_text
+
+        translated = [
+            (_t(title), [(_t(label), _t(value)) for label, value in rows])
+            for title, rows in self._sections
+        ]
         QApplication.clipboard().setText(
-            to_plaintext(self._sections)
+            to_plaintext(translated)
         )

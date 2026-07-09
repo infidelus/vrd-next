@@ -163,7 +163,7 @@ class TransportPanel(QWidget):
         )
 
         self.cursor_box.setToolTip(
-            "Cursor position (double-click to type a time)"
+            self.tr("Cursor position (double-click to type a time)")
         )
 
         self.cursor_box.value.setReadOnly(
@@ -201,12 +201,12 @@ class TransportPanel(QWidget):
         self.in_box = TimeBox(
             ""
         )
-        self.in_box.setToolTip("In point")
+        self.in_box.setToolTip(self.tr("In point"))
 
         self.out_box = TimeBox(
             ""
         )
-        self.out_box.setToolTip("Out point")
+        self.out_box.setToolTip(self.tr("Out point"))
 
         self.mark_in_btn = QPushButton()
         self.mark_in_btn.setIcon(load_icon("mark_in"))
@@ -252,8 +252,8 @@ class TransportPanel(QWidget):
             lambda: self._flash_button(self.mark_out_btn)
         )
 
-        self.mark_in_btn.setToolTip("Set in point at cursor")
-        self.mark_out_btn.setToolTip("Set out point at cursor")
+        self.mark_in_btn.setToolTip(self.tr("Set in point at cursor"))
+        self.mark_out_btn.setToolTip(self.tr("Set out point at cursor"))
 
         #
         # Fixed widths so the boxes never resize when their placeholder
@@ -510,10 +510,10 @@ class VolumeControl(QWidget):
         audio = getattr(window, "audio", None)
         if audio is not None and not getattr(audio, "available", False):
             self.setEnabled(False)
-            self.setToolTip(
+            self.setToolTip(self.tr(
                 "Playback audio needs Qt Multimedia "
                 "(e.g. pip install PySide6-Addons)."
-            )
+            ))
 
     def _vol_icon(self, value):
         style = self.style()
@@ -657,13 +657,13 @@ class TransportControls(QWidget):
             )
         )
 
-        self.back_120_btn.setToolTip("Back 2 minutes")
-        self.back_30_btn.setToolTip("Back 30 seconds")
-        self.frame_back_btn.setToolTip("Previous frame")
-        self.play_btn.setToolTip("Play / Pause")
-        self.frame_forward_btn.setToolTip("Next frame")
-        self.forward_30_btn.setToolTip("Forward 30 seconds")
-        self.forward_120_btn.setToolTip("Forward 2 minutes")
+        self.back_120_btn.setToolTip(self.tr("Back 2 minutes"))
+        self.back_30_btn.setToolTip(self.tr("Back 30 seconds"))
+        self.frame_back_btn.setToolTip(self.tr("Previous frame"))
+        self.play_btn.setToolTip(self.tr("Play / Pause"))
+        self.frame_forward_btn.setToolTip(self.tr("Next frame"))
+        self.forward_30_btn.setToolTip(self.tr("Forward 30 seconds"))
+        self.forward_120_btn.setToolTip(self.tr("Forward 2 minutes"))
 
         #
         # Centre the play buttons with pure stretches - identical to how the
@@ -840,15 +840,15 @@ class ActionBar(QWidget):
         )
 
         self.add_selection_btn = QPushButton(
-            "Add Selection"
+            self.tr("Add Selection")
         )
 
         self.add_unselected_btn = QPushButton(
-            "Add Unselected"
+            self.tr("Add Unselected")
         )
 
         self.save_video_btn = QPushButton(
-            "Save Video"
+            self.tr("Save Video")
         )
 
         layout.addStretch()

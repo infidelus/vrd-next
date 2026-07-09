@@ -31,15 +31,15 @@ class ConfigEditorDialog(QDialog):
 
         self._config_file = config_file
 
-        self.setWindowTitle("Edit configuration")
+        self.setWindowTitle(self.tr("Edit configuration"))
         self.setModal(True)
         self.setMinimumSize(620, 520)
 
         layout = QVBoxLayout(self)
 
         info = QLabel(
-            "Editing the configuration file. It is checked for valid JSON "
-            "before saving, and your changes are applied when you save."
+            self.tr("Editing the configuration file. It is checked for valid JSON "
+            "before saving, and your changes are applied when you save.")
         )
         info.setWordWrap(True)
         layout.addWidget(info)
@@ -60,19 +60,19 @@ class ConfigEditorDialog(QDialog):
 
         btn_row = QHBoxLayout()
 
-        reload_btn = QPushButton("Reload from disk")
+        reload_btn = QPushButton(self.tr("Reload from disk"))
         reload_btn.setFocusPolicy(Qt.NoFocus)
         reload_btn.clicked.connect(self._load)
         btn_row.addWidget(reload_btn)
 
         btn_row.addStretch(1)
 
-        cancel = QPushButton("Cancel")
+        cancel = QPushButton(self.tr("Cancel"))
         cancel.setFocusPolicy(Qt.NoFocus)
         cancel.clicked.connect(self.reject)
         btn_row.addWidget(cancel)
 
-        save = QPushButton("Save")
+        save = QPushButton(self.tr("Save"))
         save.setDefault(True)
         save.setFocusPolicy(Qt.NoFocus)
         save.clicked.connect(self._save)
@@ -123,10 +123,10 @@ class ConfigEditorDialog(QDialog):
             for combo, actions in duplicates:
                 lines.append(f"    {combo}  \u2192  {', '.join(actions)}")
             QMessageBox.warning(
-                self, "Duplicate shortcut keys", "\n".join(lines),
+                self, self.tr("Duplicate shortcut keys"), "\n".join(lines),
             )
             self._status.setText(
-                "Duplicate shortcut keys - nothing was saved."
+                self.tr("Duplicate shortcut keys - nothing was saved.")
             )
             return
 
@@ -141,14 +141,14 @@ class ConfigEditorDialog(QDialog):
             lines += ["", "Save anyway?"]
             reply = QMessageBox.question(
                 self,
-                "Unrecognised shortcut keys",
+                self.tr("Unrecognised shortcut keys"),
                 "\n".join(lines),
                 QMessageBox.Save | QMessageBox.Cancel,
                 QMessageBox.Cancel,
             )
             if reply != QMessageBox.Save:
                 self._status.setText(
-                    "Unrecognised shortcut keys - nothing was saved."
+                    self.tr("Unrecognised shortcut keys - nothing was saved.")
                 )
                 return
 
@@ -161,7 +161,7 @@ class ConfigEditorDialog(QDialog):
 
         QMessageBox.information(
             self,
-            "Configuration saved",
-            "The configuration has been saved and will be applied now.",
+            self.tr("Configuration saved"),
+            self.tr("The configuration has been saved and will be applied now."),
         )
         self.accept()

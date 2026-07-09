@@ -16,9 +16,30 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-_GUIDE = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "assets", "help", "user-guide.html")
+_HELP_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "assets", "help")
 )
+_GUIDE = os.path.join(_HELP_DIR, "user-guide.html")
+
+
+def guide_path():
+    """The user guide for the current interface language.
+
+    A translated guide is a copy of the English one named
+    ``user-guide_<code>.html`` (e.g. ``user-guide_de.html``) sitting beside it in
+    ``assets/help``.  If there isn't one for the chosen language, the English
+    guide is used, so a missing translation never leaves the reader with nothing.
+    """
+    try:
+        from config.loader import ensure_config
+        code = ensure_config().get("settings", {}).get("language", "en")
+    except Exception:
+        code = "en"
+    if code and code != "en":
+        translated = os.path.join(_HELP_DIR, "user-guide_%s.html" % code)
+        if os.path.exists(translated):
+            return translated
+    return _GUIDE
 
 
 class UserGuideDialog(QDialog):
@@ -26,33 +47,37 @@ class UserGuideDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("VRD Next User Guide")
+        self.setWindowTitle(self.tr("VRD Next User Guide"))
         self.resize(900, 720)
 
         layout = QVBoxLayout(self)
 
+        self._guide = guide_path()
         self._browser = QTextBrowser()
         self._browser.setOpenExternalLinks(True)     # http links open in the browser
         self._browser.setStyleSheet("QTextBrowser { background-color: #1e1e22; }")
-        if os.path.exists(_GUIDE):
-            self._browser.setSource(QUrl.fromLocalFile(_GUIDE))
+        if os.path.exists(self._guide):
+            self._browser.setSource(QUrl.fromLocalFile(self._guide))
         else:
             self._browser.setHtml(
-                "<h2>User guide not found</h2>"
-                "<p>The guide file appears to be missing from this installation.</p>"
+                "<h2>%s</h2><p>%s</p>" % (
+                    self.tr("User guide not found"),
+                    self.tr("The guide file appears to be missing from this "
+                            "installation."),
+                )
             )
         layout.addWidget(self._browser)
 
         row = QHBoxLayout()
-        open_btn = QPushButton("Open in Browser")
+        open_btn = QPushButton(self.tr("Open in Browser"))
         open_btn.clicked.connect(self._open_in_browser)
         row.addWidget(open_btn)
         row.addStretch(1)
-        close_btn = QPushButton("Close")
+        close_btn = QPushButton(self.tr("Close"))
         close_btn.clicked.connect(self.accept)
         row.addWidget(close_btn)
         layout.addLayout(row)
 
     def _open_in_browser(self):
-        if os.path.exists(_GUIDE):
-            QDesktopServices.openUrl(QUrl.fromLocalFile(_GUIDE))
+        if os.path.exists(self._guide):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self._guide))

@@ -9,7 +9,7 @@ destination, and opens the Profile Options manager via its button.
 
 import os
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -36,7 +36,7 @@ class SaveVideoDialog(QDialog):
     def __init__(self, config, suggested_path, source_ext, parent=None,
                  default_container=None, sample_source=""):
         super().__init__(parent)
-        self.setWindowTitle("Save Video")
+        self.setWindowTitle(self.tr("Save Video"))
         self.setMinimumWidth(640)
         self.setMinimumHeight(460)
 
@@ -63,27 +63,27 @@ class SaveVideoDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # --- output file --------------------------------------------------
-        layout.addWidget(QLabel("Output File"))
+        layout.addWidget(QLabel(self.tr("Output File")))
         file_row = QHBoxLayout()
         self.file_edit = QLineEdit(suggested_path or "")
         self.file_edit.textEdited.connect(self._on_path_edited)
         file_row.addWidget(self.file_edit, 1)
-        select_btn = QPushButton("Select File")
+        select_btn = QPushButton(self.tr("Select File"))
         select_btn.clicked.connect(self._select_file)
         file_row.addWidget(select_btn)
         layout.addLayout(file_row)
 
         # --- selected profile name + Profile Options ----------------------
-        layout.addWidget(QLabel("Profile"))
+        layout.addWidget(QLabel(self.tr("Profile")))
         prof_row = QHBoxLayout()
         self.profile_field = QLineEdit()
         self.profile_field.setReadOnly(True)
         prof_row.addWidget(self.profile_field, 1)
-        self.options_btn = QPushButton("Profile Options\u2026")
+        self.options_btn = QPushButton(self.tr("Profile Options\u2026"))
         self.options_btn.setToolTip(
-            "Tweak the selected profile for this export only - the change isn't "
+            self.tr("Tweak the selected profile for this export only - the change isn't "
             "saved, so built-in profiles revert next time.  Manage and save "
-            "profiles permanently from Tools \u2192 Manage Profiles."
+            "profiles permanently from Tools \u2192 Manage Profiles.")
         )
         self.options_btn.clicked.connect(self._edit_for_export)
         prof_row.addWidget(self.options_btn)
@@ -92,7 +92,7 @@ class SaveVideoDialog(QDialog):
         # --- profile list -------------------------------------------------
         self.table = QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(
-            ["Profile", "Codec", "Container", "Output Mode"]
+            [self.tr("Profile"), self.tr("Codec"), self.tr("Container"), self.tr("Output Mode")]
         )
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -108,7 +108,7 @@ class SaveVideoDialog(QDialog):
 
         # --- favourites filter + buttons ----------------------------------
         bottom = QHBoxLayout()
-        self.fav_only = QCheckBox("Favourites Only")
+        self.fav_only = QCheckBox(self.tr("Favourites Only"))
         self.fav_only.setChecked(True)
         self.fav_only.toggled.connect(self._fill_table)
         bottom.addWidget(self.fav_only)
@@ -146,7 +146,7 @@ class SaveVideoDialog(QDialog):
 
         base = self._effective_profile()
         if base is None:
-            QMessageBox.information(self, "Save Video", "Please choose a profile.")
+            QMessageBox.information(self, self.tr("Save Video"), self.tr("Please choose a profile."))
             return
         dlg = ProfileEditDialog(
             base.copy(), self, sample_source=self._sample_source
@@ -181,8 +181,15 @@ class SaveVideoDialog(QDialog):
         self._row_profiles = rows
         select_row = 0
         for i, p in enumerate(rows):
-            name = ("\u2605 " if p.favourite else "   ") + p.name
-            cells = [name, p.codec_label, p.container_label, p.output_mode_label]
+            # Built-in profiles and their labels are stored in English;
+            # translate them for display.  User-typed names are left alone.
+            def _pl(text):
+                return QCoreApplication.translate("ProfileEditor", text)
+
+            shown = _pl(p.name) if p.builtin else p.name
+            name = ("\u2605 " if p.favourite else "   ") + shown
+            cells = [name, _pl(p.codec_label), _pl(p.container_label),
+                     _pl(p.output_mode_label)]
             for c, text in enumerate(cells):
                 self.table.setItem(i, c, QTableWidgetItem(text))
             if keep_name is not None and p.name == keep_name:
@@ -256,7 +263,7 @@ class SaveVideoDialog(QDialog):
         )
         start = self.file_edit.text().strip() or ""
         chosen, _ = QFileDialog.getSaveFileName(
-            self, "Save Video As", start,
+            self, self.tr("Save Video As"), start,
             "%s (*%s);;All files (*)" % (label, ext),
         )
         if not chosen:
@@ -271,10 +278,10 @@ class SaveVideoDialog(QDialog):
         path = self.file_edit.text().strip()
         profile = self._effective_profile()
         if profile is None:
-            QMessageBox.information(self, "Save Video", "Please choose a profile.")
+            QMessageBox.information(self, self.tr("Save Video"), self.tr("Please choose a profile."))
             return
         if not path:
-            QMessageBox.information(self, "Save Video", "Please choose an output file.")
+            QMessageBox.information(self, self.tr("Save Video"), self.tr("Please choose an output file."))
             return
         root, ext = os.path.splitext(path)
         want = profile.extension(self._source_ext)
@@ -284,7 +291,7 @@ class SaveVideoDialog(QDialog):
         # name the user typed (or picked) that collides with an existing file.
         if os.path.exists(path):
             if QMessageBox.question(
-                self, "Save Video",
+                self, self.tr("Save Video"),
                 "%s already exists.\n\nOverwrite it?" % os.path.basename(path),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
             ) != QMessageBox.Yes:

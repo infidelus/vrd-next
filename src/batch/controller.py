@@ -11,7 +11,7 @@ import os
 
 from PySide6.QtCore import QObject, Signal
 
-from batch.job import BatchJob, QUEUED, DONE, CANCELLED, NEEDS_REVIEW
+from batch.job import BatchJob, QUEUED, DONE, NEEDS_REVIEW
 from batch.runner import BatchRunner
 from addons.output_profiles import default_profile_name
 
@@ -113,10 +113,27 @@ class BatchController(QObject):
             self.save_queue()
             self.jobs_changed.emit()
 
+    def running_row(self):
+        """The row currently being processed, or -1 if none.  Used to protect
+        the active job from being removed while the queue runs."""
+        if self.runner is None:
+            return -1
+        return getattr(self.runner, "current_index", -1)
+
     def remove(self, rows):
+        """Remove the given rows.  The job that's currently being processed is
+        never removed - stop the batch first - but anything waiting can go, even
+        while the queue is running."""
+        active = self.running_row()
+        rows = [r for r in rows if r != active]
+        if not rows:
+            return
         for r in sorted(rows, reverse=True):
             if 0 <= r < len(self.jobs):
                 del self.jobs[r]
+        # The runner walks this same list by index, so keep its cursor honest.
+        if self.runner is not None:
+            self.runner.note_removed(rows)
         self.save_queue()
         self.jobs_changed.emit()
 
@@ -130,9 +147,14 @@ class BatchController(QObject):
         return row
 
     def clear_finished(self):
-        self.jobs = [
-            j for j in self.jobs if j.status not in (DONE, CANCELLED)
-        ]
+        """Remove the jobs that actually finished.
+
+        Only DONE jobs go.  A cancelled job never finished - it was interrupted
+        and produced no usable output, and pressing Start again picks it up
+        where it left off - so it stays, as do failed jobs and ones held for
+        review.  Anything unwanted can still be removed by hand.
+        """
+        self.jobs = [j for j in self.jobs if j.status != DONE]
         self.save_queue()
         self.jobs_changed.emit()
 
@@ -182,9 +204,9 @@ class BatchController(QObject):
         self.running_changed.emit(True)
         self.runner.start()
 
-    def stop(self):
+    def stop(self, after_current=False):
         if self.runner is not None:
-            self.runner.stop()
+            self.runner.stop(after_current=after_current)
 
     def wait(self, ms=5000):
         if self.runner is not None:

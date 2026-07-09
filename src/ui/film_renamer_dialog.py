@@ -13,7 +13,7 @@ core (``match_films``) is kept free of widgets so it can be unit-tested.
 import os
 import shutil
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QT_TRANSLATE_NOOP, QCoreApplication
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -68,8 +68,8 @@ CODES_HELP = (
 
 # Ready-made film layouts offered in the Preset list.  ("label", pattern).
 FILM_PRESETS = [
-    ("Film (Year) in its own folder", "%N (%Y)/%N (%Y)"),
-    ("Flat - Film (Year)",            "%N (%Y)"),
+    (QT_TRANSLATE_NOOP("Renamer", "Film (Year) in its own folder"), "%N (%Y)/%N (%Y)"),
+    (QT_TRANSLATE_NOOP("Renamer", "Flat - Film (Year)"),            "%N (%Y)"),
 ]
 
 # A stand-in film used to render the live example line before anything has been
@@ -143,7 +143,8 @@ def match_films(client, rows, pattern, progress_cb=None):
 
         if not results:
             r.movie, r.new_name = None, None
-            r.note = "no match — double-click to search"
+            r.note = QCoreApplication.translate(
+                "FilmRenamer", "no match — double-click to search")
             continue
 
         movie = results[0]
@@ -170,28 +171,28 @@ class FilmRenamerDialog(QDialog):
         # Guard so syncing the Preset list to the pattern box can't loop.
         self._syncing_preset = False
 
-        self.setWindowTitle("Film Renamer")
+        self.setWindowTitle(self.tr("Film Renamer"))
         self.setMinimumWidth(740)
         self.setMinimumHeight(540)
 
         layout = QVBoxLayout(self)
 
         # --- source -------------------------------------------------------
-        source_box = QGroupBox("Source")
+        source_box = QGroupBox(self.tr("Source"))
         source_layout = QHBoxLayout(source_box)
-        choose_folder = QPushButton("Choose Folder…")
+        choose_folder = QPushButton(self.tr("Choose Folder…"))
         choose_folder.clicked.connect(self._choose_folder)
-        choose_files = QPushButton("Add Files…")
+        choose_files = QPushButton(self.tr("Add Files…"))
         choose_files.clicked.connect(self._choose_files)
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.setToolTip("Re-scan the current folder for new files")
+        self.refresh_btn = QPushButton(self.tr("Refresh"))
+        self.refresh_btn.setToolTip(self.tr("Re-scan the current folder for new files"))
         self.refresh_btn.clicked.connect(self._refresh_folder)
         self.refresh_btn.setEnabled(False)
-        self.source_label = QLabel("No files chosen.")
-        self.autoload_check = QCheckBox("Load last folder on open")
+        self.source_label = QLabel(self.tr("No files chosen."))
+        self.autoload_check = QCheckBox(self.tr("Load last folder on open"))
         self.autoload_check.setToolTip(
-            "When ticked, the renamer opens straight into the folder you used "
-            "last."
+            self.tr("When ticked, the renamer opens straight into the folder you used "
+            "last.")
         )
         autoload_on = self.config.get("settings", {}).get(
             "film_renamer_autoload", True
@@ -211,37 +212,37 @@ class FilmRenamerDialog(QDialog):
         )
 
         preset_row = QHBoxLayout()
-        preset_row.addWidget(QLabel("Preset:"))
+        preset_row.addWidget(QLabel(self.tr("Preset:")))
         self.preset_combo = QComboBox()
         self.preset_combo.currentIndexChanged.connect(self._on_preset_changed)
         preset_row.addWidget(self.preset_combo, 1)
-        self.save_preset_btn = QPushButton("Save…")
+        self.save_preset_btn = QPushButton(self.tr("Save…"))
         self.save_preset_btn.setToolTip(
-            "Save the current pattern as a named preset"
+            self.tr("Save the current pattern as a named preset")
         )
         self.save_preset_btn.clicked.connect(self._save_preset)
         preset_row.addWidget(self.save_preset_btn)
-        self.delete_preset_btn = QPushButton("Delete")
-        self.delete_preset_btn.setToolTip("Delete the selected saved preset")
+        self.delete_preset_btn = QPushButton(self.tr("Delete"))
+        self.delete_preset_btn.setToolTip(self.tr("Delete the selected saved preset"))
         self.delete_preset_btn.clicked.connect(self._delete_preset)
         preset_row.addWidget(self.delete_preset_btn)
         layout.addLayout(preset_row)
         self._populate_preset_combo()
 
         pattern_row = QHBoxLayout()
-        pattern_row.addWidget(QLabel("Pattern:"))
+        pattern_row.addWidget(QLabel(self.tr("Pattern:")))
         self.pattern_edit = QLineEdit(saved_pattern)
         # Live example + Preset sync on each keystroke; persist and re-render
         # the matched rows once editing finishes.
         self.pattern_edit.textEdited.connect(self._on_pattern_text_edited)
         self.pattern_edit.editingFinished.connect(self._reapply_pattern)
         pattern_row.addWidget(self.pattern_edit, 1)
-        codes_btn = QPushButton("Codes…")
+        codes_btn = QPushButton(self.tr("Codes…"))
         codes_btn.clicked.connect(
-            lambda: QMessageBox.information(self, "Pattern codes", CODES_HELP)
+            lambda: QMessageBox.information(self, self.tr("Pattern codes"), CODES_HELP)
         )
         pattern_row.addWidget(codes_btn)
-        self.match_btn = QPushButton("Match Films")
+        self.match_btn = QPushButton(self.tr("Match Films"))
         self.match_btn.clicked.connect(self._match)
         pattern_row.addWidget(self.match_btn)
         layout.addLayout(pattern_row)
@@ -257,13 +258,13 @@ class FilmRenamerDialog(QDialog):
 
         # --- destination --------------------------------------------------
         dest_row = QHBoxLayout()
-        dest_row.addWidget(QLabel("Destination:"))
+        dest_row.addWidget(QLabel(self.tr("Destination:")))
         self.dest_field = QLineEdit()
         self.dest_field.setReadOnly(True)
         dest_row.addWidget(self.dest_field, 1)
-        dest_btn = QPushButton("Choose…")
+        dest_btn = QPushButton(self.tr("Choose…"))
         dest_btn.clicked.connect(self._choose_dest)
-        dest_clear = QPushButton("Clear")
+        dest_clear = QPushButton(self.tr("Clear"))
         dest_clear.clicked.connect(self._reset_dest)
         dest_row.addWidget(dest_btn)
         dest_row.addWidget(dest_clear)
@@ -277,17 +278,17 @@ class FilmRenamerDialog(QDialog):
         # Destructive, so deliberately NOT remembered - it starts off each time
         # and the user has to opt in for that session.
         self.overwrite_check = QCheckBox(
-            "Overwrite files that already exist at the destination"
+            self.tr("Overwrite files that already exist at the destination")
         )
         layout.addWidget(self.overwrite_check)
 
         # --- preview table ------------------------------------------------
-        hint = QLabel("Double-click a row to pick a different film for it.")
+        hint = QLabel(self.tr("Double-click a row to pick a different film for it."))
         layout.addWidget(hint)
 
         self._filling = False         # guards itemChanged during table rebuilds
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["Current name", "New name", "Status"])
+        self.table.setHorizontalHeaderLabels([self.tr("Current name"), self.tr("New name"), self.tr("Status")])
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.cellDoubleClicked.connect(self._row_double_clicked)
@@ -302,13 +303,13 @@ class FilmRenamerDialog(QDialog):
         actions = QHBoxLayout()
         self.status_label = QLabel("")
         actions.addWidget(self.status_label, 1)
-        self.rename_btn = QPushButton("Process Ticked")
+        self.rename_btn = QPushButton(self.tr("Process Ticked"))
         self.rename_btn.clicked.connect(self._do_rename)
         self.rename_btn.setEnabled(False)
-        self.clear_btn = QPushButton("Clear Completed")
+        self.clear_btn = QPushButton(self.tr("Clear Completed"))
         self.clear_btn.clicked.connect(self._clear_completed)
         self.clear_btn.setEnabled(False)
-        close_btn = QPushButton("Close")
+        close_btn = QPushButton(self.tr("Close"))
         close_btn.clicked.connect(self.accept)
         actions.addWidget(self.rename_btn)
         actions.addWidget(self.clear_btn)
@@ -325,9 +326,9 @@ class FilmRenamerDialog(QDialog):
         if not key:
             QMessageBox.warning(
                 self,
-                "Film Renamer",
-                "No TMDB API key set. Add one in Settings (the TMDB API key "
-                "field on the General page), then try again.",
+                self.tr("Film Renamer"),
+                self.tr("No TMDB API key set. Add one in Settings (the TMDB API key "
+                "field on the General page), then try again."),
             )
             return None
         return TmdbClient(key)
@@ -382,7 +383,7 @@ class FilmRenamerDialog(QDialog):
 
     def _choose_folder(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "Choose folder", self._default_dir()
+            self, self.tr("Choose folder"), self._default_dir()
         )
         if folder:
             self._load_folder(folder)
@@ -405,7 +406,7 @@ class FilmRenamerDialog(QDialog):
         if not files:
             if announce:
                 QMessageBox.information(
-                    self, "Film Renamer", "No video files found in that folder."
+                    self, self.tr("Film Renamer"), self.tr("No video files found in that folder.")
                 )
             return
         self._set_files(files)
@@ -451,7 +452,7 @@ class FilmRenamerDialog(QDialog):
     # -- matching ----------------------------------------------------------
     def _match(self):
         if not self.files:
-            QMessageBox.information(self, "Film Renamer", "Choose some files first.")
+            QMessageBox.information(self, self.tr("Film Renamer"), self.tr("Choose some files first."))
             return
         client = self._client()
         if client is None:
@@ -476,7 +477,7 @@ class FilmRenamerDialog(QDialog):
 
     def _match_finished(self, error):
         if error:
-            QMessageBox.warning(self, "Film Renamer", error)
+            QMessageBox.warning(self, self.tr("Film Renamer"), error)
         else:
             self.rows = getattr(self, "_pending_rows", self.rows)
             self._cache_matches()
@@ -553,13 +554,14 @@ class FilmRenamerDialog(QDialog):
         try:
             self.preset_combo.clear()
             for label, pat in FILM_PRESETS:
-                self.preset_combo.addItem(label, pat)
+                self.preset_combo.addItem(
+                    QCoreApplication.translate("Renamer", label), pat)
             self._builtin_count = len(FILM_PRESETS)
             user = load_user_presets(self.config, self._PRESET_KEY)
             for label, pat in user:
                 self.preset_combo.addItem(label, pat)
             self._user_count = len(user)
-            self.preset_combo.addItem("Custom…", None)
+            self.preset_combo.addItem(self.tr("Custom…"), None)
         finally:
             self._syncing_preset = False
 
@@ -581,11 +583,11 @@ class FilmRenamerDialog(QDialog):
         pattern = self.pattern_edit.text().strip()
         if not pattern:
             QMessageBox.information(
-                self, "Save preset", "There's no pattern to save."
+                self, self.tr("Save preset"), self.tr("There's no pattern to save.")
             )
             return
         name, ok = QInputDialog.getText(
-            self, "Save preset", "Name for this preset:"
+            self, self.tr("Save preset"), self.tr("Name for this preset:")
         )
         name = name.strip() if ok else ""
         if not name:
@@ -615,7 +617,7 @@ class FilmRenamerDialog(QDialog):
             return
         label = self.preset_combo.currentText()
         if QMessageBox.question(
-            self, "Delete preset", "Delete the preset '%s'?" % label
+            self, self.tr("Delete preset"), "Delete the preset '%s'?" % label
         ) != QMessageBox.Yes:
             return
         presets = [(l, p) for l, p in
@@ -666,7 +668,7 @@ class FilmRenamerDialog(QDialog):
     def _choose_dest(self):
         start = self._dest_root or self._default_dir()
         folder = QFileDialog.getExistingDirectory(
-            self, "Choose destination library folder", start
+            self, self.tr("Choose destination library folder"), start
         )
         if not folder:
             return
@@ -707,7 +709,7 @@ class FilmRenamerDialog(QDialog):
             return None
 
         dialog = QDialog(self)
-        dialog.setWindowTitle("Choose film")
+        dialog.setWindowTitle(self.tr("Choose film"))
         dialog.setMinimumWidth(420)
         v = QVBoxLayout(dialog)
 
@@ -724,7 +726,7 @@ class FilmRenamerDialog(QDialog):
             try:
                 results = client.search_movie(q.text().strip())
             except TmdbError as e:
-                QMessageBox.warning(dialog, "Film Renamer", str(e))
+                QMessageBox.warning(dialog, self.tr("Film Renamer"), str(e))
                 return
             for r in results:
                 yr = year_of(r.get("release_date"))
@@ -737,7 +739,7 @@ class FilmRenamerDialog(QDialog):
                 listing.setCurrentRow(0)
 
         q.returnPressed.connect(do_search)
-        search_btn = QPushButton("Search")
+        search_btn = QPushButton(self.tr("Search"))
         search_btn.clicked.connect(do_search)
         v.addWidget(search_btn)
 
@@ -775,14 +777,14 @@ class FilmRenamerDialog(QDialog):
 
     def _status_text(self, row):
         if row.status == "done":
-            return "Done"
+            return self.tr("Done")
         if row.note:
             return row.note
         if row.new_name is None:
-            return "not matched yet"
+            return self.tr("not matched yet")
         if self._already_named(row):
-            return "Rename Not Required"
-        return "Ready"
+            return self.tr("Rename Not Required")
+        return self.tr("Ready")
 
     def _on_item_changed(self, item):
         """Remember the user's ticks so a table rebuild doesn't reset them - and
@@ -869,7 +871,7 @@ class FilmRenamerDialog(QDialog):
             jobs.append((row, self._target_for(row)))
 
         if not jobs:
-            QMessageBox.information(self, "Film Renamer", "Nothing is ticked to rename.")
+            QMessageBox.information(self, self.tr("Film Renamer"), self.tr("Nothing is ticked to rename."))
             return
 
         overwrite = self.overwrite_check.isChecked()
@@ -890,12 +892,12 @@ class FilmRenamerDialog(QDialog):
 
     def _move_finished(self, error):
         if error:
-            QMessageBox.warning(self, "Film Renamer", error)
+            QMessageBox.warning(self, self.tr("Film Renamer"), error)
         else:
             done, skipped, failed = getattr(self, "_move_result", (0, 0, 0))
             QMessageBox.information(
                 self,
-                "Film Renamer",
+                self.tr("Film Renamer"),
                 "Renamed %d film(s).%s%s"
                 % (
                     done,

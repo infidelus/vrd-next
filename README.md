@@ -26,6 +26,9 @@ distilling the part many people relied on most into a free, open-source tool.
 - **Project import/export** — reads and writes `.vprj` (V3/V5) and EDL files —
   plus a Quick Stream Fix remux to repair broken broadcast streams.
 - **MKV output** via mkvmerge, alongside the native stream-copy export.
+- **A translatable interface**, with a German translation included and a
+  language picker in Settings. Adding a language needs no code — see
+  [`src/translations`](src/translations).
 
 ## Requirements
 

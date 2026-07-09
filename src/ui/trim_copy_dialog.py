@@ -78,7 +78,7 @@ class TrimCopyDialog(QDialog):
                  source_dir="", output_dir="", parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Trim and Copy Source File")
+        self.setWindowTitle(self.tr("Trim and Copy Source File"))
         self.setMinimumWidth(560)
 
         self._index = index
@@ -101,22 +101,22 @@ class TrimCopyDialog(QDialog):
 
         self.source_edit = QLineEdit()
         self.source_edit.setReadOnly(True)
-        src_browse = QPushButton("…")
+        src_browse = QPushButton(self.tr("…"))
         src_browse.setFixedWidth(32)
         src_browse.clicked.connect(self._browse_source)
-        files.addWidget(QLabel("Source File:"), 0, 0)
+        files.addWidget(QLabel(self.tr("Source File:")), 0, 0)
         files.addWidget(self.source_edit, 0, 1)
         files.addWidget(src_browse, 0, 2)
 
-        self.size_label = QLabel("—")
-        files.addWidget(QLabel("Size:"), 1, 0)
+        self.size_label = QLabel(self.tr("—"))
+        files.addWidget(QLabel(self.tr("Size:")), 1, 0)
         files.addWidget(self.size_label, 1, 1, 1, 2)
 
         self.output_edit = QLineEdit()
-        out_browse = QPushButton("…")
+        out_browse = QPushButton(self.tr("…"))
         out_browse.setFixedWidth(32)
         out_browse.clicked.connect(self._browse_output)
-        files.addWidget(QLabel("Output File:"), 2, 0)
+        files.addWidget(QLabel(self.tr("Output File:")), 2, 0)
         files.addWidget(self.output_edit, 2, 1)
         files.addWidget(out_browse, 2, 2)
 
@@ -125,15 +125,15 @@ class TrimCopyDialog(QDialog):
         # ---- Output options + MBytes To Output -------------------------
         opts_row = QHBoxLayout()
 
-        box = QGroupBox("Output Options")
+        box = QGroupBox(self.tr("Output Options"))
         box_lay = QVBoxLayout(box)
         self.opt_group = QButtonGroup(self)
 
-        self.rb_begin = QRadioButton("From Beginning")
-        self.rb_end = QRadioButton("To End Of File")
+        self.rb_begin = QRadioButton(self.tr("From Beginning"))
+        self.rb_end = QRadioButton(self.tr("To End Of File"))
 
         at_row = QHBoxLayout()
-        self.rb_at = QRadioButton("Start At MByte:")
+        self.rb_at = QRadioButton(self.tr("Start At MByte:"))
         self.start_mbyte = QDoubleSpinBox()
         self.start_mbyte.setDecimals(0)
         self.start_mbyte.setRange(0, 4_000_000)
@@ -142,7 +142,7 @@ class TrimCopyDialog(QDialog):
         at_row.addWidget(self.start_mbyte)
         at_row.addStretch(1)
 
-        self.rb_markers = QRadioButton("Use Selection Markers")
+        self.rb_markers = QRadioButton(self.tr("Use Selection Markers"))
         self.rb_markers.setEnabled(
             self._markers is not None and self._index is not None
         )
@@ -160,7 +160,7 @@ class TrimCopyDialog(QDialog):
 
         mb_col = QVBoxLayout()
         mb_row = QHBoxLayout()
-        mb_row.addWidget(QLabel("MBytes To Output:"))
+        mb_row.addWidget(QLabel(self.tr("MBytes To Output:")))
         self.mbytes = QDoubleSpinBox()
         self.mbytes.setDecimals(0)
         self.mbytes.setRange(1, 4_000_000)
@@ -184,10 +184,10 @@ class TrimCopyDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        self.start_button = QPushButton("Start Copy")
+        self.start_button = QPushButton(self.tr("Start Copy"))
         self.start_button.setDefault(True)
         self.start_button.clicked.connect(self._start_copy)
-        self.close_button = QPushButton("Close")
+        self.close_button = QPushButton(self.tr("Close"))
         self.close_button.clicked.connect(self._on_close)
         buttons.addWidget(self.start_button)
         buttons.addWidget(self.close_button)
@@ -219,7 +219,7 @@ class TrimCopyDialog(QDialog):
             or os.path.expanduser("~")
         )
         path, _ = QFileDialog.getOpenFileName(
-            self, "Select Source File", start_dir,
+            self, self.tr("Select Source File"), start_dir,
             "Transport streams (*.ts *.m2ts *.mpg *.mpeg);;All files (*)",
         )
         if path:
@@ -240,7 +240,7 @@ class TrimCopyDialog(QDialog):
             or os.path.expanduser("~")
         )
         path, selected = QFileDialog.getSaveFileName(
-            self, "Select Output File", start_dir,
+            self, self.tr("Select Output File"), start_dir,
             "Transport stream (*.ts);;All files (*)",
             "",
             QFileDialog.Option.DontConfirmOverwrite,
@@ -298,17 +298,17 @@ class TrimCopyDialog(QDialog):
         shown to the user."""
         size = self._source_size
         if size <= 0:
-            QMessageBox.warning(self, "Trim and Copy",
-                                "Please choose a valid source file first.")
+            QMessageBox.warning(self, self.tr("Trim and Copy"),
+                                self.tr("Please choose a valid source file first."))
             return None
 
         if self.rb_markers.isChecked():
             rng = self._marker_byte_range()
             if rng is None:
                 QMessageBox.warning(
-                    self, "Trim and Copy",
-                    "Could not work out byte offsets from the selection "
-                    "markers for this file.")
+                    self, self.tr("Trim and Copy"),
+                    self.tr("Could not work out byte offsets from the selection "
+                    "markers for this file."))
             return rng
 
         mode = ("beginning" if self.rb_begin.isChecked()
@@ -317,8 +317,8 @@ class TrimCopyDialog(QDialog):
         start, length = plan_byte_range(
             mode, size, self.mbytes.value(), self.start_mbyte.value())
         if length <= 0:
-            QMessageBox.warning(self, "Trim and Copy",
-                                "That selection produces an empty file.")
+            QMessageBox.warning(self, self.tr("Trim and Copy"),
+                                self.tr("That selection produces an empty file."))
             return None
         return start, length
 
@@ -326,13 +326,13 @@ class TrimCopyDialog(QDialog):
         src = self.source_edit.text()
         dst = self.output_edit.text()
         if not dst:
-            QMessageBox.warning(self, "Trim and Copy",
-                                "Please choose an output file.")
+            QMessageBox.warning(self, self.tr("Trim and Copy"),
+                                self.tr("Please choose an output file."))
             return
         if os.path.abspath(dst) == os.path.abspath(src):
-            QMessageBox.warning(self, "Trim and Copy",
-                                "The output file must be different from the "
-                                "source file.")
+            QMessageBox.warning(self, self.tr("Trim and Copy"),
+                                self.tr("The output file must be different from the "
+                                "source file."))
             return
 
         plan = self._planned_range()
@@ -342,7 +342,7 @@ class TrimCopyDialog(QDialog):
 
         if os.path.exists(dst):
             resp = QMessageBox.question(
-                self, "Trim and Copy",
+                self, self.tr("Trim and Copy"),
                 "%s already exists.\n\nOverwrite it?"
                 % (os.path.basename(dst),),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -352,7 +352,7 @@ class TrimCopyDialog(QDialog):
                 return
 
         self.start_button.setEnabled(False)
-        self.close_button.setText("Cancel")
+        self.close_button.setText(self.tr("Cancel"))
         self.progress.setValue(0)
         self.progress.show()
 
@@ -367,22 +367,22 @@ class TrimCopyDialog(QDialog):
 
     def _reset_after_copy(self):
         self.start_button.setEnabled(True)
-        self.close_button.setText("Close")
+        self.close_button.setText(self.tr("Close"))
         self.progress.hide()
         self._worker = None
 
     def _on_done(self, written, path):
         self._reset_after_copy()
         QMessageBox.information(
-            self, "Trim and Copy",
+            self, self.tr("Trim and Copy"),
             "Copy complete.\n\n%s\n%s written."
             % (path, _fmt_size(written)))
 
     def _on_failed(self, message):
         self._reset_after_copy()
         if message != "Cancelled.":
-            QMessageBox.critical(self, "Trim and Copy",
-                                 "Copy failed:\n\n%s" % (message,))
+            QMessageBox.critical(self, self.tr("Trim and Copy"),
+                                 self.tr("Copy failed:\n\n%s") % (message,))
 
     def _on_close(self):
         # While a copy is running, "Close" acts as Cancel.

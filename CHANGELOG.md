@@ -5,6 +5,56 @@ All notable changes to VRD Next are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-07-09
+
+### Added
+
+- **A translatable interface.** Every user-facing string — menus, dialogs,
+  buttons, tooltips, messages, the tray Watcher and the stream-info panel — is
+  now translatable, with a **Language** setting under **Settings → General**.
+  A complete **German** translation is included, along with a German user guide.
+  Adding a language needs no code: translate `translations/vrd-next_en.ts`,
+  compile it with `translations/compile.sh`, and it appears in the picker.
+  Changing language offers to restart the application.
+- Qt's own translations are loaded alongside, so standard buttons (OK, Cancel,
+  Save) and the file dialogs follow the chosen language too.
+- The user guide is shown in the chosen language when a translated copy
+  (`assets/help/user-guide_<code>.html`) exists, falling back to English.
+- **Batch Manager: remove waiting jobs while the queue is running.** The job
+  being processed is protected; everything still waiting can be removed.
+- **Batch Manager: a choice when stopping** — finish the current file and then
+  stop, or stop straight away.
+
+### Changed
+
+- Theme changes now apply live across the whole interface — chrome, transport
+  readouts, icons and buttons — rather than needing a restart.
+- Opening a `.vprj` project with *Quick Stream Fix on open* now repairs the
+  source first and indexes once, instead of indexing, repairing and re-indexing.
+  It's faster, and the project's scene markers map directly onto the repaired
+  file rather than being approximated from a frame-count delta.
+- **Clear Finished** in the Batch Manager now removes only jobs that completed.
+  Cancelled, failed and held jobs stay, matching the behaviour of failed jobs and
+  keeping interrupted work resumable.
+- The Watcher follows the editor's theme and language.
+- The window title no longer repeats the application name.
+- The Windows installer targets Python 3.14 and detects a genuine Python
+  installation rather than the Microsoft Store's placeholder `python.exe`.
+- The Linux installer checks for `ensurepip` and installs the matching
+  `python3.X-venv` package, which newer Ubuntu releases require.
+
+### Fixed
+
+- A crash (stack overflow) when switching theme, caused by a palette-change
+  recursion in the transport panel.
+- The transport panel's readouts kept the old theme's colours after a live theme
+  change, because they read their own (stylesheet-resolved) palette.
+- Check and radio indicators were nearly invisible on the Light theme.
+- The TV renamer no longer misreads an episode whose title looks like an episode
+  number — for example a title of "E2" after `S03E21` — as a two-parter.
+- The stream-info panel's audio section headings and its "Copy to clipboard"
+  output are translated rather than always English.
+
 ## [1.3.0] - 2026-07-05
 
 ### Added
@@ -116,6 +166,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 - Initial public release.
 
+[1.4.0]: https://github.com/infidelus/vrd-next/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/infidelus/vrd-next/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/infidelus/vrd-next/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/infidelus/vrd-next/compare/v1.0.0...v1.1.0

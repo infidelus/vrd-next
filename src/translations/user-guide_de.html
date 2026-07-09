@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>VRD Next Benutzerhandbuch</title>
+<style>
+  body {
+    font-family: "Segoe UI", "DejaVu Sans", sans-serif;
+    font-size: 14px;
+    color: #d6d6d6;
+    background-color: #1e1e22;
+    line-height: 1.5;
+    margin: 16px 24px;
+  }
+  h1 { color: #ffffff; font-size: 26px; margin: 0 0 4px 0; }
+  h2 {
+    color: #5aa9ff;
+    font-size: 20px;
+    margin: 28px 0 8px 0;
+    border-bottom: 1px solid #34343a;
+    padding-bottom: 4px;
+  }
+  h3 { color: #cfd3d6; font-size: 16px; margin: 18px 0 4px 0; }
+  p { margin: 8px 0; }
+  a { color: #5aa9ff; text-decoration: none; }
+  ul, ol { margin: 6px 0 6px 4px; }
+  li { margin: 3px 0; }
+  code, kbd {
+    font-family: "DejaVu Sans Mono", monospace;
+    background-color: #2a2a30;
+    color: #e6c07b;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+  table { border-collapse: collapse; margin: 10px 0; }
+  th, td {
+    border: 1px solid #3a3a42;
+    padding: 5px 12px;
+    text-align: left;
+  }
+  th { background-color: #2a2a30; color: #ffffff; }
+  .lead { color: #9aa0a6; font-size: 15px; }
+  .toc a { display: block; margin: 3px 0; }
+  .note {
+    background-color: #26262c;
+    border-left: 3px solid #5aa9ff;
+    padding: 8px 12px;
+    margin: 12px 0;
+  }
+  figure {
+    margin: 16px 0;
+  }
+  .cap {
+    color: #9aa0a6;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  /* An image on its own line inherits the body line-height (1.5), which makes
+     the line box 1.5x the image height and leaves a large gap beneath it in the
+     in-app viewer.  line-height:1 keeps the box tight to the image. */
+  .figrow {
+    line-height: 1;
+    margin: 16px 0;
+  }
+  /* In a web browser, let the screenshots scale with the window (up to their
+     native size, so they stay crisp). The in-app QTextBrowser ignores @media
+     rules, so it keeps the fixed width from each image's width attribute. */
+  @media screen {
+    .gimg { width: 100%; height: auto; }
+    .m800 { max-width: 800px; }
+    .m762 { max-width: 762px; }
+    .m640 { max-width: 640px; }
+    .m566 { max-width: 566px; }
+    .m560 { max-width: 560px; }
+    .m460 { max-width: 460px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>VRD Next Benutzerhandbuch</h1>
+<p class="lead">Ein bildgenauer, verlustfreier Videoschneider für Linux &mdash; inspiriert von VideoReDo.</p>
+
+<h2>Inhalt</h2>
+<div class="toc">
+  <a href="#intro">1. Einführung</a>
+  <a href="#start">2. Erste Schritte</a>
+  <a href="#cutting">3. Markieren und Schneiden</a>
+  <a href="#detect">4. Automatische Werbeerkennung und Projekte</a>
+  <a href="#saving">5. Video speichern</a>
+  <a href="#renaming">6. Aufnahmen umbenennen</a>
+  <a href="#automation">7. Automatisierung: Der Watcher und Batch-Manager</a>
+  <a href="#settings">8. Einstellungsübersicht</a>
+  <a href="#shortcuts">9. Tastaturkurzbefehle</a>
+  <a href="#tips">10. Tipps und Fehlerbehebung</a>
+</div>
+
+<h2 id="intro">1. Einführung</h2>
+<p>VRD Next schneidet unerwünschte Abschnitte &mdash; wie zum Beispiel Werbung &mdash; bildgenau und, wann immer möglich, <strong>verlustfrei</strong> aus Videoaufnahmen heraus: Das beibehaltene Videomaterial wird direkt via Stream-Copy kopiert, anstatt es neu zu kodieren. Dadurch gibt es keinen Qualitätsverlust und Exporte sind extrem schnell. Es verarbeitet gängige Broadcast- und Dateiformate, einschließlich H.264 und MPEG-2, und funktioniert mit fast allen gängigen Videoquellen.</p>
+<p>Wenn dir VRD Next bekannt vorkommt, ist das Absicht. Ich habe selbst rund zwei Jahrzehnte lang <strong>VideoReDo</strong> genutzt und die Benutzeroberfläche so nah wie möglich am Original gehalten. So fühlt es sich für jeden, der umsteigt, direkt vertraut und komfortabel an &mdash; auch die Funktionsweise bildet den klassischen VideoReDo-Workflow ab. Verstehe es jedoch als eine <strong>leichtere Alternative</strong>: VRD Next bringt den Kern-Workflow von VideoReDo in eine native Linux-Anwendung, zielt aber nicht darauf ab, den kompletten Funktionsumfang von VideoReDo eins zu eins abzubilden.</p>
+<p>Abseits des Schneidens kann VRD Next Werbeblöcke automatisch via Comskip erkennen, Aufnahmen anhand von TMDB-Daten umbenennen und den gesamten Ablauf von der Rohaufnahme bis zur fertigen Medienbibliothek teilautomatisieren &mdash; dank eines Ordner-Watchers und einer Stapelverarbeitung (Batch-Warteschlange). Es läuft zwar nicht komplett unüberwacht im Hintergrund &mdash; du behältst stets die Kontrolle &mdash; aber es nimmt dir den Großteil der manuellen Arbeit ab.</p>
+<div class="note">VRD Next benötigt <code>ffmpeg</code> und <code>ffprobe</code> auf deinem System. Comskip ist optional, wird für die automatische Werbeerkennung jedoch dringend empfohlen (siehe Abschnitt 4).</div>
+
+<h2 id="start">2. Erste Schritte</h2>
+<p>Öffne eine Aufnahme über <strong>Datei &rarr; Video öffnen</strong> (<kbd>Ctrl+O</kbd>) oder wähle eine kürzlich verwendete Datei unter <strong>Datei &rarr; Zuletzt geöffnet</strong> aus. VRD Next unterstützt gängige TV-Broadcast- und Videotypen &mdash; <code>.ts</code>, <code>.mkv</code>, <code>.mp4</code>, <code>.m2ts</code>, <code>.mov</code> und <code>.avi</code> &mdash; und du kannst jede andere Datei über den Filter <strong>Alle Dateien</strong> aufrufen. Das Editor-Fenster ist in vier Hauptbereiche unterteilt:</p>
+<ul>
+  <li><strong>Vorschau</strong> &mdash; Das aktuelle Videobild.</li>
+  <li><strong>Vorschaubilder-Leiste (Thumbnails)</strong> &mdash; Eine Reihe von Einzelbildern rund um den Cursor, um Schnittpunkte präzise zu bestimmen. Klicke auf ein Vorschaubild, um direkt dorthin zu springen.</li>
+  <li><strong>Szenenliste</strong> &mdash; Die Segmente, die du behalten möchtest.</li>
+  <li><strong>Wiedergabesteuerung</strong> &mdash; Abspielen, Einzelbild-Schritte und Spulen. Daneben werden Start, Ende und Gesamtlänge der aktuellen Szene angezeigt.</li>
+</ul>
+<p align="center" class="figrow"><img class="gimg m800" src="img/editor-overview.png" width="800" height="532" alt="Das VRD Next Editor-Fenster"></p>
+<p align="center" class="cap">Das Editor-Fenster: &#9312; Vorschau &middot; &#9313; Szenenliste &middot; &#9314; Vorschaubilder-Leiste und Zeitleiste (Grün&nbsp;=&nbsp;Behalten, Rot&nbsp;=&nbsp;Schneiden) &middot; &#9315; Wiedergabesteuerung.</p>
+<p>Beim ersten Öffnen einer Aufnahme erstellt VRD Next einen Frame-Index, um präzise spulen zu können. Dieser Index wird im Cache gespeichert, sodass ein erneutes Öffnen derselben Datei blitzschnell und ohne Wartezeit erfolgt.</p>
+<div class="note">VRD Next liefert im Ordner <code>packaging</code> unkomplizierte Installations-Skripte mit &mdash; <code>install-linux.sh</code> für Debian/Ubuntu/Mint und <code>install-windows.ps1</code> für Windows. Diese richten alle Abhängigkeiten, eine virtuelle Umgebung sowie Menü- und Desktop-Verknüpfungen ein, sodass du die Anwendung wie jedes andere Programm direkt über dein Startmenü aufrufen kannst. Details findest du in der dortigen <code>README</code>-Datei.</div>
+
+<h2 id="cutting">3. Markieren und Schneiden</h2>
+<p>VRD Next arbeitet nach dem Prinzip, die Teile zu markieren, die du <strong>behalten</strong> möchtest &mdash; nicht die Teile, die entfernt werden sollen. Wenn du beispielsweise Werbung herausschneidest, markierst du die eigentliche Sendung; die Werbeblöcke sind dann einfach die Lücken zwischen den behaltenen Szenen.</p>
+<h3>Navigieren</h3>
+<p>Nutze die Wiedergabetasten oder die Tastatur, um dich durch die Aufnahme zu bewegen: Gehe einzelne Frames vor oder zurück, springe um 10, 30 oder 120 Sekunden oder springe direkt an den Anfang oder das Ende. Behalte dabei die Vorschaubilder-Leiste im Auge &mdash; sie macht das Finden des exakten Schnittbilds spürbar einfacher. Um zu einem bestimmten Zeitstempel zu springen, verwende <strong>Gehe zu</strong> (<kbd>Ctrl+G</kbd>).</p>
+<h3>Eine Szene markieren</h3>
+<ol>
+  <li>Bewege dich an die Stelle, an der dein gewünschter Abschnitt beginnt, und drücke <strong>In-Punkt setzen</strong> (<kbd>F3</kbd>).</li>
+  <li>Bewege dich dorthin, wo der Abschnitt endet, und drücke <strong>Out-Punkt setzen</strong> (<kbd>F4</kbd>).</li>
+  <li>Drücke <strong>Auswahl hinzufügen</strong> (<kbd>Insert</kbd>), um diese Szene zu übernehmen.</li>
+</ol>
+<p>Wiederhole das für jedes Segment, das du behalten willst. Wenn du In-/Out-Punkte über eine bereits existierende Szene hinweg markierst, wird sie durch die neue Auswahl ersetzt. Einen Schnitt zu korrigieren ist also so einfach wie ein kurzes Neumarkieren.</p>
+<p><strong>Nicht ausgewähltes hinzufügen</strong> (<kbd>Ctrl+Insert</kbd>) bewirkt das Gegenteil: Es füllt jede Lücke als behaltene Szene aus &mdash; das ist praktisch, wenn es schneller geht, die zu entfernenden Teile zu markieren und die Auswahl anschließend zu invertieren. Mit <strong>Alle Szenen leeren</strong> (<kbd>Shift+Insert</kbd>) fängst du wieder von vorne an.</p>
+
+<h2 id="detect">4. Automatic ad detection and projects</h2>
+<h3>Comskip</h3>
+<p>Anstatt alles von Hand zu markieren, kannst du <strong>Comskip</strong> die Werbung suchen lassen. Starte es über das Menü <strong>Werkzeuge</strong> (<kbd>Ctrl+A</kbd>); es analysiert die Aufnahme im Hintergrund und wandelt die Ergebnisse in behaltene Szenen um, die du anschließend visuell nachjustieren kannst.</p>
+<p>Comskip ist ein eigenständiges, kostenloses Programm und ist <strong>nicht</strong> im Lieferumfang von VRD Next enthalten. Du musst es vorab von der GitHub-Projektseite herunterladen und installieren: <a href="https://github.com/erikkaashoek/Comskip">github.com/erikkaashoek/Comskip</a>. Sobald es installiert ist, hinterlege den Pfad zur Comskip-Ausführungsdatei und deiner <code>.ini</code>-Konfigurationsdatei unter <strong>Einstellungen &rarr; Externe Werkzeuge</strong>.</p>
+<div class="note">Wenn dein Aufnahmegerät den Sendernamen in den Dateinamen schreibt (wie z.&nbsp;B. Tvheadend über das Format-Tag <code>$c</code>), kannst du pro Sender eine eigene <code>.ini</code>-Datei verwenden. Aktiviere dafür die Option <strong>&bdquo;Wähle die .ini nach Sendernamen im Dateinamen&ldquo;</strong> unter <strong>Einstellungen &rarr; Externe Werkzeuge</strong>. Platziere dann Dateien mit dem Namen <code>Comskip_&lt;Sender&gt;.ini</code> (wie etwa <code>Comskip_ZDF.ini</code> oder <code>Comskip_RTL.ini</code>) im selben Ordner wie deine Haupt-<code>.ini</code>. Wenn der Sendername im Dateinamen einer Aufnahme auftaucht, wird diese Datei bevorzugt verwendet (wobei der längste, präziseste Treffer gewinnt) &mdash; andernfalls greift die Haupt-<code>.ini</code>. Die Erkennung unterscheidet nicht zwischen Groß- und Kleinschreibung und funktioniert sowohl für den Watcher als auch für die manuelle Erkennung. Rekorder, die den Sendernamen nicht in den Dateinamen einbetten (wie Plex oder Jellyfin), nutzen einfach durchgehend die Haupt-<code>.ini</code>.</div>
+<h3>Projekte</h3>
+<p>Deine Schnitte lassen sich als Projekt speichern und später wieder laden. <strong>Projekt importieren</strong> liest VideoReDo-<code>.vprj</code>-Dateien (sowohl das V5-VRD- als auch das V3-Comskip-Format) sowie EDL-Dateien ein; <strong>Projekt exportieren</strong> schreibt sie wieder heraus. Dadurch kannst du Edits nahtlos zwischen VRD Next und anderen Tools austauschen oder deine Schnittpunkte sichern, ohne das Video jedes Mal neu exportieren zu müssen.</p>
+<div class="note">Wenn ein Projekt zwischen VRD Next und VideoReDo übertragen wird, können sich einzelne Schnittmarken um ein bis zwei Frames verschieben &mdash; die beiden Editoren indizieren Frames intern minimal unterschiedlich. Der finale Schnitt bleibt dennoch bildgenau; lediglich die angezeigten Positionen der Marken weichen leicht ab.</div>
+
+<h2 id="saving">5. Video speichern</h2>
+<p>Sobald deine Szenen fertig sind, wähle <strong>Datei &rarr; Video speichern</strong> (<kbd>Ctrl+S</kbd>). Du bestimmst das <strong>Ausgabeprofil</strong> und den Zielordner in einem einzigen Schritt.</p>
+<p align="center" class="figrow"><img class="gimg m640" src="img/save-video.png" width="640" height="492" alt="Der Video-speichern-Dialog"></p>
+<p align="center" class="cap">Der Video-speichern-Dialog, bei dem Ausgabeprofil und Zielort zusammen ausgewählt werden.</p>
+<p>Der Schnitt ist so verlustfrei wie möglich: Das beibehaltene Video wird via Stream-Copy übertragen und nicht neu kodiert. Die einzige regelmäßige Ausnahme betrifft eine Handvoll Frames an den jeweiligen Schnittgrenzen. Diese werden kurz neu kodiert (Smart-Encoding), damit der Schnitt exakt auf dem von dir gewählten Frame landet und nicht auf dem nächstgelegenen Keyframe. Eine <strong>vollständige</strong> Neukodierung des gesamten Videos &mdash; was erheblich langsamer ist als ein verlustfreies Speichern &mdash; erfolgt nur, wenn du das Video zuschneidest (Cropping), ein Profil wählst, das explizit nach HEVC neu kodiert (siehe unten), oder in ein Containerformat speicherst, das mit den Original-Streams der Quelle inkompatibel ist.</p>
+<h3>Ausgabeprofile</h3>
+<p>Du kannst Profile unter <strong>Werkzeuge &rarr; Profile verwalten</strong> konfigurieren. Ein Profil steuert Folgendes:</p>
+<ul>
+  <li><strong>Container</strong> &mdash; Passt sich der Quelle an oder erzwingt MKV oder MP4.</li>
+  <li><strong>Video</strong> &mdash; <strong>Kopieren&nbsp;(verlustfrei)</strong> belässt das Video im Stream-Copy-Verfahren, was dem Standard entspricht und die Qualität originalgetreu beibehält. <strong>HEVC&nbsp;(neu kodieren)</strong> kodiert das Video neu nach H.265 für deutlich kleinere Dateien, was allerdings etwas Qualität und ein gutes Stück mehr Zeit kostet. Interlaced-Quellen werden bei der Neukodierung nach HEVC automatisch deinterlaced. Belasse es am besten auf „Kopieren“, es sei denn, du benötigst explizit kleinere Dateien.</li>
+  <li><strong>Audio</strong> &mdash; Intelligentes Kopieren (verlustfrei) oder Neukodierung nach AAC mit einer festen oder automatischen Bitrate.</li>
+  <li><strong>Seitenverhältnis (Aspect ratio)</strong> &mdash; Beibehalten wie Quelle oder fest auf 4:3 oder 16:9 setzen. Dies wird verlustfrei über die Anpassung der Metadaten-Signalisierung umgesetzt, ganz ohne Neukodierung.</li>
+  <li><strong>Zuschneiden (Cropping)</strong> &mdash; Schwarze Balken entfernen (siehe unten).</li>
+  <li><strong>Standardverzeichnis</strong> &mdash; Ein profilbezogener Zielordner.</li>
+</ul>
+<p align="center" class="figrow"><img class="gimg m460" src="img/profile-editor.png" width="460" height="473" alt="Der Ausgabeprofil-Editor"></p>
+<p align="center" class="cap">Bearbeiten eines Ausgabeprofils.</p>
+<h3>Zuschneiden (Cropping)</h3>
+<p>Das Zuschneiden entfernt schwarze Balken (Letterbox oder Pillarbox). Da diese Balken fester Bestandteil des Bildes sind, löst das Zuschneiden die oben erwähnte vollständige Neukodierung aus, weshalb dieser Vorgang deutlich langsamer ist als ein normaler verlustfreier Export. Wähle <strong>Automatisch erkennen</strong>, um die Balken pro Datei automatisch zu ermitteln, oder <strong>Feste Pixel</strong>, um die Werte manuell einzugeben. Wenn eine Aufnahme geöffnet ist, zeigt dir die Schaltfläche <strong>Vorschau&hellip;</strong> ein echtes Frame mit schattiertem Zuschnitt an; nutze den Schieberegler, um ein passendes Bild zu wählen, passe die Ränder visuell an oder überlasse die Erkennung der Automatik.</p>
+<div class="note">Das Zuschneiden kodiert mit der Bitrate der Quelle als Obergrenze neu, sodass eine zugeschnittene Datei niemals größer wird als das Original. Der Scan-Typ bleibt erhalten &mdash; Interlaced bleibt Interlaced, Progressive bleibt Progressive.</div>
+<p align="center" class="figrow"><img class="gimg m566" src="img/crop-preview.png" width="566" height="475" alt="Die Zuschnitt-Vorschau, die den Crop schattiert auf einem echten Frame zeigt"></p>
+<p align="center" class="cap">Die Zuschnitt-Vorschau blendet den zu entfernenden Bereich schattiert über einem echten Frame ein.</p>
+
+<h2 id="renaming">6. Aufnahmen umbenennen</h2>
+<p>VRD Next kann Aufnahmen in eine saubere Struktur bringen, die von Medienservern wie <strong>Plex</strong>, <strong>Jellyfin</strong>, <strong>Emby</strong> und <strong>Kodi</strong> problemlos verstanden wird. Hierzu werden Daten von <strong>TMDB</strong> (The Movie Database) herangezogen. Es gibt separate Renamer für Serien und Filme, die du über das Menü <strong>Werkzeuge</strong> erreichst.</p>
+<div class="note">Die Renamer benötigen einen kostenlosen <strong>TMDB-API-Key</strong>. Erstelle einfach ein Konto auf <a href="https://www.themoviedb.org">themoviedb.org</a>, fordere einen API-Key an und trage ihn in den <strong>Einstellungen</strong> ein. (TVDB wird nicht als Alternative angeboten: Deren aktuelle API erfordert, dass jede Anwendung einen einzelnen, lizenzierten Key mitliefert, anstatt dass Nutzer ihren eigenen verwenden können &mdash; was bei Erreichen des Free-Tiers zu erheblichen Kosten führen kann.)</div>
+<h3>Serien-Renamer</h3>
+<p>Füge Aufnahmen hinzu und der Renamer ordnet jede Zeile automatisch einer Serie und Episode zu. Doppelklicke auf eine zugeordnete Zeile, um die <strong>Episodenauswahl</strong> zu öffnen, in der du die exakte Staffel und Episode festlegen kannst. Mit einem Strg-Klick (Ctrl-Click) auf zwei Episoden wählst du eine Doppelfolge aus, und über <strong>Serie ändern&hellip;</strong> korrigierst du eine fehlerhafte automatische Zuordnung. Episoden aus Staffel 0 werden automatisch in einem Ordner namens <strong>Specials</strong> abgelegt. Ein Benennungs-<strong>Muster (Pattern)</strong> steuert die Ordner- und Dateinamen und wird für zukünftige Durchläufe gespeichert. Wähle ein fertiges Layout aus der <strong>Preset</strong>-Liste oder tippe dein eigenes ein. Über <strong>Speichern&hellip;</strong> hinterlegst du das aktuelle Muster unter einem Namen in der Liste, während <strong>Löschen</strong> selbst erstellte Presets wieder entfernt (die integrierten Standard-Presets können nicht gelöscht werden). Die Serien- und Film-Renamer verwalten jeweils eigene, separate Preset-Listen.</p>
+<p align="center" class="figrow"><img class="gimg m762" src="img/tv-renamer.png" width="762" height="592" alt="Der Serien-Renamer mit geöffneter Episodenauswahl"></p>
+<p align="center" class="cap">Der Serien-Renamer mit der geöffneten Episodenauswahl über der Aufnahmeliste.</p>
+<h3>Film-Renamer</h3>
+<p>Der Film-Renamer funktioniert nach demselben Prinzip für Spielfilme und ordnet jede Aufnahme einem Titel und dem passenden Erscheinungsjahr aus der TMDB-Datenbank zu.</p>
+
+<h2 id="automation">7. Automatisierung: Der Watcher und Batch-Manager</h2>
+<h3>Der Watcher</h3>
+<p>Der Watcher nimmt dir die lästige Suche nach der Werbung ab. Er überwacht deine ausgewählten Aufnahmeordner und führt, sobald eine neue Aufnahme auftaucht, automatisch Comskip im Hintergrund aus. Das Ergebnis wird als <strong>Projektdatei</strong> gespeichert. Der Watcher schneidet oder benennt selbst nichts um &mdash; er bereitet die Schnitte lediglich für dich vor. Du behältst das Heft in der Hand: Öffne ein Projekt im Editor, um die Marken visuell zu prüfen und anzupassen, oder schicke es direkt an den Batch-Manager, um es so wie es ist zu verarbeiten.</p>
+<p align="center" class="figrow"><img class="gimg m560" src="img/watcher.png" width="560" height="655" alt="Das Watcher-Fenster"></p>
+<p align="center" class="cap">Der Watcher: Die überwachten Ordner, sein Zeitplan und der Speicherort für Projekte.</p>
+<div class="note">Der Watcher läuft unauffällig im System-Tray (Info-Bereich der Taskleiste) und arbeitet <strong>völlig unabhängig</strong> vom Haupteditor &mdash; VRD Next muss nicht geöffnet sein, damit er seine Arbeit erledigt.</div>
+<h3>Batch-Manager (Stapelverarbeitung)</h3>
+<p>Im Batch-Manager findet das eigentliche Schneiden für mehrere Dateien in einem Rutsch statt. Du kannst die aktuelle Aufnahme aus dem Editor via <strong>An Batch-Warteschlange senden</strong> (<kbd>Ctrl+B</kbd>) einreihen oder die vom Watcher vorbereiteten Projektdateien hineinladen. Starte die Verarbeitung anschließend über <strong>Werkzeuge &rarr; Batch-Manager</strong>. Jeder Job nutzt sein zugewiesenes Ausgabeprofil, sodass profilbasierte Optionen wie das Zuschneiden auch hier greifen. (Das Umbenennen ist ein separater Schritt, der von den Renamern durchgeführt wird &mdash; der Batch-Manager selbst benennt keine Dateien um.) Du kannst das Batch-Manager-Fenster während eines aktiven Durchlaufs beruhigt schließen &mdash; die Stapelverarbeitung läuft im Hintergrund weiter, und ein erneutes Öffnen über <strong>Werkzeuge &rarr; Batch-Manager</strong> zeigt dir den Live-Fortschritt.</p>
+<div class="note">Sollte der Batch-Manager bei einer Datei auf ein Problem stoßen &mdash; meistens bei Dateien, die einen Quick Stream Fix (QSF) benötigen &mdash; pausiert er diesen Job und wartet auf dich. Öffne das Projekt im Editor, behebe das Problem (z.&nbsp;B. durch Ausführen von QSF), speichere es ab, und es wird beim nächsten Start des Batch-Managers automatisch wieder eingereiht.</div>
+
+<h2 id="settings">8. Einstellungsübersicht</h2>
+<p>Öffne <strong>Werkzeuge &rarr; Einstellungen</strong>. Die Seiten sind unterteilt in:</p>
+<ul>
+  <li><strong>Allgemein</strong> &mdash; Übergreifendes Verhalten und Erscheinungsbild, einschließlich des <strong>Designs</strong> (Systemstandard, Hell oder Dunkl).</li>
+  <li><strong>Dateien</strong> &mdash; Deine Ordner für Aufnahmen, Ausgaben und temporäre Arbeitsdateien.</li>
+  <li><strong>Externe Werkzeuge</strong> &mdash; Pfade zu externen Programmen (ffmpeg, ffprobe, mkvmerge und Comskip inklusive der dazugehörigen <code>.ini</code>-Datei), plus die optionale senderbasierte <code>.ini</code>-Auswahl, die in Abschnitt 4 beschrieben ist.</li>
+  <li><strong>Protokolle</strong> &mdash; Einsehen und Verwalten des Anwendungsprotokolls (Log).</li>
+  <li><strong>Wartung</strong> &mdash; Bereinigungsarbeiten wie das Löschen des Caches für Datei-Indizes.</li>
+</ul>
+<div class="note">Über das <strong>Design</strong> auf der Seite „Allgemein“ kannst du die Farben deines Desktops übernehmen oder VRD Next fest auf ein <strong>Helles</strong> oder <strong>Dunkles</strong> Erscheinungsbild fixieren. Die Änderung greift sofort. Die Zeitleiste und die Vorschaubilder-Leiste des Editors bleiben in jedem Design dunkel, wie es bei Videoeditoren üblich ist.</div>
+<p>Tastaturkurzbefehle können hier ebenfalls über den integrierten Konfigurations-Editor eingesehen und flexibel angepasst werden.</p>
+
+<h2 id="shortcuts">9. Keyboard shortcuts</h2>
+<p>Dies sind die Standardbelegungen; alle Kurzbefehle können in den Einstellungen angepasst werden.</p>
+<table>
+  <tr><th>Aktion</th><th>Kurzbefehl</th></tr>
+  <tr><td>Video öffnen</td><td><kbd>Ctrl+O</kbd></td></tr>
+  <tr><td>Video speichern</td><td><kbd>Ctrl+S</kbd></td></tr>
+  <tr><td>Video schließen</td><td><kbd>Ctrl+F4</kbd></td></tr>
+  <tr><td>Projekt öffnen / speichern / speichern unter</td><td><kbd>Ctrl+Shift+O</kbd> / <kbd>Ctrl+P</kbd> / <kbd>Ctrl+Shift+P</kbd></td></tr>
+  <tr><td>An Batch-Warteschlange senden</td><td><kbd>Ctrl+B</kbd></td></tr>
+  <tr><td>Wiedergabe / Pause</td><td><kbd>Space</kbd></td></tr>
+  <tr><td>Ein Einzelbild zurück / vor</td><td><kbd>Left</kbd> / <kbd>Right</kbd></td></tr>
+  <tr><td>10s zurück / vor springen</td><td><kbd>Ctrl+Shift+Left</kbd> / <kbd>Ctrl+Shift+Right</kbd></td></tr>
+  <tr><td>30s zurück / vor springen</td><td><kbd>Ctrl+Left</kbd> / <kbd>Ctrl+Right</kbd></td></tr>
+  <tr><td>120s zurück / vor springen</td><td><kbd>Shift+Left</kbd> / <kbd>Shift+Right</kbd></td></tr>
+  <tr><td>An den Anfang / das Ende springen</td><td><kbd>Home</kbd> / <kbd>End</kbd></td></tr>
+  <tr><td>In-Punkt / Out-Punkt setzen</td><td><kbd>F3</kbd> / <kbd>F4</kbd></td></tr>
+  <tr><td>Auswahl hinzufügen</td><td><kbd>Insert</kbd></td></tr>
+  <tr><td>Nicht ausgewähltes hinzufügen</td><td><kbd>Ctrl+Insert</kbd></td></tr>
+  <tr><td>Alle Szenen leeren</td><td><kbd>Shift+Insert</kbd></td></tr>
+  <tr><td>Aktuelle Auswahl löschen</td><td><kbd>Delete</kbd></td></tr>
+  <tr><td>Vorherige / Nächste Szene</td><td><kbd>F5</kbd> / <kbd>F6</kbd></td></tr>
+  <tr><td>Gehe zu Szenen-Start / Szenen-Ende</td><td><kbd>S</kbd> / <kbd>E</kbd></td></tr>
+  <tr><td>Szene an Cursorposition umschalten (An/Aus)</td><td><kbd>A</kbd></td></tr>
+  <tr><td>Werbung erkennen (Comskip)</td><td><kbd>Ctrl+A</kbd></td></tr>
+  <tr><td>Gehe zu Zeitstempel</td><td><kbd>Ctrl+G</kbd></td></tr>
+  <tr><td>Video-Programminformationen anzeigen</td><td><kbd>Ctrl+L</kbd></td></tr>
+  <tr><td>Rückgängig / Wiederholen</td><td><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd></td></tr>
+</table>
+
+<h2 id="tips">10. Tipps und Fehlerbehebung</h2>
+<ul>
+  <li><strong>Es wird nichts geöffnet / Export schlägt fehl:</strong> Prüfe, ob <code>ffmpeg</code> und <code>ffprobe</code> korrekt installiert sind, und hinterlege gegebenenfalls deren Pfade manuell unter <strong>Einstellungen &rarr; Externe Werkzeuge</strong>.</li>
+  <li><strong>Die Comskip-Ergebnisse wirken ungenau:</strong> Comskip wird maßgeblich über seine <code>.ini</code>-Datei gesteuert und erzielt die besten Ergebnisse, wenn es präzise auf deine Videoquelle &mdash; insbesondere auf deren Bildwiederholrate (Framerate) &mdash; abgestimmt ist. Eine gut optimierte INI-Datei macht bei der Erkennungsqualität einen riesigen Unterschied. Wenn verschiedene Sender unterschiedliche Profile erfordern, nutze die senderbasierte <code>.ini</code>-Option aus Abschnitt 4.</li>
+  <li><strong>Eine zugeschnittene Datei wirkt unscharf oder ist zu groß:</strong> Das Zuschneiden erfordert eine vollständige Neukodierung, weshalb minimale Abweichungen normal sind. Die Bitrate ist jedoch auf das Maximum der Originalquelle gedeckelt, sodass die Datei niemals größer werden sollte. Die automatische Erkennung tastet eine Reihe von Frames ab; wenn du manuell nachjustierst, wähle in der Vorschau am besten ein möglichst repräsentatives (helles) Bild.</li>
+  <li><strong>Etwas ist schiefgelaufen:</strong> Das Anwendungsprotokoll (zu finden unter <strong>Einstellungen &rarr; Protokolle</strong>) zeichnet alle technischen Details zu jedem Export auf und ist bei Fehlern stets die erste Anlaufstelle.</li>
+  <li><strong>Der Ton in der Vorschau ist leicht asynchron:</strong> Gelegentlich &mdash; und vor allem bei hochauflösendem Quellmaterial (HD) &mdash; kann der Ton im Vorschaufenster minimal vor- oder nachlaufen. Dies betrifft ausschließlich die integrierte Vorschau &mdash; die exportierte Datei ist immer perfekt synchron, da der Schnitt direkt auf den Quelldaten operiert und nicht auf der Vorschau basiert.</li>
+  <li><strong>Das Schneiden von Blu-ray- oder 4K-Dateien ist langsam und verbraucht viel RAM:</strong> Sehr große Videodateien mit hohen Bitraten (Blu-ray und UHD) benötigen bei der Analyse der Schnittpunkte deutlich mehr Zeit als klassische TV-Aufnahmen. Dabei können durchaus einige Gigabyte Arbeitsspeicher (RAM) beansprucht werden &mdash; der eigentliche Schnittvorgang bleibt dennoch vollkommen verlustfrei. Für diese Dateiklassen ist das Verhalten völlig normal; VRD Next wurde primär für TV-Aufnahmen optimiert, die sich besonders schnell und ressourcenschonend verarbeiten lassen.</li>
+</ul>
+
+<p class="lead">VRD Next ist Open Source &mdash; <a href="https://github.com/infidelus/vrd-next">github.com/infidelus/vrd-next</a>.</p>
+
+</body>
+</html>

@@ -57,18 +57,18 @@ class PathRow(QWidget):
         row.setSpacing(6)
 
         self._mode = QComboBox()
-        self._mode.addItem("Remember last used folder", "last")
-        self._mode.addItem("Always use this folder", "fixed")
+        self._mode.addItem(self.tr("Remember last used folder"), "last")
+        self._mode.addItem(self.tr("Always use this folder"), "fixed")
         idx = self._mode.findData(mode if mode in ("last", "fixed") else "last")
         self._mode.setCurrentIndex(max(0, idx))
         self._mode.currentIndexChanged.connect(self._sync_enabled)
         row.addWidget(self._mode)
 
         self._folder = QLineEdit(folder or "")
-        self._folder.setPlaceholderText("(no folder set)")
+        self._folder.setPlaceholderText(self.tr("(no folder set)"))
         row.addWidget(self._folder, 1)
 
-        self._browse = QPushButton("Browse…")
+        self._browse = QPushButton(self.tr("Browse…"))
         self._browse.setFocusPolicy(Qt.NoFocus)
         self._browse.clicked.connect(self._on_browse)
         row.addWidget(self._browse)
@@ -85,7 +85,7 @@ class PathRow(QWidget):
     def _on_browse(self):
         start = self._folder.text() or os.path.expanduser("~")
         chosen = QFileDialog.getExistingDirectory(
-            self, "Choose folder", start
+            self, self.tr("Choose folder"), start
         )
         if chosen:
             self._folder.setText(chosen)
@@ -117,7 +117,7 @@ class PlainFolderRow(QWidget):
         self._folder.setPlaceholderText(placeholder)
         row.addWidget(self._folder, 1)
 
-        browse = QPushButton("Browse…")
+        browse = QPushButton(self.tr("Browse…"))
         browse.setFocusPolicy(Qt.NoFocus)
         browse.clicked.connect(self._on_browse)
         row.addWidget(browse)
@@ -127,7 +127,7 @@ class PlainFolderRow(QWidget):
     def _on_browse(self):
         start = self._folder.text() or os.path.expanduser("~")
         chosen = QFileDialog.getExistingDirectory(
-            self, "Choose folder", start
+            self, self.tr("Choose folder"), start
         )
         if chosen:
             self._folder.setText(chosen)
@@ -158,7 +158,7 @@ class FileRow(QWidget):
         self._path.setPlaceholderText(placeholder)
         row.addWidget(self._path, 1)
 
-        browse = QPushButton("Browse…")
+        browse = QPushButton(self.tr("Browse…"))
         browse.setFocusPolicy(Qt.NoFocus)
         browse.clicked.connect(self._on_browse)
         row.addWidget(browse)
@@ -170,7 +170,7 @@ class FileRow(QWidget):
         if os.path.isfile(start):
             start = os.path.dirname(start)
         chosen, _ = QFileDialog.getOpenFileName(
-            self, "Choose file", start, self._filter
+            self, self.tr("Choose file"), start, self._filter
         )
         if chosen:
             self._path.setText(chosen)

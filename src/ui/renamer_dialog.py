@@ -31,7 +31,7 @@ import os
 import re
 import shutil
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QT_TRANSLATE_NOOP, QCoreApplication
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -91,9 +91,9 @@ CODES_HELP = (
 # Ready-made TV layouts offered in the Preset list.  Plex, Jellyfin and Kodi all
 # read this shape and accept either season-folder padding.  ("label", pattern).
 TV_PRESETS = [
-    ("Show (Year) / Season 02 / Episode", "%NY/Season %SZ/%N - S%SZE%EZ - %T"),
-    ("Show (Year) / Season 2 / Episode",  "%NY/Season %S/%N - S%SZE%EZ - %T"),
-    ("Flat - no folders",                 "%N - S%SZE%EZ - %T"),
+    (QT_TRANSLATE_NOOP("Renamer", "Show (Year) / Season 02 / Episode"), "%NY/Season %SZ/%N - S%SZE%EZ - %T"),
+    (QT_TRANSLATE_NOOP("Renamer", "Show (Year) / Season 2 / Episode"),  "%NY/Season %S/%N - S%SZE%EZ - %T"),
+    (QT_TRANSLATE_NOOP("Renamer", "Flat - no folders"),                 "%N - S%SZE%EZ - %T"),
 ]
 
 # A stand-in episode used to render the live example line before anything has
@@ -297,28 +297,28 @@ class RenamerDialog(QDialog):
         # ricochet into an endless signal loop.
         self._syncing_preset = False
 
-        self.setWindowTitle("TV Renamer")
+        self.setWindowTitle(self.tr("TV Renamer"))
         self.setMinimumWidth(760)
         self.setMinimumHeight(560)
 
         layout = QVBoxLayout(self)
 
         # --- source -------------------------------------------------------
-        source_box = QGroupBox("Source")
+        source_box = QGroupBox(self.tr("Source"))
         source_layout = QHBoxLayout(source_box)
-        choose_folder = QPushButton("Choose Folder…")
+        choose_folder = QPushButton(self.tr("Choose Folder…"))
         choose_folder.clicked.connect(self._choose_folder)
-        choose_files = QPushButton("Add Files…")
+        choose_files = QPushButton(self.tr("Add Files…"))
         choose_files.clicked.connect(self._choose_files)
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.setToolTip("Re-scan the current folder for new files")
+        self.refresh_btn = QPushButton(self.tr("Refresh"))
+        self.refresh_btn.setToolTip(self.tr("Re-scan the current folder for new files"))
         self.refresh_btn.clicked.connect(self._refresh_folder)
         self.refresh_btn.setEnabled(False)
-        self.source_label = QLabel("No files chosen.")
-        self.autoload_check = QCheckBox("Load last folder on open")
+        self.source_label = QLabel(self.tr("No files chosen."))
+        self.autoload_check = QCheckBox(self.tr("Load last folder on open"))
         self.autoload_check.setToolTip(
-            "When ticked, the renamer opens straight into the folder you used "
-            "last."
+            self.tr("When ticked, the renamer opens straight into the folder you used "
+            "last.")
         )
         autoload_on = self.config.get("settings", {}).get(
             "renamer_autoload", True
@@ -333,12 +333,12 @@ class RenamerDialog(QDialog):
         layout.addWidget(source_box)
 
         # --- series (used when auto-match is off) -------------------------
-        self.series_box = QGroupBox("Series (used when auto-match is off)")
+        self.series_box = QGroupBox(self.tr("Series (used when auto-match is off)"))
         series_layout = QHBoxLayout(self.series_box)
         self.query_edit = QLineEdit()
-        self.query_edit.setPlaceholderText("Series name to search for")
+        self.query_edit.setPlaceholderText(self.tr("Series name to search for"))
         self.query_edit.returnPressed.connect(self._search)
-        search_btn = QPushButton("Search TMDB")
+        search_btn = QPushButton(self.tr("Search TMDB"))
         search_btn.clicked.connect(self._search)
         self.results_combo = QComboBox()
         self.results_combo.setMinimumWidth(220)
@@ -354,37 +354,37 @@ class RenamerDialog(QDialog):
         )
 
         preset_row = QHBoxLayout()
-        preset_row.addWidget(QLabel("Preset:"))
+        preset_row.addWidget(QLabel(self.tr("Preset:")))
         self.preset_combo = QComboBox()
         self.preset_combo.currentIndexChanged.connect(self._on_preset_changed)
         preset_row.addWidget(self.preset_combo, 1)
-        self.save_preset_btn = QPushButton("Save…")
+        self.save_preset_btn = QPushButton(self.tr("Save…"))
         self.save_preset_btn.setToolTip(
-            "Save the current pattern as a named preset"
+            self.tr("Save the current pattern as a named preset")
         )
         self.save_preset_btn.clicked.connect(self._save_preset)
         preset_row.addWidget(self.save_preset_btn)
-        self.delete_preset_btn = QPushButton("Delete")
-        self.delete_preset_btn.setToolTip("Delete the selected saved preset")
+        self.delete_preset_btn = QPushButton(self.tr("Delete"))
+        self.delete_preset_btn.setToolTip(self.tr("Delete the selected saved preset"))
         self.delete_preset_btn.clicked.connect(self._delete_preset)
         preset_row.addWidget(self.delete_preset_btn)
         layout.addLayout(preset_row)
         self._populate_preset_combo()
 
         pattern_row = QHBoxLayout()
-        pattern_row.addWidget(QLabel("Pattern:"))
+        pattern_row.addWidget(QLabel(self.tr("Pattern:")))
         self.pattern_edit = QLineEdit(saved_pattern)
         # Live: update the example and the Preset selector on every keystroke;
         # persist and re-render the matched rows once editing finishes.
         self.pattern_edit.textEdited.connect(self._on_pattern_text_edited)
         self.pattern_edit.editingFinished.connect(self._reapply_pattern)
         pattern_row.addWidget(self.pattern_edit, 1)
-        codes_btn = QPushButton("Codes…")
+        codes_btn = QPushButton(self.tr("Codes…"))
         codes_btn.clicked.connect(
-            lambda: QMessageBox.information(self, "Pattern codes", CODES_HELP)
+            lambda: QMessageBox.information(self, self.tr("Pattern codes"), CODES_HELP)
         )
         pattern_row.addWidget(codes_btn)
-        self.preview_btn = QPushButton("Match TV Shows")
+        self.preview_btn = QPushButton(self.tr("Match TV Shows"))
         self.preview_btn.clicked.connect(self._build_preview)
         pattern_row.addWidget(self.preview_btn)
         layout.addLayout(pattern_row)
@@ -403,13 +403,13 @@ class RenamerDialog(QDialog):
 
         # --- destination --------------------------------------------------
         dest_row = QHBoxLayout()
-        dest_row.addWidget(QLabel("Destination:"))
+        dest_row.addWidget(QLabel(self.tr("Destination:")))
         self.dest_field = QLineEdit()
         self.dest_field.setReadOnly(True)
         dest_row.addWidget(self.dest_field, 1)
-        dest_btn = QPushButton("Choose…")
+        dest_btn = QPushButton(self.tr("Choose…"))
         dest_btn.clicked.connect(self._choose_dest)
-        dest_clear = QPushButton("Clear")
+        dest_clear = QPushButton(self.tr("Clear"))
         dest_clear.clicked.connect(self._reset_dest)
         dest_row.addWidget(dest_btn)
         dest_row.addWidget(dest_clear)
@@ -424,13 +424,13 @@ class RenamerDialog(QDialog):
         # Destructive, so deliberately NOT remembered - it starts off each time
         # and the user has to opt in for that session.
         self.overwrite_check = QCheckBox(
-            "Overwrite files that already exist at the destination"
+            self.tr("Overwrite files that already exist at the destination")
         )
         layout.addWidget(self.overwrite_check)
 
         self.auto_check = QCheckBox(
-            "Auto-match every show in one pass  "
-            "(double-click a row to change its show)"
+            self.tr("Auto-match every show in one pass  "
+            "(double-click a row to change its show)")
         )
         # Remembered between runs; default on.
         auto_on = self.config.get("settings", {}).get("renamer_auto_match", True)
@@ -441,7 +441,7 @@ class RenamerDialog(QDialog):
 
         # --- preview table ------------------------------------------------
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["Current name", "New name", "Status"])
+        self.table.setHorizontalHeaderLabels([self.tr("Current name"), self.tr("New name"), self.tr("Status")])
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionMode(QAbstractItemView.NoSelection)
         header = self.table.horizontalHeader()
@@ -456,13 +456,13 @@ class RenamerDialog(QDialog):
         actions = QHBoxLayout()
         self.status_label = QLabel("")
         actions.addWidget(self.status_label, 1)
-        self.rename_btn = QPushButton("Process Ticked")
+        self.rename_btn = QPushButton(self.tr("Process Ticked"))
         self.rename_btn.clicked.connect(self._do_rename)
         self.rename_btn.setEnabled(False)
-        self.clear_btn = QPushButton("Clear Completed")
+        self.clear_btn = QPushButton(self.tr("Clear Completed"))
         self.clear_btn.clicked.connect(self._clear_completed)
         self.clear_btn.setEnabled(False)
-        close_btn = QPushButton("Close")
+        close_btn = QPushButton(self.tr("Close"))
         close_btn.clicked.connect(self.accept)
         actions.addWidget(self.rename_btn)
         actions.addWidget(self.clear_btn)
@@ -564,13 +564,14 @@ class RenamerDialog(QDialog):
         try:
             self.preset_combo.clear()
             for label, pat in TV_PRESETS:
-                self.preset_combo.addItem(label, pat)
+                self.preset_combo.addItem(
+                    QCoreApplication.translate("Renamer", label), pat)
             self._builtin_count = len(TV_PRESETS)
             user = load_user_presets(self.config, self._PRESET_KEY)
             for label, pat in user:
                 self.preset_combo.addItem(label, pat)
             self._user_count = len(user)
-            self.preset_combo.addItem("Custom…", None)
+            self.preset_combo.addItem(self.tr("Custom…"), None)
         finally:
             self._syncing_preset = False
 
@@ -592,11 +593,11 @@ class RenamerDialog(QDialog):
         pattern = self.pattern_edit.text().strip()
         if not pattern:
             QMessageBox.information(
-                self, "Save preset", "There's no pattern to save."
+                self, self.tr("Save preset"), self.tr("There's no pattern to save.")
             )
             return
         name, ok = QInputDialog.getText(
-            self, "Save preset", "Name for this preset:"
+            self, self.tr("Save preset"), self.tr("Name for this preset:")
         )
         name = name.strip() if ok else ""
         if not name:
@@ -626,7 +627,7 @@ class RenamerDialog(QDialog):
             return
         label = self.preset_combo.currentText()
         if QMessageBox.question(
-            self, "Delete preset", "Delete the preset '%s'?" % label
+            self, self.tr("Delete preset"), "Delete the preset '%s'?" % label
         ) != QMessageBox.Yes:
             return
         presets = [(l, p) for l, p in
@@ -677,7 +678,7 @@ class RenamerDialog(QDialog):
     def _choose_dest(self):
         start = self._dest_root or self._default_dir()
         folder = QFileDialog.getExistingDirectory(
-            self, "Choose destination library folder", start
+            self, self.tr("Choose destination library folder"), start
         )
         if not folder:
             return
@@ -712,9 +713,9 @@ class RenamerDialog(QDialog):
         if not key:
             QMessageBox.warning(
                 self,
-                "TV Renamer",
-                "No TMDB API key set. Add one in Settings (the TMDB API key "
-                "field on the General page), then try again.",
+                self.tr("TV Renamer"),
+                self.tr("No TMDB API key set. Add one in Settings (the TMDB API key "
+                "field on the General page), then try again."),
             )
             return None
         return TmdbClient(key)
@@ -761,7 +762,7 @@ class RenamerDialog(QDialog):
             if guess and not self.query_edit.text().strip():
                 self.query_edit.setText(guess)
         else:
-            self.source_label.setText("No files chosen.")
+            self.source_label.setText(self.tr("No files chosen."))
         self._fill_table()
 
     def _cache_matches(self):
@@ -774,7 +775,7 @@ class RenamerDialog(QDialog):
 
     def _choose_folder(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "Choose folder", self._default_dir()
+            self, self.tr("Choose folder"), self._default_dir()
         )
         if folder:
             self._load_folder(folder)
@@ -797,7 +798,7 @@ class RenamerDialog(QDialog):
         if not files:
             if announce:
                 QMessageBox.information(
-                    self, "TV Renamer", "No video files found in that folder."
+                    self, self.tr("TV Renamer"), self.tr("No video files found in that folder.")
                 )
             return
         self._set_files(files)
@@ -855,12 +856,12 @@ class RenamerDialog(QDialog):
         finally:
             QApplication.restoreOverrideCursor()
         if err:
-            QMessageBox.warning(self, "TV Renamer", err)
+            QMessageBox.warning(self, self.tr("TV Renamer"), err)
             return
 
         self.results_combo.clear()
         if not results:
-            self.results_combo.addItem("(no matches)", None)
+            self.results_combo.addItem(self.tr("(no matches)"), None)
             return
         for r in results:
             yr = year_of(r.get("first_air_date"))
@@ -890,13 +891,13 @@ class RenamerDialog(QDialog):
             return None
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("Choose the right show")
+        dlg.setWindowTitle(self.tr("Choose the right show"))
         dlg.setMinimumWidth(500)
         v = QVBoxLayout(dlg)
 
         search_row = QHBoxLayout()
         q = QLineEdit(initial_query)
-        search_btn = QPushButton("Search")
+        search_btn = QPushButton(self.tr("Search"))
         search_row.addWidget(q, 1)
         search_row.addWidget(search_btn)
         v.addLayout(search_row)
@@ -907,30 +908,30 @@ class RenamerDialog(QDialog):
         # Season / episode, pre-filled when they were read from the file name so
         # the user can correct a mis-parse, or fill them in when there were none.
         se_row = QHBoxLayout()
-        se_row.addWidget(QLabel("Season:"))
+        se_row.addWidget(QLabel(self.tr("Season:")))
         season_edit = QLineEdit()
         season_edit.setMaximumWidth(70)
         if row.season is not None:
             season_edit.setText(str(row.season))
         se_row.addWidget(season_edit)
-        se_row.addWidget(QLabel("Episode(s):"))
+        se_row.addWidget(QLabel(self.tr("Episode(s):")))
         ep_edit = QLineEdit()
         if row.episodes:
             ep_edit.setText("-".join(str(e) for e in row.episodes))
-        ep_edit.setPlaceholderText("e.g. 11  or  11-12")
+        ep_edit.setPlaceholderText(self.tr("e.g. 11  or  11-12"))
         se_row.addWidget(ep_edit, 1)
         v.addLayout(se_row)
 
         hint = QLabel(
-            "Set the season and episode here if they aren't in the file name."
+            self.tr("Set the season and episode here if they aren't in the file name.")
         )
         hint.setStyleSheet("color: gray;")
         v.addWidget(hint)
 
         buttons = QHBoxLayout()
-        ok = QPushButton("Use This Show")
+        ok = QPushButton(self.tr("Use This Show"))
         ok.setEnabled(False)
-        cancel = QPushButton("Cancel")
+        cancel = QPushButton(self.tr("Cancel"))
         buttons.addStretch(1)
         buttons.addWidget(ok)
         buttons.addWidget(cancel)
@@ -952,14 +953,14 @@ class RenamerDialog(QDialog):
             finally:
                 QApplication.restoreOverrideCursor()
             if err:
-                QMessageBox.warning(dlg, "TV Renamer", err)
+                QMessageBox.warning(dlg, self.tr("TV Renamer"), err)
                 return
             found.clear()
             found.extend(results)
             lst.clear()
             for r in results:
                 yr = year_of(r.get("first_air_date"))
-                lst.addItem("%s (%s)" % (r.get("name", "?"), yr or "----"))
+                lst.addItem(self.tr("%s (%s)") % (r.get("name", "?"), yr or "----"))
             ok.setEnabled(False)
 
         search_btn.clicked.connect(do_search)
@@ -1005,19 +1006,19 @@ class RenamerDialog(QDialog):
             return self._pick_show(row.parsed.show or "", row)
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("Pick episode")
+        dlg.setWindowTitle(self.tr("Pick episode"))
         dlg.setMinimumWidth(460)
         v = QVBoxLayout(dlg)
 
         head = QHBoxLayout()
         show_lbl = QLabel()
         head.addWidget(show_lbl, 1)
-        change_btn = QPushButton("Change show…")
+        change_btn = QPushButton(self.tr("Change show…"))
         head.addWidget(change_btn)
         v.addLayout(head)
 
         srow = QHBoxLayout()
-        srow.addWidget(QLabel("Season:"))
+        srow.addWidget(QLabel(self.tr("Season:")))
         season_combo = QComboBox()
         srow.addWidget(season_combo, 1)
         v.addLayout(srow)
@@ -1026,14 +1027,14 @@ class RenamerDialog(QDialog):
         ep_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         v.addWidget(ep_list, 1)
 
-        hint = QLabel("Pick the episode (Ctrl-click for a two-parter).")
+        hint = QLabel(self.tr("Pick the episode (Ctrl-click for a two-parter)."))
         hint.setStyleSheet("color: gray;")
         v.addWidget(hint)
 
         buttons = QHBoxLayout()
-        ok = QPushButton("Select episode")
+        ok = QPushButton(self.tr("Select episode"))
         ok.setEnabled(False)
-        cancel = QPushButton("Cancel")
+        cancel = QPushButton(self.tr("Cancel"))
         buttons.addStretch(1)
         buttons.addWidget(ok)
         buttons.addWidget(cancel)
@@ -1066,7 +1067,7 @@ class RenamerDialog(QDialog):
             finally:
                 QApplication.restoreOverrideCursor()
             if err:
-                QMessageBox.warning(dlg, "TV Renamer", err)
+                QMessageBox.warning(dlg, self.tr("TV Renamer"), err)
                 return
             eps = data.get("episodes", []) or []
             state["episodes"] = eps
@@ -1092,7 +1093,7 @@ class RenamerDialog(QDialog):
             finally:
                 QApplication.restoreOverrideCursor()
             if err:
-                QMessageBox.warning(dlg, "TV Renamer", err)
+                QMessageBox.warning(dlg, self.tr("TV Renamer"), err)
                 return
             nums = sorted({
                 s.get("season_number")
@@ -1102,7 +1103,9 @@ class RenamerDialog(QDialog):
             season_combo.blockSignals(True)
             season_combo.clear()
             for n in nums:
-                season_combo.addItem("Specials" if n == 0 else "Season %d" % n, n)
+                season_combo.addItem(
+                    self.tr("Specials") if n == 0
+                    else self.tr("Season %d") % n, n)
             idx = season_combo.findData(select_season)
             season_combo.setCurrentIndex(idx if idx >= 0 else 0)
             season_combo.blockSignals(False)
@@ -1195,7 +1198,7 @@ class RenamerDialog(QDialog):
         finally:
             QApplication.restoreOverrideCursor()
         if err:
-            QMessageBox.warning(self, "TV Renamer", err)
+            QMessageBox.warning(self, self.tr("TV Renamer"), err)
             return
         self._cache_matches()
         self._fill_table()
@@ -1222,18 +1225,18 @@ class RenamerDialog(QDialog):
 
     def _status_text(self, row):
         if row.status == "done":
-            return "Done"
+            return self.tr("Done")
         if row.note:
             return row.note
         if row.new_name is None:
-            return "not matched yet"
+            return self.tr("not matched yet")
         if self._already_named(row):
-            return "Rename Not Required"
-        return "Ready"
+            return self.tr("Rename Not Required")
+        return self.tr("Ready")
 
     def _build_preview(self):
         if not self.rows:
-            QMessageBox.information(self, "TV Renamer", "Choose some files first.")
+            QMessageBox.information(self, self.tr("TV Renamer"), self.tr("Choose some files first."))
             return
         client = self._client()
         if client is None:
@@ -1242,7 +1245,7 @@ class RenamerDialog(QDialog):
         pending = [r for r in self.rows if r.status != "done"]
         if not pending:
             QMessageBox.information(
-                self, "TV Renamer", "Everything in the list is done already."
+                self, self.tr("TV Renamer"), self.tr("Everything in the list is done already.")
             )
             return
 
@@ -1262,9 +1265,9 @@ class RenamerDialog(QDialog):
         # Manual mode: a single chosen show is quick, so keep it inline.
         if not self.series:
             QMessageBox.information(
-                self, "TV Renamer",
-                "Search for and choose a series first, or tick 'Auto-match "
-                "every show in one pass'.",
+                self, self.tr("TV Renamer"),
+                self.tr("Search for and choose a series first, or tick 'Auto-match "
+                "every show in one pass'."),
             )
             return
         first_group = pending[0].group
@@ -1278,14 +1281,14 @@ class RenamerDialog(QDialog):
         finally:
             QApplication.restoreOverrideCursor()
         if err:
-            QMessageBox.warning(self, "TV Renamer", err)
+            QMessageBox.warning(self, self.tr("TV Renamer"), err)
             return
         self._cache_matches()
         self._fill_table()
 
     def _match_finished(self, error):
         if error:
-            QMessageBox.warning(self, "TV Renamer", error)
+            QMessageBox.warning(self, self.tr("TV Renamer"), error)
         else:
             self._cache_matches()
         self._fill_table()
@@ -1377,7 +1380,7 @@ class RenamerDialog(QDialog):
             jobs.append((row, self._target_for(row)))
 
         if not jobs:
-            QMessageBox.information(self, "TV Renamer", "Nothing is ticked to rename.")
+            QMessageBox.information(self, self.tr("TV Renamer"), self.tr("Nothing is ticked to rename."))
             return
 
         overwrite = self.overwrite_check.isChecked()
@@ -1399,12 +1402,12 @@ class RenamerDialog(QDialog):
 
     def _move_finished(self, error):
         if error:
-            QMessageBox.warning(self, "TV Renamer", error)
+            QMessageBox.warning(self, self.tr("TV Renamer"), error)
         else:
             done, skipped, failed = getattr(self, "_move_result", (0, 0, 0))
             QMessageBox.information(
                 self,
-                "TV Renamer",
+                self.tr("TV Renamer"),
                 "Renamed %d file(s).%s%s"
                 % (
                     done,

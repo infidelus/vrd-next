@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.settings_pages import SettingsContext, page_classes
+from PySide6.QtCore import QCoreApplication
 
 
 class SettingsDialog(QDialog):
@@ -43,7 +44,7 @@ class SettingsDialog(QDialog):
     def __init__(self, config, config_file, default_log_folder, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Settings")
+        self.setWindowTitle(self.tr("Settings"))
         self.setModal(True)
         self.setMinimumSize(640, 420)
 
@@ -80,7 +81,7 @@ class SettingsDialog(QDialog):
         self._page_widgets = []
         for page_cls in page_classes():
             page = page_cls(self._config, ctx)
-            self._nav.addItem(page.TITLE)
+            self._nav.addItem(QCoreApplication.translate("Settings", page.TITLE))
             self._pages.addWidget(page)
             self._page_widgets.append(page)
 
@@ -106,10 +107,10 @@ class SettingsDialog(QDialog):
 
         reply = QMessageBox.question(
             self,
-            "Restore default settings",
-            "This resets all settings - paths, options and keyboard shortcuts "
+            self.tr("Restore default settings"),
+            self.tr("This resets all settings - paths, options and keyboard shortcuts "
             "- to their defaults.\n\nYour recordings and projects are not "
-            "affected. Continue?",
+            "affected. Continue?"),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -171,7 +172,7 @@ class SettingsDialog(QDialog):
         else:
             msg = "The cache is already empty."
 
-        QMessageBox.information(self, "Cache cleared", msg)
+        QMessageBox.information(self, self.tr("Cache cleared"), msg)
 
     #
     # Result

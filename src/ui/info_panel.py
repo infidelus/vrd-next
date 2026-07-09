@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QT_TRANSLATE_NOOP, QCoreApplication
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -52,7 +52,7 @@ class InfoPanel(QWidget):
         )
 
         title = QLabel(
-            "Info"
+            self.tr("Info")
         )
 
         title.setStyleSheet(
@@ -132,7 +132,7 @@ class InfoPanel(QWidget):
         # Column headers
         #
 
-        time_header = QLabel("Time")
+        time_header = QLabel(self.tr("Time"))
         time_header.setAlignment(Qt.AlignCenter)
         grid.addWidget(
             time_header,
@@ -140,7 +140,7 @@ class InfoPanel(QWidget):
             2,
         )
 
-        mb_header = QLabel("MB")
+        mb_header = QLabel(self.tr("MB"))
         mb_header.setAlignment(Qt.AlignCenter)
         grid.addWidget(
             mb_header,
@@ -155,11 +155,11 @@ class InfoPanel(QWidget):
         self.rows = {}
 
         labels = [
-            "Cursor",
-            "Program",
-            "Selection",
-            "Output",
-            "Joiner",
+            QT_TRANSLATE_NOOP("InfoPanel", "Cursor"),
+            QT_TRANSLATE_NOOP("InfoPanel", "Program"),
+            QT_TRANSLATE_NOOP("InfoPanel", "Selection"),
+            QT_TRANSLATE_NOOP("InfoPanel", "Output"),
+            QT_TRANSLATE_NOOP("InfoPanel", "Joiner"),
         ]
 
         for index, name in enumerate(
@@ -168,11 +168,11 @@ class InfoPanel(QWidget):
         ):
 
             label = QLabel(
-                f"{name}:"
+                QCoreApplication.translate("InfoPanel", name) + ":"
             )
 
             value = QLabel(
-                "--:--:--.--"
+                self.tr("--:--:--.--")
             )
 
             value.setAlignment(
@@ -180,7 +180,7 @@ class InfoPanel(QWidget):
             )
 
             mb = QLabel(
-                "0.00"
+                self.tr("0.00")
             )
 
             mb.setAlignment(
@@ -303,8 +303,8 @@ class InfoPanel(QWidget):
                 f"{file_mb:.2f}"
             )
         else:
-            self.rows["Program"]["time"].setText("--:--:--.--")
-            self.rows["Program"]["mb"].setText("0.00")
+            self.rows["Program"]["time"].setText(self.tr("--:--:--.--"))
+            self.rows["Program"]["mb"].setText(self.tr("0.00"))
 
         #
         # Joiner: combined duration (and rough size) of the joiner list.  Spans
@@ -322,5 +322,5 @@ class InfoPanel(QWidget):
                 f"{joiner_mb:.2f}" if joiner_mb > 0 else "--"
             )
         else:
-            self.rows["Joiner"]["time"].setText("--:--:--.--")
-            self.rows["Joiner"]["mb"].setText("0.00")
+            self.rows["Joiner"]["time"].setText(self.tr("--:--:--.--"))
+            self.rows["Joiner"]["mb"].setText(self.tr("0.00"))

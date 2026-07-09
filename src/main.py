@@ -505,7 +505,7 @@ class MainWindow(QMainWindow):
         # Remove the highlighted scene(s).  Enabled only while something is
         # selected (see _update_remove_button).
         self.remove_scenes_btn = QPushButton(
-            "Remove Selected Scenes"
+            self.tr("Remove Selected Scenes")
         )
         self.remove_scenes_btn.setEnabled(False)
         self.remove_scenes_btn.setFocusPolicy(Qt.NoFocus)
@@ -650,8 +650,8 @@ class MainWindow(QMainWindow):
         choice = QMessageBox.question(
             self,
             title,
-            "You have unsaved changes to the scene list.\n\n"
-            "Save them as a project before continuing?",
+            self.tr("You have unsaved changes to the scene list.\n\n"
+            "Save them as a project before continuing?"),
             QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
             QMessageBox.Save,
         )
@@ -671,139 +671,139 @@ class MainWindow(QMainWindow):
         menu = (
             self.menuBar()
             .addMenu(
-                "File"
+                self.tr("File")
             )
         )
 
         open_action = menu.addAction(
-            self._menu_label("Open Video", "open_video")
+            self._menu_label(self.tr("Open Video"), "open_video")
         )
         open_action.triggered.connect(self.open_video)
 
-        recent_menu = menu.addMenu("Open Recent")
+        recent_menu = menu.addMenu(self.tr("Open Recent"))
         self._populate_recent_menu(recent_menu)
         menu.aboutToShow.connect(
             lambda rm=recent_menu: self._populate_recent_menu(rm)
         )
 
         export_action = menu.addAction(
-            self._menu_label("Save Video…", "save_video")
+            self._menu_label(self.tr("Save Video…"), "save_video")
         )
         export_action.triggered.connect(self.export_video)
 
         close_action = menu.addAction(
-            self._menu_label("Close Video", "close_video")
+            self._menu_label(self.tr("Close Video"), "close_video")
         )
         close_action.triggered.connect(self.close_video)
 
         menu.addSeparator()
 
         open_project_action = menu.addAction(
-            self._menu_label("Open Project…", "open_project")
+            self._menu_label(self.tr("Open Project…"), "open_project")
         )
         open_project_action.triggered.connect(self.open_project)
 
         save_project_action = menu.addAction(
-            self._menu_label("Save Project", "save_project")
+            self._menu_label(self.tr("Save Project"), "save_project")
         )
         save_project_action.triggered.connect(self.save_project)
 
         save_project_as_action = menu.addAction(
-            self._menu_label("Save Project As…", "save_project_as")
+            self._menu_label(self.tr("Save Project As…"), "save_project_as")
         )
         save_project_as_action.triggered.connect(self.save_project_as)
 
         menu.addSeparator()
 
         queue_batch_action = menu.addAction(
-            self._menu_label("Queue to Batch", "queue_to_batch")
+            self._menu_label(self.tr("Queue to Batch"), "queue_to_batch")
         )
         queue_batch_action.triggered.connect(self.queue_to_batch)
 
         menu.addSeparator()
 
-        exit_action = menu.addAction("Exit")
+        exit_action = menu.addAction(self.tr("Exit"))
         exit_action.triggered.connect(self.close)
 
         edit_menu = (
             self.menuBar()
             .addMenu(
-                "Edit"
+                self.tr("Edit")
             )
         )
 
         mark_in_action = edit_menu.addAction(
-            self._menu_label("Mark In", "mark_in")
+            self._menu_label(self.tr("Mark In"), "mark_in")
         )
         mark_in_action.triggered.connect(self.mark_in)
 
         mark_out_action = edit_menu.addAction(
-            self._menu_label("Mark Out", "mark_out")
+            self._menu_label(self.tr("Mark Out"), "mark_out")
         )
         mark_out_action.triggered.connect(self.mark_out)
 
         edit_menu.addSeparator()
 
         add_selection_action = edit_menu.addAction(
-            self._menu_label("Add Selection", "commit_selection")
+            self._menu_label(self.tr("Add Selection"), "commit_selection")
         )
         add_selection_action.triggered.connect(self.commit_selection)
 
         add_unselected_action = edit_menu.addAction(
-            self._menu_label("Add Unselected", "add_unselected")
+            self._menu_label(self.tr("Add Unselected"), "add_unselected")
         )
         add_unselected_action.triggered.connect(self.add_unselected)
 
         clear_all_action = edit_menu.addAction(
-            self._menu_label("Clear All Scenes", "clear_all_scenes")
+            self._menu_label(self.tr("Clear All Scenes"), "clear_all_scenes")
         )
         clear_all_action.triggered.connect(self.clear_all_scenes)
 
         edit_menu.addSeparator()
 
         goto_start_action = edit_menu.addAction(
-            self._menu_label("Previous Scene Start", "goto_selection_start")
+            self._menu_label(self.tr("Previous Scene Start"), "goto_selection_start")
         )
         goto_start_action.triggered.connect(self.goto_selection_start)
 
         goto_end_action = edit_menu.addAction(
-            self._menu_label("Next Scene End", "goto_selection_end")
+            self._menu_label(self.tr("Next Scene End"), "goto_selection_end")
         )
         goto_end_action.triggered.connect(self.goto_selection_end)
 
         joiner_menu = (
             self.menuBar()
             .addMenu(
-                "Joiner"
+                self.tr("Joiner")
             )
         )
 
         add_to_joiner_action = joiner_menu.addAction(
-            "Add Current Project To Joiner List"
+            self.tr("Add Current Project To Joiner List")
         )
         add_to_joiner_action.triggered.connect(self.add_current_to_joiner)
 
         edit_joiner_action = joiner_menu.addAction(
-            "Edit Joiner List…"
+            self.tr("Edit Joiner List…")
         )
         edit_joiner_action.triggered.connect(self.edit_joiner_list)
 
         create_joiner_action = joiner_menu.addAction(
-            "Create Video From Joiner List…"
+            self.tr("Create Video From Joiner List…")
         )
         create_joiner_action.triggered.connect(self.create_joiner_video)
 
         tools_menu = (
             self.menuBar()
             .addMenu(
-                "Tools"
+                self.tr("Tools")
             )
         )
 
         qsf_action = (
             tools_menu
             .addAction(
-                "Quick Stream Fix…"
+                self.tr("Quick Stream Fix…")
             )
         )
 
@@ -814,7 +814,7 @@ class MainWindow(QMainWindow):
         detect_action = (
             tools_menu
             .addAction(
-                self._menu_label("Detect Commercials\u2026", "detect_commercials")
+                self._menu_label(self.tr("Detect Commercials\u2026"), "detect_commercials")
             )
         )
 
@@ -825,7 +825,7 @@ class MainWindow(QMainWindow):
         batch_action = (
             tools_menu
             .addAction(
-                "Batch Manager…"
+                self.tr("Batch Manager…")
             )
         )
 
@@ -836,7 +836,7 @@ class MainWindow(QMainWindow):
         profiles_action = (
             tools_menu
             .addAction(
-                "Manage Profiles…"
+                self.tr("Manage Profiles…")
             )
         )
 
@@ -850,7 +850,7 @@ class MainWindow(QMainWindow):
             tools_menu
             .addAction(
                 self._menu_label(
-                    "Show Video Programme Info",
+                    self.tr("Show Video Programme Info"),
                     "show_program_info",
                 )
             )
@@ -863,7 +863,7 @@ class MainWindow(QMainWindow):
         trim_copy_action = (
             tools_menu
             .addAction(
-                "Trim and Copy Source File…"
+                self.tr("Trim and Copy Source File…")
             )
         )
 
@@ -876,7 +876,7 @@ class MainWindow(QMainWindow):
         log_action = (
             tools_menu
             .addAction(
-                "Open Log Folder"
+                self.tr("Open Log Folder")
             )
         )
 
@@ -887,7 +887,7 @@ class MainWindow(QMainWindow):
         settings_action = (
             tools_menu
             .addAction(
-                "Settings…"
+                self.tr("Settings…")
             )
         )
 
@@ -899,30 +899,30 @@ class MainWindow(QMainWindow):
         # Extras menu - companion-app launchers and optional add-on features
         # (the TMDB/TVDB renamer will land here later).
         #
-        extras_menu = self.menuBar().addMenu("Extras")
+        extras_menu = self.menuBar().addMenu(self.tr("Extras"))
 
-        renamer_action = extras_menu.addAction("TV Renamer…")
+        renamer_action = extras_menu.addAction(self.tr("TV Renamer…"))
         renamer_action.triggered.connect(self._open_renamer)
 
-        film_action = extras_menu.addAction("Film Renamer…")
+        film_action = extras_menu.addAction(self.tr("Film Renamer…"))
         film_action.triggered.connect(self._open_film_renamer)
 
-        watcher_action = extras_menu.addAction("Launch VRD Next Watcher")
+        watcher_action = extras_menu.addAction(self.tr("Launch VRD Next Watcher"))
         watcher_action.triggered.connect(self._launch_watcher)
 
         #
         # Help menu - added last so it sits at the far right of the bar, the
         # conventional home for About.
         #
-        help_menu = self.menuBar().addMenu("Help")
+        help_menu = self.menuBar().addMenu(self.tr("Help"))
 
-        guide_action = help_menu.addAction("User Guide")
+        guide_action = help_menu.addAction(self.tr("User Guide"))
         guide_action.setShortcut("F1")
         guide_action.triggered.connect(self.show_user_guide)
 
         help_menu.addSeparator()
 
-        about_action = help_menu.addAction(f"About {APP_NAME}")
+        about_action = help_menu.addAction(self.tr("About %s") % APP_NAME)
         about_action.triggered.connect(self.show_about)
 
     def show_user_guide(self):
@@ -944,7 +944,7 @@ class MainWindow(QMainWindow):
         url = "https://github.com/infidelus/vrd-next"
 
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"About {APP_NAME}")
+        dialog.setWindowTitle(self.tr("About %s") % APP_NAME)
 
         layout = QVBoxLayout(dialog)
 
@@ -953,12 +953,16 @@ class MainWindow(QMainWindow):
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
 
+        version_line = self.tr("Version %s") % VERSION
+        blurb = self.tr(
+            "An open-source, Linux-native, frame-accurate video cutter, "
+            "heavily inspired by VideoReDo."
+        )
         body = QLabel(
             "<div style='text-align:center'>"
             f"<h2 style='margin:6px 0 2px 0'>{APP_NAME}</h2>"
-            f"<p style='margin:0;color:#9aa0a6'>Version {VERSION}</p>"
-            "<p style='margin:12px 0 2px 0'>An open-source, Linux-native, "
-            "frame-accurate video cutter, heavily inspired by VideoReDo.</p>"
+            f"<p style='margin:0;color:#9aa0a6'>{version_line}</p>"
+            f"<p style='margin:12px 0 2px 0'>{blurb}</p>"
             f"<p style='margin:10px 0 0 0'>"
             f"<a href='{url}' style='color:#4ea3ff'>{url}</a></p>"
             "</div>"
@@ -973,7 +977,7 @@ class MainWindow(QMainWindow):
         # centre it rather than tucking it into the corner.
         layout.addSpacing(12)
 
-        ok_button = QPushButton("OK")
+        ok_button = QPushButton(self.tr("OK"))
         ok_button.setDefault(True)
         ok_button.clicked.connect(dialog.accept)
 
@@ -1017,9 +1021,9 @@ class MainWindow(QMainWindow):
         if watcher_is_running():
             QMessageBox.information(
                 self,
-                "VRD Next Watcher",
-                "The VRD Next Watcher is already running - look for its icon "
-                "in your system tray.",
+                self.tr("VRD Next Watcher"),
+                self.tr("The VRD Next Watcher is already running - look for its icon "
+                "in your system tray."),
             )
             return
 
@@ -1031,8 +1035,8 @@ class MainWindow(QMainWindow):
         if not os.path.exists(watcher_py):
             QMessageBox.warning(
                 self,
-                "VRD Next Watcher",
-                "Couldn't find watcher.py alongside the application.",
+                self.tr("VRD Next Watcher"),
+                self.tr("Couldn't find watcher.py alongside the application."),
             )
             return
 
@@ -1046,16 +1050,16 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.warning(
                 self,
-                "VRD Next Watcher",
-                "Couldn't start the Watcher:\n%s" % e,
+                self.tr("VRD Next Watcher"),
+                self.tr("Couldn't start the Watcher:\n%s") % e,
             )
             return
 
         QMessageBox.information(
             self,
-            "VRD Next Watcher",
-            "The VRD Next Watcher has started and now lives in your system "
-            "tray.",
+            self.tr("VRD Next Watcher"),
+            self.tr("The VRD Next Watcher has started and now lives in your system "
+            "tray."),
         )
 
     def show_program_info(self):
@@ -1108,8 +1112,8 @@ class MainWindow(QMainWindow):
         source = self.current_filename
         if not source or self.index is None:
             QMessageBox.information(
-                self, "Joiner",
-                "Open a recording before adding it to the joiner list.")
+                self, self.tr("Joiner"),
+                self.tr("Open a recording before adding it to the joiner list."))
             return
 
         total_frames = self.index.frame_count
@@ -1176,9 +1180,9 @@ class MainWindow(QMainWindow):
         entries = list(self.joiner_list.entries)
         if not entries:
             QMessageBox.information(
-                self, "Joiner",
-                "The joiner list is empty.  Add one or more scenes first "
-                "(Joiner -> Add Current Project To Joiner List).")
+                self, self.tr("Joiner"),
+                self.tr("The joiner list is empty.  Add one or more scenes first "
+                "(Joiner -> Add Current Project To Joiner List)."))
             return
 
         from project.joiner import JoinerEntry
@@ -1187,9 +1191,9 @@ class MainWindow(QMainWindow):
         if missing:
             names = "\n".join(os.path.basename(e.source) for e in missing[:8])
             QMessageBox.warning(
-                self, "Joiner",
-                "Some entries refer to files that can't be found, so the video "
-                "can't be created:\n\n%s" % (names,))
+                self, self.tr("Joiner"),
+                self.tr("Some entries refer to files that can't be found, so the video "
+                "can't be created:\n\n%s") % (names,))
             return
 
         # Quick header-only scan.  If the scenes don't share a format - or the
@@ -1216,13 +1220,13 @@ class MainWindow(QMainWindow):
             reason = " and ".join(reasons)
             detail = ("\n\nFormats found:\n%s" % (formats,)) if formats else ""
             resp = QMessageBox.question(
-                self, "Joiner",
-                "Because %s, the whole video will be re-encoded to a common "
+                self, self.tr("Joiner"),
+                self.tr("Because %s, the whole video will be re-encoded to a common "
                 "format:%s\n\n"
                 "    H.264, %d×%d, %d fps, AAC stereo\n\n"
                 "Lower-resolution scenes are upscaled to match the highest. "
                 "This re-encodes everything, so it's slower and slightly "
-                "reduces quality.\n\nGo ahead?"
+                "reduces quality.\n\nGo ahead?")
                 % (reason, detail, tw, th, tfps),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No)
@@ -1242,7 +1246,7 @@ class MainWindow(QMainWindow):
         }.get(out_format, "Transport stream (*.ts)")
 
         out, _ = QFileDialog.getSaveFileName(
-            self, "Create Joined Video", self._start_dir("export"),
+            self, self.tr("Create Joined Video"), self._start_dir("export"),
             "%s;;All files (*)" % (save_filter,),
             "", QFileDialog.Option.DontConfirmOverwrite)
         if not out:
@@ -1251,16 +1255,16 @@ class MainWindow(QMainWindow):
             out += ext
         if os.path.exists(out):
             resp = QMessageBox.question(
-                self, "Create Joined Video",
-                "%s already exists.\n\nOverwrite it?"
+                self, self.tr("Create Joined Video"),
+                self.tr("%s already exists.\n\nOverwrite it?")
                 % (os.path.basename(out),),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No)
             if resp != QMessageBox.StandardButton.Yes:
                 return
 
-        progress = QProgressDialog("Preparing…", "Cancel", 0, 100, self)
-        progress.setWindowTitle("Create Joined Video")
+        progress = QProgressDialog(self.tr("Preparing…"), self.tr("Cancel"), 0, 100, self)
+        progress.setWindowTitle(self.tr("Create Joined Video"))
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         progress.setAutoClose(False)
@@ -1281,14 +1285,14 @@ class MainWindow(QMainWindow):
             if clear_after:
                 self.joiner_list.clear()
             QMessageBox.information(
-                self, "Joiner", "Joined video created:\n\n%s" % (path,))
+                self, self.tr("Joiner"), self.tr("Joined video created:\n\n%s") % (path,))
 
         def on_failed(message):
             progress.close()
             if message != "Cancelled.":
                 QMessageBox.critical(
-                    self, "Joiner",
-                    "Could not create the joined video:\n\n%s" % (message,))
+                    self, self.tr("Joiner"),
+                    self.tr("Could not create the joined video:\n\n%s") % (message,))
 
         worker.progress.connect(on_progress)
         worker.finished_ok.connect(on_done)
@@ -1301,8 +1305,8 @@ class MainWindow(QMainWindow):
         selection).  The source is reopened with just this scene kept."""
         if not entry.source or not os.path.exists(entry.source):
             QMessageBox.warning(
-                self, "Joiner",
-                "That entry's file could no longer be found:\n\n%s"
+                self, self.tr("Joiner"),
+                self.tr("That entry's file could no longer be found:\n\n%s")
                 % (entry.source,))
             return
 
@@ -1330,8 +1334,8 @@ class MainWindow(QMainWindow):
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.information(
                 self,
-                "Logs",
-                "No log folder is available yet.",
+                self.tr("Logs"),
+                self.tr("No log folder is available yet."),
             )
             return
 
@@ -1395,8 +1399,8 @@ class MainWindow(QMainWindow):
         if not self.frames or self.index is None:
             QMessageBox.information(
                 self,
-                "Detect Commercials",
-                "Open a video first.",
+                self.tr("Detect Commercials"),
+                self.tr("Open a video first."),
             )
             return
 
@@ -1418,19 +1422,19 @@ class MainWindow(QMainWindow):
         if not binary or not os.path.isfile(binary):
             QMessageBox.information(
                 self,
-                "Detect Commercials",
-                "The Comskip program hasn't been set yet.\n\n"
+                self.tr("Detect Commercials"),
+                self.tr("The Comskip program hasn't been set yet.\n\n"
                 "Add the path to Comskip (and optionally its .ini file) in "
-                "Tools > Settings > Folders, then try again.",
+                "Tools > Settings > Folders, then try again."),
             )
             return
 
         if self.selection.ranges:
             confirm = QMessageBox.question(
                 self,
-                "Detect Commercials",
-                "This will replace your current scene markers with Comskip's "
-                "detected scenes. Continue?",
+                self.tr("Detect Commercials"),
+                self.tr("This will replace your current scene markers with Comskip's "
+                "detected scenes. Continue?"),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.Yes,
             )
@@ -1438,13 +1442,13 @@ class MainWindow(QMainWindow):
                 return
 
         progress = QProgressDialog(
-            "Detecting commercials (Comskip)…",
-            "Cancel",
+            self.tr("Detecting commercials (Comskip)…"),
+            self.tr("Cancel"),
             0,
             100,
             self,
         )
-        progress.setWindowTitle("Detect Commercials")
+        progress.setWindowTitle(self.tr("Detect Commercials"))
         progress.setMinimumDuration(0)
         progress.setValue(0)
 
@@ -1461,9 +1465,8 @@ class MainWindow(QMainWindow):
             except Exception as exc:
                 QMessageBox.warning(
                     self,
-                    "Detect Commercials",
-                    f"Comskip finished but its output could not be read:\n\n"
-                    f"{exc}",
+                    self.tr("Detect Commercials"),
+                    self.tr("Comskip finished but its output could not be read:\n\n%s") % exc,
                 )
                 worker.cleanup()
                 self._comskip_worker = None
@@ -1475,9 +1478,9 @@ class MainWindow(QMainWindow):
             if not keep_ranges:
                 QMessageBox.information(
                     self,
-                    "Detect Commercials",
-                    "Comskip found no commercials to remove (the whole file "
-                    "is one scene).",
+                    self.tr("Detect Commercials"),
+                    self.tr("Comskip found no commercials to remove (the whole file "
+                    "is one scene)."),
                 )
                 return
 
@@ -1498,7 +1501,7 @@ class MainWindow(QMainWindow):
             self._comskip_worker = None
             QMessageBox.warning(
                 self,
-                "Detect Commercials",
+                self.tr("Detect Commercials"),
                 message,
             )
 
@@ -1512,7 +1515,7 @@ class MainWindow(QMainWindow):
         start = self._start_dir("project")
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Import Project",
+            self.tr("Import Project"),
             start,
             "VideoReDo Project (*.vprj *.VPrj *.Vprj);;All files (*)",
         )
@@ -1553,7 +1556,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(
                 self,
                 title,
-                f"This project file could not be read:\n\n{exc}",
+                self.tr("This project file could not be read:\n\n%s") % exc,
             )
             return False
 
@@ -1563,13 +1566,15 @@ class MainWindow(QMainWindow):
             # VRD-style "can't find the source, locate it?" prompt.
             choice = QMessageBox.question(
                 self,
-                "Locate video file",
-                "There was a problem opening the video file associated with "
-                "this project.\n"
-                "The original file may not exist or may be mapped to a "
-                "different drive or folder.\n\n"
-                f"Original file: {embedded}\n\n"
-                "Do you wish to manually search for the file?",
+                self.tr("Locate video file"),
+                self.tr(
+                    "There was a problem opening the video file associated with "
+                    "this project.\n"
+                    "The original file may not exist or may be mapped to a "
+                    "different drive or folder.\n\n"
+                    "Original file: %s\n\n"
+                    "Do you wish to manually search for the file?"
+                ) % embedded,
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.Yes,
             )
@@ -1588,7 +1593,7 @@ class MainWindow(QMainWindow):
 
             source, _ = QFileDialog.getOpenFileName(
                 self,
-                "Locate video for project",
+                self.tr("Locate video for project"),
                 start_dir,
                 VIDEO_OPEN_FILTER,
             )
@@ -1619,49 +1624,37 @@ class MainWindow(QMainWindow):
             # A freshly imported project is, by definition, saved.
             self._mark_saved()
 
-            # Honour "Quick Stream Fix on open" for imported projects too.
-            # Open Video applies QSF before loading; Import Project loads the
-            # source directly, so it would otherwise skip it.  We apply it here
-            # AFTER the vprj markers have been mapped onto the original source's
-            # index (where the project defines them), then repair-and-reload,
-            # remapping those markers onto the repaired copy with the same
-            # frame-count-delta logic the manual/auto QSF paths use - so the
-            # markers stay correct even when the repair drops a few frames.
-            qsf_on_open = (
-                self.config
-                .get("settings", {})
-                .get("qsf_on_open", False)
-            )
-            if qsf_on_open:
-                # Mirror direct video open: if the source is already Quick
-                # Stream Fixed, skip silently; otherwise repair without the
-                # redundant "already fixed?" prompt (that prompt is reserved
-                # for a *manual* Quick Stream Fix).
-                try:
-                    from repair.qsf_registry import is_qsfd
-                    already_fixed = is_qsfd(self.current_filename)
-                except Exception:
-                    already_fixed = False
-
-                if not already_fixed:
-                    self._qsf_reload_in_place(check=False)
-
         self._pending_after_load = _apply
         self.original_source = source
-        self._load_file(source)
+
+        # Honour "Quick Stream Fix on open" for imported projects, the same way
+        # Open Video does: repair first, then load the repaired copy once.  The
+        # project stores times (100ns ticks), not frame numbers, so load_vprj
+        # maps them onto whichever index we end up with - meaning we can repair
+        # up-front rather than indexing the original, mapping, repairing and
+        # indexing all over again.
+        qsf_on_open = (
+            self.config
+            .get("settings", {})
+            .get("qsf_on_open", False)
+        )
+        if qsf_on_open:
+            self._open_with_qsf(source)
+        else:
+            self._load_file(source)
         return True
 
     def _can_save_project(self, title):
         """Shared guard for the project-save actions."""
         if not self.frames or self.index is None:
-            QMessageBox.information(self, title, "Open a video first.")
+            QMessageBox.information(self, title, self.tr("Open a video first."))
             return False
         if not self.selection.ranges:
             QMessageBox.information(
                 self,
                 title,
-                "No scenes marked to keep. Mark at least one scene before "
-                "saving a project.",
+                self.tr("No scenes marked to keep. Mark at least one scene before "
+                "saving a project."),
             )
             return False
         return True
@@ -1683,7 +1676,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(
                 self,
                 title,
-                f"The project could not be saved:\n\n{exc}",
+                self.tr("The project could not be saved:\n\n%s") % exc,
             )
             return False
 
@@ -1765,7 +1758,7 @@ class MainWindow(QMainWindow):
 
         path, _ = QFileDialog.getSaveFileName(
             self,
-            "Save Project As",
+            self.tr("Save Project As"),
             suggested,
             "VideoReDo Project (*.vprj)",
         )
@@ -1797,6 +1790,10 @@ class MainWindow(QMainWindow):
         # Default log folder when none is set: the app config directory.
         default_log_folder = str(CONFIG_DIR)
 
+        # Remember the language so we can offer a restart if it's changed (a
+        # language switch only takes full effect on the next launch).
+        old_language = self.config.get("settings", {}).get("language", "en")
+
         dialog = SettingsDialog(
             self.config,
             CONFIG_FILE,
@@ -1820,6 +1817,7 @@ class MainWindow(QMainWindow):
             self._apply_frame_type_display()
             self._apply_shortcut_changes()
             self._apply_theme()
+            self._prompt_language_restart(old_language)
 
         elif result == SettingsDialog.EDITED_EXTERNALLY:
             # The user edited config.json directly (or restored defaults); reload
@@ -1832,6 +1830,40 @@ class MainWindow(QMainWindow):
             self._apply_frame_type_display()
             self._apply_shortcut_changes()
             self._apply_theme()
+            self._prompt_language_restart(old_language)
+
+    def _prompt_language_restart(self, old_language):
+        """If the interface language was changed, tell the user it needs a
+        restart and offer to do it for them."""
+        new_language = self.config.get("settings", {}).get("language", "en")
+        if new_language == old_language:
+            return
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Information)
+        box.setWindowTitle(self.tr("Language changed"))
+        box.setText(self.tr(
+            "The interface language will change when VRD Next is restarted."
+        ))
+        box.setInformativeText(self.tr("Restart now?"))
+        restart_btn = box.addButton(
+            self.tr("Restart now"), QMessageBox.AcceptRole
+        )
+        box.addButton(self.tr("Later"), QMessageBox.RejectRole)
+        box.setDefaultButton(restart_btn)
+        box.exec()
+        if box.clickedButton() is restart_btn:
+            self._restart_application()
+
+    def _restart_application(self):
+        """Relaunch VRD Next.  The restart goes through the normal window close,
+        so any unsaved project or running batch is handled first; if the user
+        cancels at one of those prompts, the restart is abandoned and the app
+        stays open."""
+        self._restart_after_close = True
+        self.close()
+        # Still visible means the close was cancelled - don't restart later.
+        if self.isVisible():
+            self._restart_after_close = False
 
     def _apply_theme(self):
         """Re-apply the chosen appearance (System / Light / Dark) live.
@@ -2100,7 +2132,7 @@ class MainWindow(QMainWindow):
             QFileDialog
             .getOpenFileName(
                 self,
-                "Open Video",
+                self.tr("Open Video"),
                 self._start_dir("open"),
                 VIDEO_OPEN_FILTER
             )
@@ -2129,9 +2161,9 @@ class MainWindow(QMainWindow):
         self._warned_missing_tools = True
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.warning(
-            self, "External tools",
-            "The preview works without them, but exporting, joining and "
-            "showing stream info need ffmpeg and ffprobe.\n\n" + "\n\n".join(issues),
+            self, self.tr("External tools"),
+            self.tr("The preview works without them, but exporting, joining and "
+            "showing stream info need ffmpeg and ffprobe.\n\n") + "\n\n".join(issues),
         )
 
     def _open_video_path(self, filename):
@@ -2139,8 +2171,8 @@ class MainWindow(QMainWindow):
         if not os.path.exists(filename):
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(
-                self, "Open Video",
-                "That file no longer exists:\n%s" % filename,
+                self, self.tr("Open Video"),
+                self.tr("That file no longer exists:\n%s") % filename,
             )
             self._forget_recent(filename)
             return
@@ -2219,7 +2251,7 @@ class MainWindow(QMainWindow):
         recent_menu.clear()
         recent = self.config.get("recent_files", [])
         if not recent:
-            act = recent_menu.addAction("(no recent files)")
+            act = recent_menu.addAction(self.tr("(no recent files)"))
             act.setEnabled(False)
             return
         for path in recent:
@@ -2241,7 +2273,7 @@ class MainWindow(QMainWindow):
                     lambda checked=False, p=path: self._open_video_path(p)
                 )
         recent_menu.addSeparator()
-        clear_act = recent_menu.addAction("Clear Recent")
+        clear_act = recent_menu.addAction(self.tr("Clear Recent"))
         clear_act.triggered.connect(self._clear_recent)
 
     def _open_with_qsf(self, filename):
@@ -2267,13 +2299,13 @@ class MainWindow(QMainWindow):
         tmp_path = self._qsf_temp_path(ext)
 
         progress = QProgressDialog(
-            "Quick Stream Fix on open (remuxing)…",
-            "Cancel",
+            self.tr("Quick Stream Fix on open (remuxing)…"),
+            self.tr("Cancel"),
             0,
             100,
             self,
         )
-        progress.setWindowTitle("Opening")
+        progress.setWindowTitle(self.tr("Opening"))
         progress.setMinimumDuration(0)
 
         worker = StreamFixWorker(filename, tmp_path, self)
@@ -2296,8 +2328,8 @@ class MainWindow(QMainWindow):
             #
             QMessageBox.warning(
                 self,
-                "Quick Stream Fix on open failed",
-                f"{message}\n\nOpening the original file instead.",
+                self.tr("Quick Stream Fix on open failed"),
+                self.tr("%s\n\nOpening the original file instead.") % message,
             )
             self._load_file(filename)
 
@@ -2358,7 +2390,7 @@ class MainWindow(QMainWindow):
         self.index_progress.show()
 
         self.statusBar().showMessage(
-            "Indexing video…"
+            self.tr("Indexing video…")
         )
 
         #
@@ -2538,8 +2570,8 @@ class MainWindow(QMainWindow):
         if not self.frames or self.index is None:
             QMessageBox.information(
                 self,
-                "Export",
-                "Open a video first.",
+                self.tr("Export"),
+                self.tr("Open a video first."),
             )
             return
 
@@ -2552,9 +2584,9 @@ class MainWindow(QMainWindow):
         if not keep_ranges:
             QMessageBox.information(
                 self,
-                "Export",
-                "No segments marked to keep. Mark at least one "
-                "green segment before exporting.",
+                self.tr("Export"),
+                self.tr("No segments marked to keep. Mark at least one "
+                "green segment before exporting."),
             )
             return
 
@@ -2604,14 +2636,14 @@ class MainWindow(QMainWindow):
         if out_format == "mkv" and not self._mkvmerge_available():
             reply = QMessageBox.question(
                 self,
-                "mkvmerge not found",
-                "mkvmerge (mkvtoolnix) isn't installed or set in Settings.\n\n"
+                self.tr("mkvmerge not found"),
+                self.tr("mkvmerge (mkvtoolnix) isn't installed or set in Settings.\n\n"
                 "MKV export still works and stays lossless, but the audio is "
                 "stored in a less-portable wrapper rather than native AAC.  It "
                 "plays in Plex/Jellyfin and other ffmpeg-based players.\n\n"
                 "Installing mkvtoolnix - or pointing Settings > Paths at an "
                 "mkvmerge - gives the portable, native-AAC result.\n\n"
-                "Export to MKV anyway?",
+                "Export to MKV anyway?"),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )
@@ -2676,7 +2708,7 @@ class MainWindow(QMainWindow):
         """
         if not self.frames or self.index is None:
             QMessageBox.information(
-                self, "Queue to Batch", "Open a video first."
+                self, self.tr("Queue to Batch"), self.tr("Open a video first.")
             )
             return
 
@@ -2684,9 +2716,9 @@ class MainWindow(QMainWindow):
         if not keep_ranges:
             QMessageBox.information(
                 self,
-                "Queue to Batch",
-                "No segments marked to keep. Mark at least one green segment "
-                "before queueing.",
+                self.tr("Queue to Batch"),
+                self.tr("No segments marked to keep. Mark at least one green segment "
+                "before queueing."),
             )
             return
 
@@ -2698,8 +2730,8 @@ class MainWindow(QMainWindow):
             os.makedirs(queue_dir, exist_ok=True)
         except OSError as exc:
             QMessageBox.warning(
-                self, "Queue to Batch",
-                f"Couldn't create the batch queue folder:\n\n{exc}",
+                self, self.tr("Queue to Batch"),
+                self.tr("Couldn't create the batch queue folder:\n\n%s") % exc,
             )
             return
 
@@ -2723,8 +2755,8 @@ class MainWindow(QMainWindow):
             )
         except Exception as exc:
             QMessageBox.warning(
-                self, "Queue to Batch",
-                f"The project couldn't be saved for batching:\n\n{exc}",
+                self, self.tr("Queue to Batch"),
+                self.tr("The project couldn't be saved for batching:\n\n%s") % exc,
             )
             return
 
@@ -2759,9 +2791,9 @@ class MainWindow(QMainWindow):
 
         reply = QMessageBox.question(
             self,
-            "Already Quick Stream Fixed",
-            "This file appears to have already been processed by Quick Stream "
-            "Fix.\n\nRun Quick Stream Fix on it again anyway?",
+            self.tr("Already Quick Stream Fixed"),
+            self.tr("This file appears to have already been processed by Quick Stream "
+            "Fix.\n\nRun Quick Stream Fix on it again anyway?"),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -2794,8 +2826,8 @@ class MainWindow(QMainWindow):
         if not self.current_filename or self.index is None:
             QMessageBox.information(
                 self,
-                "Quick Stream Fix",
-                "Open a video first.",
+                self.tr("Quick Stream Fix"),
+                self.tr("Open a video first."),
             )
             return
 
@@ -2805,19 +2837,19 @@ class MainWindow(QMainWindow):
             return
 
         box = QMessageBox(self)
-        box.setWindowTitle("Quick Stream Fix")
+        box.setWindowTitle(self.tr("Quick Stream Fix"))
         box.setIcon(QMessageBox.Question)
-        box.setText("How would you like to run Quick Stream Fix?")
+        box.setText(self.tr("How would you like to run Quick Stream Fix?"))
         box.setInformativeText(
-            "Repair and reload: repair to temporary storage and reload it now, "
+            self.tr("Repair and reload: repair to temporary storage and reload it now, "
             "carrying your current scene markers across (recommended when "
             "editing).\n\n"
             "Repair and save a copy: write a permanently-fixed copy to a "
-            "location you choose, without changing what's currently open."
+            "location you choose, without changing what's currently open.")
         )
 
-        reload_btn = box.addButton("Repair and reload", QMessageBox.AcceptRole)
-        save_btn = box.addButton("Repair and save a copy…", QMessageBox.ActionRole)
+        reload_btn = box.addButton(self.tr("Repair and reload"), QMessageBox.AcceptRole)
+        save_btn = box.addButton(self.tr("Repair and save a copy…"), QMessageBox.ActionRole)
         box.addButton(QMessageBox.Cancel)
         box.setDefaultButton(reload_btn)
 
@@ -2867,13 +2899,13 @@ class MainWindow(QMainWindow):
         tmp_path = self._qsf_temp_path(ext)
 
         progress = QProgressDialog(
-            "Repairing stream (remuxing)…",
-            "Cancel",
+            self.tr("Repairing stream (remuxing)…"),
+            self.tr("Cancel"),
             0,
             100,
             self,
         )
-        progress.setWindowTitle("Quick Stream Fix")
+        progress.setWindowTitle(self.tr("Quick Stream Fix"))
         progress.setMinimumDuration(0)
         progress.setValue(0)
 
@@ -2886,7 +2918,7 @@ class MainWindow(QMainWindow):
             progress.close()
             self._streamfix_worker = None
             self._record_qsf(source, path)
-            self.statusBar().showMessage("Re-indexing repaired stream…")
+            self.statusBar().showMessage(self.tr("Re-indexing repaired stream…"))
 
             def _after_load(new_index):
                 delta = old_frame_count - new_index.frame_count
@@ -2926,21 +2958,21 @@ class MainWindow(QMainWindow):
 
                 if remapped_ranges or remapped_markers:
                     self.statusBar().showMessage(
-                        "Stream repaired and reloaded - check your scene "
-                        "markers."
+                        self.tr("Stream repaired and reloaded - check your scene "
+                        "markers.")
                     )
                     QMessageBox.information(
                         self,
-                        "Stream repaired",
-                        "The stream has been repaired and reloaded.\n\n"
+                        self.tr("Stream repaired"),
+                        self.tr("The stream has been repaired and reloaded.\n\n"
                         "Your scene markers have been carried over, but the "
                         "repair can shift them slightly. Please check each "
                         "scene (double-click a scene to jump to its start) and "
-                        "adjust if needed.",
+                        "adjust if needed."),
                     )
                 else:
                     self.statusBar().showMessage(
-                        "Stream repaired and reloaded."
+                        self.tr("Stream repaired and reloaded.")
                     )
 
             self._pending_after_load = _after_load
@@ -2951,7 +2983,7 @@ class MainWindow(QMainWindow):
             self._streamfix_worker = None
             QMessageBox.warning(
                 self,
-                "Quick Stream Fix failed",
+                self.tr("Quick Stream Fix failed"),
                 message,
             )
 
@@ -2981,7 +3013,7 @@ class MainWindow(QMainWindow):
 
         out_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Quick Stream Fix - Save As",
+            self.tr("Quick Stream Fix - Save As"),
             suggested,
             VIDEO_SAVE_FILTER,
         )
@@ -2990,13 +3022,13 @@ class MainWindow(QMainWindow):
             return
 
         progress = QProgressDialog(
-            "Repairing stream (remuxing)…",
-            "Cancel",
+            self.tr("Repairing stream (remuxing)…"),
+            self.tr("Cancel"),
             0,
             100,
             self,
         )
-        progress.setWindowTitle("Quick Stream Fix")
+        progress.setWindowTitle(self.tr("Quick Stream Fix"))
         progress.setMinimumDuration(0)
 
         worker = StreamFixWorker(
@@ -3014,8 +3046,8 @@ class MainWindow(QMainWindow):
             self._record_qsf(self.current_filename, path)
             QMessageBox.information(
                 self,
-                "Quick Stream Fix complete",
-                f"Saved:\n{path}",
+                self.tr("Quick Stream Fix complete"),
+                self.tr("Saved:\n%s") % path,
             )
             self._streamfix_worker = None
 
@@ -3023,7 +3055,7 @@ class MainWindow(QMainWindow):
             progress.close()
             QMessageBox.warning(
                 self,
-                "Quick Stream Fix failed",
+                self.tr("Quick Stream Fix failed"),
                 message,
             )
             self._streamfix_worker = None
@@ -3042,18 +3074,18 @@ class MainWindow(QMainWindow):
         Returns out_format or None if cancelled.
         """
         dialog = QDialog(self)
-        dialog.setWindowTitle("Export Options")
+        dialog.setWindowTitle(self.tr("Export Options"))
 
         layout = QVBoxLayout(dialog)
 
         layout.addWidget(
-            QLabel("Output format:")
+            QLabel(self.tr("Output format:"))
         )
 
         combo = QComboBox()
-        combo.addItem("Match source", "match")
-        combo.addItem("MKV (Matroska, with chapters)", "mkv")
-        combo.addItem("MP4 (no subtitles)", "mp4")
+        combo.addItem(self.tr("Match source"), "match")
+        combo.addItem(self.tr("MKV (Matroska, with chapters)"), "mkv")
+        combo.addItem(self.tr("MP4 (no subtitles)"), "mp4")
         if default_format is not None:
             i = combo.findData(default_format)
             if i >= 0:
@@ -3083,14 +3115,14 @@ class MainWindow(QMainWindow):
             from PySide6.QtWidgets import QMessageBox
             reply = QMessageBox.question(
                 self,
-                "mkvmerge not found",
-                "mkvmerge (mkvtoolnix) isn't installed or set in Settings.\n\n"
+                self.tr("mkvmerge not found"),
+                self.tr("mkvmerge (mkvtoolnix) isn't installed or set in Settings.\n\n"
                 "MKV export will still work and stays lossless, but the audio "
                 "is stored in a less-portable wrapper that some video players "
                 "may reject, rather than native AAC.\n\n"
                 "Installing mkvtoolnix - or pointing Settings > Paths at an "
                 "mkvmerge - gives the portable, widely-compatible result.\n\n"
-                "Export to MKV anyway?",
+                "Export to MKV anyway?"),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )
@@ -3180,13 +3212,13 @@ class MainWindow(QMainWindow):
             ):
                 choice = QMessageBox.question(
                     self,
-                    "Export produced no video",
-                    "The export contained no usable video. This can happen "
+                    self.tr("Export produced no video"),
+                    self.tr("The export contained no usable video. This can happen "
                     "with some broadcast recordings whose streams need "
                     "repairing first.\n\n"
                     "Would you like to run Quick Stream Fix on the source? "
                     "The repaired file will be reloaded with your scene "
-                    "markers so you can check them before saving.",
+                    "markers so you can check them before saving."),
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.Yes,
                 )
@@ -3198,7 +3230,7 @@ class MainWindow(QMainWindow):
 
             QMessageBox.warning(
                 self,
-                "Export failed",
+                self.tr("Export failed"),
                 message,
             )
 
@@ -3268,13 +3300,13 @@ class MainWindow(QMainWindow):
         tmp_path = self._qsf_temp_path(ext)
 
         progress = QProgressDialog(
-            "Repairing the stream (Quick Stream Fix)…",
+            self.tr("Repairing the stream (Quick Stream Fix)…"),
             None,  # no cancel button - this is a short, automatic step
             0,
             100,
             self,
         )
-        progress.setWindowTitle("Repairing")
+        progress.setWindowTitle(self.tr("Repairing"))
         progress.setMinimumDuration(0)
         progress.setValue(0)
 
@@ -3288,7 +3320,7 @@ class MainWindow(QMainWindow):
             self._export_fix_worker = None
             self._record_qsf(source, path)
 
-            self.statusBar().showMessage("Re-indexing repaired stream…")
+            self.statusBar().showMessage(self.tr("Re-indexing repaired stream…"))
 
             # Fully load the repaired file so the whole app (preview, fetcher,
             # index, selection) is consistent.  We remap the scene boundaries
@@ -3336,18 +3368,18 @@ class MainWindow(QMainWindow):
                 self._pending_export = (out_path, out_format)
 
                 self.statusBar().showMessage(
-                    "Stream repaired and reloaded - check your scene markers, "
-                    "then Save Video."
+                    self.tr("Stream repaired and reloaded - check your scene markers, "
+                    "then Save Video.")
                 )
 
                 QMessageBox.information(
                     self,
-                    "Stream repaired",
-                    "The stream has been repaired and reloaded.\n\n"
+                    self.tr("Stream repaired"),
+                    self.tr("The stream has been repaired and reloaded.\n\n"
                     "Your scene markers have been carried over, but the repair "
                     "can shift them slightly. Please check each scene "
                     "(double-click a scene to jump to its start) and adjust if "
-                    "needed, then click Save Video when you're happy.",
+                    "needed, then click Save Video when you're happy."),
                 )
 
             self._pending_after_load = _after_load
@@ -3358,8 +3390,8 @@ class MainWindow(QMainWindow):
             self._export_fix_worker = None
             QMessageBox.warning(
                 self,
-                "Repair failed",
-                f"The stream could not be repaired automatically:\n\n{message}",
+                self.tr("Repair failed"),
+                self.tr("The stream could not be repaired automatically:\n\n%s") % message,
             )
 
         worker.finished_ok.connect(_fixed)
@@ -4924,9 +4956,9 @@ class MainWindow(QMainWindow):
         ):
             choice = QMessageBox.question(
                 self,
-                "Batch running",
-                "A batch is still running. Quitting will stop it after the "
-                "current job.\n\nQuit anyway?",
+                self.tr("Batch running"),
+                self.tr("A batch is still running. Quitting will stop it after the "
+                "current job.\n\nQuit anyway?"),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )
@@ -4950,6 +4982,19 @@ class MainWindow(QMainWindow):
             save_config(self.config)
         except Exception:
             pass
+
+        # If a restart was requested (e.g. after a language change), launch a
+        # fresh instance now that the close has been confirmed and the settings
+        # saved.  startDetached spawns it independently; this instance then
+        # finishes closing and quits.
+        if getattr(self, "_restart_after_close", False):
+            try:
+                import os
+                from PySide6.QtCore import QProcess
+                script = os.path.abspath(sys.argv[0])
+                QProcess.startDetached(sys.executable, [script] + sys.argv[1:])
+            except Exception:
+                pass
 
         #
         # Stop the background scrub thread before the window is destroyed,
@@ -4982,14 +5027,42 @@ class MainWindow(QMainWindow):
 
 
 class _SlowTooltipStyle(QProxyStyle):
-    """Only lengthens the tooltip wake-up delay, so hover hints appear after a
-    short pause rather than almost immediately.  Everything else is delegated
-    to the wrapped base style, so the app's look is unchanged."""
+    """Lengthens the tooltip wake-up delay so hover hints appear after a short
+    pause rather than almost immediately, and gives check/radio indicators a
+    visible outline on the Light theme.  Everything else is delegated to the
+    wrapped base style, so the app's look is otherwise unchanged."""
 
     def styleHint(self, hint, option=None, widget=None, returnData=None):
         if hint == QStyle.SH_ToolTip_WakeUpDelay:
             return 1200    # milliseconds
         return super().styleHint(hint, option, widget, returnData)
+
+    def drawPrimitive(self, element, option, painter, widget=None):
+        super().drawPrimitive(element, option, painter, widget)
+        # On the forced Light theme (Fusion), the check/radio indicator's border
+        # is a very faint grey derived from the window colour, so the box can be
+        # almost invisible against a light background.  Overlay a darker outline
+        # so it's clearly visible.  Dark and System themes read fine and are
+        # left untouched.
+        if element in (QStyle.PrimitiveElement.PE_IndicatorCheckBox,
+                       QStyle.PrimitiveElement.PE_IndicatorRadioButton):
+            from PySide6.QtGui import QColor, QPen, QPalette, QPainter
+            from PySide6.QtCore import Qt
+            base = self.baseStyle()
+            fusion = (base is not None
+                      and base.metaObject().className() == "QFusionStyle")
+            if fusion and option.palette.color(
+                    QPalette.Window).lightness() > 140:
+                painter.save()
+                painter.setBrush(Qt.NoBrush)
+                painter.setPen(QPen(QColor(90, 90, 90), 1))
+                rect = option.rect.adjusted(0, 0, -1, -1)
+                if element == QStyle.PrimitiveElement.PE_IndicatorRadioButton:
+                    painter.setRenderHint(QPainter.Antialiasing, True)
+                    painter.drawEllipse(rect)
+                else:
+                    painter.drawRoundedRect(rect, 2, 2)
+                painter.restore()
 
 
 app = QApplication(
@@ -5001,7 +5074,9 @@ app = QApplication(
 # second panel icon.  setDesktopFileName drives the Wayland app_id and the X11
 # WM_CLASS the panel matches against StartupWMClass in the .desktop file.
 app.setApplicationName("vrd-next")
-app.setApplicationDisplayName("VRD Next")
+# Deliberately no setApplicationDisplayName: the desktop appends it to the
+# window title, which already starts with "VRD Next <version>", giving a
+# redundant "... - VRD Next".  The window title carries the name itself.
 app.setDesktopFileName("vrd-next")
 
 # Application icon (window + taskbar).  Set on the QApplication so every
@@ -5048,6 +5123,17 @@ except Exception:
         "QToolTip { color:#f0f0f0; background-color:#2b2b2b;"
         " border:1px solid #555; padding:4px 6px; }"
     )
+
+# Language: install the chosen UI translation before any windows are built, so
+# every translatable string picks it up.  English is the built-in default and
+# needs no file; an unknown or missing language quietly falls back to English.
+try:
+    from ui.i18n import install_language
+
+    _lang = _boot_cfg.get("settings", {}).get("language", "en")
+    install_language(app, _lang)
+except Exception:
+    pass
 
 class _TooltipGate(QObject):
     """When tooltips are switched off in Settings, this app-wide filter quietly

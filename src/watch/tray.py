@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 
-from PySide6.QtCore import Qt, QThread, QTimer, Signal, QUrl, QRectF
+from PySide6.QtCore import Qt, QThread, QTimer, Signal, QUrl, QRectF, QCoreApplication
 from PySide6.QtGui import (
     QIcon, QPixmap, QPainter, QColor, QBrush, QPen, QDesktopServices,
 )
@@ -115,15 +115,15 @@ class IgnoreListDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Edit ignore list")
+        self.setWindowTitle(self.tr("Edit ignore list"))
         self.setModal(True)
         self.setMinimumSize(480, 460)
 
         layout = QVBoxLayout(self)
         info = QLabel(
-            "One programme title per line. Any recording whose file name "
+            self.tr("One programme title per line. Any recording whose file name "
             "contains a line here is skipped (case-insensitive).\n\n"
-            "Lines starting with # are comments."
+            "Lines starting with # are comments.")
         )
         info.setWordWrap(True)
         layout.addWidget(info)
@@ -134,10 +134,10 @@ class IgnoreListDialog(QDialog):
 
         row = QHBoxLayout()
         row.addStretch(1)
-        cancel = QPushButton("Cancel")
+        cancel = QPushButton(self.tr("Cancel"))
         cancel.clicked.connect(self.reject)
         row.addWidget(cancel)
-        save = QPushButton("Save")
+        save = QPushButton(self.tr("Save"))
         save.setDefault(True)
         save.clicked.connect(self._save)
         row.addWidget(save)
@@ -159,8 +159,8 @@ class IgnoreListDialog(QDialog):
             with open(IGNORE_FILE, "w", encoding="utf-8") as f:
                 f.write(text)
         except OSError as exc:
-            QMessageBox.warning(self, "Ignore list",
-                                f"Couldn't save the ignore list:\n\n{exc}")
+            QMessageBox.warning(self, self.tr("Ignore list"),
+                                self.tr("Couldn't save the ignore list:\n\n%s") % exc)
             return
         self.accept()
 
@@ -173,7 +173,7 @@ class WatchControlDialog(QDialog):
         super().__init__()
         self.tray = tray
         self.cfg = tray.cfg
-        self.setWindowTitle("VRD Next Watcher")
+        self.setWindowTitle(self.tr("VRD Next Watcher"))
         self.setWindowIcon(make_tray_icon())
         self.resize(560, 520)
         self._build_ui()
@@ -182,19 +182,19 @@ class WatchControlDialog(QDialog):
     def _build_ui(self):
         outer = QVBoxLayout(self)
 
-        self.status_label = QLabel("Idle.")
+        self.status_label = QLabel(self.tr("Idle."))
         self.status_label.setWordWrap(True)
         outer.addWidget(self.status_label)
 
         # --- manual controls ---
         controls = QHBoxLayout()
-        self.scan_btn = QPushButton("Scan Now")
+        self.scan_btn = QPushButton(self.tr("Scan Now"))
         self.scan_btn.clicked.connect(self.tray.scan_now)
         self.pause_btn = QPushButton()
         self.pause_btn.clicked.connect(self._toggle_pause)
-        self.open_out_btn = QPushButton("Open Output Folder")
+        self.open_out_btn = QPushButton(self.tr("Open Output Folder"))
         self.open_out_btn.clicked.connect(self.tray.open_output)
-        self.launch_btn = QPushButton("Launch VRD Next")
+        self.launch_btn = QPushButton(self.tr("Launch VRD Next"))
         self.launch_btn.clicked.connect(self.tray.launch_editor)
         for b in (self.scan_btn, self.pause_btn, self.open_out_btn,
                   self.launch_btn):
@@ -203,14 +203,14 @@ class WatchControlDialog(QDialog):
         outer.addLayout(controls)
 
         # --- watched folders ---
-        folders_box = QGroupBox("Recording folders to watch")
+        folders_box = QGroupBox(self.tr("Recording folders to watch"))
         fb = QVBoxLayout(folders_box)
         self.folders = QListWidget()
         fb.addWidget(self.folders)
         frow = QHBoxLayout()
-        add_btn = QPushButton("Add…")
+        add_btn = QPushButton(self.tr("Add…"))
         add_btn.clicked.connect(self._add_folder)
-        rem_btn = QPushButton("Remove")
+        rem_btn = QPushButton(self.tr("Remove"))
         rem_btn.clicked.connect(self._remove_folder)
         frow.addWidget(add_btn)
         frow.addWidget(rem_btn)
@@ -219,84 +219,84 @@ class WatchControlDialog(QDialog):
         outer.addWidget(folders_box)
 
         # --- scanning: when and how often the watcher runs ---
-        scan_box = QGroupBox("Scanning")
+        scan_box = QGroupBox(self.tr("Scanning"))
         scan_v = QVBoxLayout(scan_box)
         scan_grid = QGridLayout()
-        scan_grid.addWidget(QLabel("Scan every (minutes):"), 0, 0)
+        scan_grid.addWidget(QLabel(self.tr("Scan every (minutes):")), 0, 0)
         self.interval_spin = QSpinBox()
         self.interval_spin.setRange(1, 1440)
         scan_grid.addWidget(self.interval_spin, 0, 1, alignment=Qt.AlignLeft)
 
-        scan_grid.addWidget(QLabel("Wait after last change (minutes):"), 1, 0)
+        scan_grid.addWidget(QLabel(self.tr("Wait after last change (minutes):")), 1, 0)
         self.settle_spin = QSpinBox()
         self.settle_spin.setRange(0, 240)
         self.settle_spin.setToolTip(
-            "How long a recording must be untouched before it's scanned, so "
-            "in-progress recordings are left alone."
+            self.tr("How long a recording must be untouched before it's scanned, so "
+            "in-progress recordings are left alone.")
         )
         scan_grid.addWidget(self.settle_spin, 1, 1, alignment=Qt.AlignLeft)
         scan_grid.setColumnStretch(2, 1)
         scan_v.addLayout(scan_grid)
 
-        self.scan_launch_chk = QCheckBox("Scan immediately on launch")
+        self.scan_launch_chk = QCheckBox(self.tr("Scan immediately on launch"))
         self.scan_launch_chk.setToolTip(
-            "Run a scan a few seconds after starting, instead of waiting for "
-            "the first interval."
+            self.tr("Run a scan a few seconds after starting, instead of waiting for "
+            "the first interval.")
         )
         scan_v.addWidget(self.scan_launch_chk)
 
         self.autostart_chk = QCheckBox(
-            "Start the watcher automatically on login"
+            self.tr("Start the watcher automatically on login")
         )
         scan_v.addWidget(self.autostart_chk)
         outer.addWidget(scan_box)
 
         # --- output: where results go and what gets written ---
-        out_box = QGroupBox("Output")
+        out_box = QGroupBox(self.tr("Output"))
         out_v = QVBoxLayout(out_box)
         out_row = QHBoxLayout()
-        out_row.addWidget(QLabel("Output folder:"))
+        out_row.addWidget(QLabel(self.tr("Output folder:")))
         self.output_edit = QLineEdit()
         self.output_edit.setReadOnly(True)
         out_row.addWidget(self.output_edit, 1)
-        out_btn = QPushButton("Browse…")
+        out_btn = QPushButton(self.tr("Browse…"))
         out_btn.clicked.connect(self._choose_output)
         out_row.addWidget(out_btn)
         out_v.addLayout(out_row)
 
         self.save_no_ads_chk = QCheckBox(
-            "Save a full-length project even when no commercials are found"
+            self.tr("Save a full-length project even when no commercials are found")
         )
         self.save_no_ads_chk.setToolTip(
-            "When Comskip finds no adverts, still write a .vprj covering the "
+            self.tr("When Comskip finds no adverts, still write a .vprj covering the "
             "whole recording, so it reaches the Batch Manager ready to review "
-            "or copy.  Turn off to skip advert-free recordings entirely."
+            "or copy.  Turn off to skip advert-free recordings entirely.")
         )
         out_v.addWidget(self.save_no_ads_chk)
         outer.addWidget(out_box)
 
         # --- logs & files: the watcher's own housekeeping ('&&' shows a literal
         # '&' in a Qt group-box title, which would otherwise be a mnemonic) ---
-        logs_box = QGroupBox("Logs && files")
+        logs_box = QGroupBox(self.tr("Logs && files"))
         logs_v = QVBoxLayout(logs_box)
         log_row = QHBoxLayout()
-        log_row.addWidget(QLabel("Log files to keep:"))
+        log_row.addWidget(QLabel(self.tr("Log files to keep:")))
         self.log_keep_spin = QSpinBox()
         self.log_keep_spin.setRange(0, 3650)
         self.log_keep_spin.setToolTip(
-            "How many of the watcher's own per-day log files to keep. The "
+            self.tr("How many of the watcher's own per-day log files to keep. The "
             "oldest beyond this are removed when the watcher starts. Set to 0 "
-            "to keep every log. (The editor keeps its logs separately.)"
+            "to keep every log. (The editor keeps its logs separately.)")
         )
         log_row.addWidget(self.log_keep_spin)
         log_row.addStretch(1)
         logs_v.addLayout(log_row)
 
-        config_btn = QPushButton("Open config folder")
+        config_btn = QPushButton(self.tr("Open config folder"))
         config_btn.setToolTip(
-            "Open the folder holding the watcher's settings and lists - "
+            self.tr("Open the folder holding the watcher's settings and lists - "
             "watch_processed.txt (the completed list, delete entries to have a "
-            "recording picked up again), watch_ignore.txt, and the watcher log."
+            "recording picked up again), watch_ignore.txt, and the watcher log.")
         )
         config_btn.clicked.connect(self.tray.open_config_folder)
         logs_v.addWidget(config_btn, alignment=Qt.AlignLeft)
@@ -312,10 +312,10 @@ class WatchControlDialog(QDialog):
         # --- save / close ---
         bottom = QHBoxLayout()
         bottom.addStretch(1)
-        save_btn = QPushButton("Save")
+        save_btn = QPushButton(self.tr("Save"))
         save_btn.clicked.connect(self._save)
         bottom.addWidget(save_btn)
-        close_btn = QPushButton("Close")
+        close_btn = QPushButton(self.tr("Close"))
         close_btn.clicked.connect(self.close)
         bottom.addWidget(close_btn)
         outer.addLayout(bottom)
@@ -337,27 +337,27 @@ class WatchControlDialog(QDialog):
         binary, ini = self.cfg.comskip_paths()
         if binary and os.path.isfile(binary):
             self.comskip_label.setText(
-                f"Comskip: {binary}"
-                + (f"\nIni: {ini}" if ini else "")
+                self.tr("Comskip: %s") % binary
+                + (self.tr("\nIni: %s") % ini if ini else "")
             )
             self.comskip_label.setStyleSheet("")
         else:
             self.comskip_label.setText(
-                "⚠ Comskip isn't set. Open the VRD Next editor → Settings and "
+                self.tr("⚠ Comskip isn't set. Open the VRD Next editor → Settings and "
                 "set the Comskip program (and .ini); the watcher reads it from "
-                "there."
+                "there.")
             )
             self.comskip_label.setStyleSheet("color: #b03030;")
 
     def _refresh_pause_button(self):
-        self.pause_btn.setText("Resume" if self.cfg.paused else "Pause")
+        self.pause_btn.setText(self.tr("Resume") if self.cfg.paused else self.tr("Pause"))
 
     def _toggle_pause(self):
         self.tray.set_paused(not self.cfg.paused)
         self._refresh_pause_button()
 
     def _add_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Add recording folder")
+        folder = QFileDialog.getExistingDirectory(self, self.tr("Add recording folder"))
         if folder and not self._folder_in_list(folder):
             self.folders.addItem(folder)
 
@@ -371,7 +371,7 @@ class WatchControlDialog(QDialog):
 
     def _choose_output(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "Output folder", self.output_edit.text()
+            self, self.tr("Output folder"), self.output_edit.text()
         )
         if folder:
             self.output_edit.setText(folder)
@@ -389,7 +389,7 @@ class WatchControlDialog(QDialog):
         self.cfg.save()
         autostart.set_enabled(self.autostart_chk.isChecked())
         self.tray.settings_changed()
-        self.status_label.setText("Settings saved.")
+        self.status_label.setText(self.tr("Settings saved."))
 
     def set_status(self, text):
         self.status_label.setText(text)
@@ -416,7 +416,7 @@ class WatcherTray:
         self.no_tray = not QSystemTrayIcon.isSystemTrayAvailable()
 
         self.tray = QSystemTrayIcon(make_tray_icon())
-        self.tray.setToolTip("VRD Next Watcher")
+        self.tray.setToolTip(self.tr("VRD Next Watcher"))
         self._build_menu()
         self.tray.activated.connect(self._on_activated)
 
@@ -430,9 +430,9 @@ class WatcherTray:
         else:
             self.tray.show()
             self._notify(
-                "VRD Next Watcher",
-                "Watching for recordings. Right-click the tray icon for "
-                "options.",
+                self.tr("VRD Next Watcher"),
+                self.tr("Watching for recordings. Right-click the tray icon for "
+                "options."),
             )
 
         # Optionally scan shortly after launch rather than waiting a full
@@ -445,28 +445,28 @@ class WatcherTray:
 
     def _build_menu(self):
         menu = QMenu()
-        self.act_scan = menu.addAction("Scan now")
+        self.act_scan = menu.addAction(self.tr("Scan now"))
         self.act_scan.triggered.connect(self.scan_now)
-        self.act_pause = menu.addAction("Pause")
+        self.act_pause = menu.addAction(self.tr("Pause"))
         self.act_pause.triggered.connect(lambda: self.set_paused(not self.cfg.paused))
         menu.addSeparator()
-        self.act_launch = menu.addAction("Launch VRD Next")
+        self.act_launch = menu.addAction(self.tr("Launch VRD Next"))
         self.act_launch.triggered.connect(self.launch_editor)
-        self.act_output = menu.addAction("Open output folder")
+        self.act_output = menu.addAction(self.tr("Open output folder"))
         self.act_output.triggered.connect(self.open_output)
-        self.act_ignore = menu.addAction("Edit ignore list…")
+        self.act_ignore = menu.addAction(self.tr("Edit ignore list…"))
         self.act_ignore.triggered.connect(self.open_ignore_editor)
-        self.act_settings = menu.addAction("Settings…")
+        self.act_settings = menu.addAction(self.tr("Settings…"))
         self.act_settings.triggered.connect(self.open_settings)
         menu.addSeparator()
-        self.act_quit = menu.addAction("Quit")
+        self.act_quit = menu.addAction(self.tr("Quit"))
         self.act_quit.triggered.connect(self.quit)
         self.menu = menu
         self.tray.setContextMenu(menu)
         self._refresh_pause_action()
 
     def _refresh_pause_action(self):
-        self.act_pause.setText("Resume" if self.cfg.paused else "Pause")
+        self.act_pause.setText(self.tr("Resume") if self.cfg.paused else self.tr("Pause"))
 
     def _on_activated(self, reason):
         # Left-click (Trigger) toggles the control window: open it if it's
@@ -496,8 +496,8 @@ class WatcherTray:
         binary, _ini = self.cfg.comskip_paths()
         if not binary or not os.path.isfile(binary):
             self._set_status(
-                "Comskip isn't set - open Settings and configure it in the "
-                "editor first."
+                self.tr("Comskip isn't set - open Settings and configure it in the "
+                "editor first.")
             )
             if self.dialog is None:
                 self.open_settings()
@@ -507,7 +507,7 @@ class WatcherTray:
         self.worker.event.connect(self._on_event)
         self.worker.finished_scan.connect(self._on_finished)
         self.tray.setIcon(make_tray_icon(active=True))
-        self._set_status("Scanning…")
+        self._set_status(self.tr("Scanning…"))
         self.worker.start()
 
     def set_paused(self, paused):
@@ -524,11 +524,11 @@ class WatcherTray:
                 # Let the file currently being scanned finish, then stop before
                 # the next one.
                 self.worker.request_pause()
-                self._set_status("Pausing — finishing the current file…")
+                self._set_status(self.tr("Pausing — finishing the current file…"))
             else:
-                self._set_status("Paused.")
+                self._set_status(self.tr("Paused."))
         else:
-            self._set_status("Watching.")
+            self._set_status(self.tr("Watching."))
             # Resuming picks up the recordings that were left unscanned.
             if self.worker is None:
                 self.scan_now()
@@ -556,14 +556,14 @@ class WatcherTray:
         main_py = os.path.normpath(os.path.join(here, os.pardir, "main.py"))
         if not os.path.isfile(main_py):
             self._notify(
-                "Launch VRD Next",
-                "Couldn't find the editor (main.py) next to the watcher.",
+                self.tr("Launch VRD Next"),
+                self.tr("Couldn't find the editor (main.py) next to the watcher."),
             )
             return
         try:
             subprocess.Popen([sys.executable, main_py])
         except OSError as exc:
-            self._notify("Launch VRD Next", f"Couldn't launch the editor:\n{exc}")
+            self._notify(self.tr("Launch VRD Next"), self.tr("Couldn't launch the editor:\n%s") % exc)
 
     def open_ignore_editor(self):
         parent = self.dialog if self.dialog is not None else None
@@ -596,40 +596,45 @@ class WatcherTray:
     def _on_event(self, kind, info):
         name = os.path.basename(info.get("source", ""))
         if kind == "processing":
-            self._set_status(f"Scanning {name}…")
+            self._set_status(self.tr("Scanning %s…") % name)
         elif kind == "done":
             if info.get("vprj") and info.get("cuts", 0) > 0:
                 self._notify(
-                    "Commercials found",
-                    f"{name}: {info['cuts']} break(s). Project ready in the "
-                    "Batch Manager.",
+                    self.tr("Commercials found"),
+                    self.tr("%s: %s break(s). Project ready in the Batch Manager.")
+                    % (name, info['cuts']),
                 )
         elif kind == "error":
-            self._notify("Scan problem", f"{name}: {info.get('error','')}")
+            self._notify(self.tr("Scan problem"), self.tr("%s: %s") % (name, info.get('error', '')))
 
     def _on_finished(self, summary):
         self.worker = None
         self.tray.setIcon(make_tray_icon(active=False))
         if "error" in summary:
-            self._set_status(f"Scan failed: {summary['error']}")
+            self._set_status(self.tr("Scan failed: %s") % summary['error'])
             return
         if self.cfg.paused or summary.get("paused"):
-            self._set_status("Paused.")
+            self._set_status(self.tr("Paused."))
             return
         projects = summary.get("projects", 0)
         scanned = summary.get("scanned", 0)
-        msg = (
-            f"Last scan: {scanned} new recording(s), "
-            f"{projects} with commercials."
-        )
+        msg = self.tr(
+            "Last scan: %s new recording(s), %s with commercials."
+        ) % (scanned, projects)
         self._set_status(msg)
         if projects:
-            self._notify("VRD Next Watcher", msg)
+            self._notify(self.tr("VRD Next Watcher"), msg)
 
     # --- helpers ---------------------------------------------------------- #
 
+    def tr(self, text):
+        """WatcherTray is a plain object (not a QObject), so it can't inherit
+        Qt's tr().  This gives it the same behaviour, translating under the
+        'WatcherTray' context so its strings sit alongside the rest."""
+        return QCoreApplication.translate("WatcherTray", text)
+
     def _set_status(self, text):
-        self.tray.setToolTip(f"VRD Next Watcher\n{text}")
+        self.tray.setToolTip(self.tr("VRD Next Watcher\n%s") % text)
         if self.dialog is not None:
             self.dialog.set_status(text)
 

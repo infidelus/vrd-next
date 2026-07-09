@@ -13,10 +13,14 @@ reported as "N/A".
 
 import json
 import os
+
+import re as _re
+
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 import subprocess
 
 
-_NA = "N/A"
+_NA = QT_TRANSLATE_NOOP("ProgramInfo", "N/A")
 
 
 def _run_ffprobe(path):
@@ -119,15 +123,17 @@ _MUX = {
 
 def _field_order(value):
     if not value:
-        return "Unknown"
+        return QT_TRANSLATE_NOOP("ProgramInfo", "Unknown")
     v = str(value).lower()
     if v == "progressive":
-        return "Progressive"
+        return QT_TRANSLATE_NOOP("ProgramInfo", "Progressive")
     if v in ("tt", "tb"):
-        return "Interlaced (top field first)"
+        return QT_TRANSLATE_NOOP(
+            "ProgramInfo", "Interlaced (top field first)")
     if v in ("bb", "bt"):
-        return "Interlaced (bottom field first)"
-    return "Interlaced"
+        return QT_TRANSLATE_NOOP(
+            "ProgramInfo", "Interlaced (bottom field first)")
+    return QT_TRANSLATE_NOOP("ProgramInfo", "Interlaced")
 
 
 def _bitrate(bps, audio=False):
@@ -283,11 +289,11 @@ def gather_program_info(path, frame_count=None, fps=None):
         size = os.path.getsize(path)
     except OSError:
         size = fmt.get("size")
-    sections.append(("File", [
-        ("Name", os.path.basename(path)),
-        ("Size", _human_size(size)),
-        ("Duration", _duration_timecode(duration, disp_fps)),
-        ("Mux type", mux),
+    sections.append((QT_TRANSLATE_NOOP("ProgramInfo", "File"), [
+        (QT_TRANSLATE_NOOP("ProgramInfo", "Name"), os.path.basename(path)),
+        (QT_TRANSLATE_NOOP("ProgramInfo", "Size"), _human_size(size)),
+        (QT_TRANSLATE_NOOP("ProgramInfo", "Duration"), _duration_timecode(duration, disp_fps)),
+        (QT_TRANSLATE_NOOP("ProgramInfo", "Mux type"), mux),
     ]))
 
     # ---- Video ------------------------------------------------------------
@@ -302,7 +308,7 @@ def gather_program_info(path, frame_count=None, fps=None):
         frame_rate = f"{avg:.2f} fps" if avg else _NA
         # Broadcast .ts is constant frame rate; a differing r_frame_rate just
         # reflects field coding (50 fields vs 25 frames), not VFR.
-        rate_flag = "Constant" if avg else _NA
+        rate_flag = QT_TRANSLATE_NOOP("ProgramInfo", "Constant") if avg else _NA
 
         w, h = v.get("width"), v.get("height")
         enc_size = f"{w} x {h}" if w and h else _NA
@@ -336,20 +342,20 @@ def gather_program_info(path, frame_count=None, fps=None):
         # has no equivalent, so it reads N/A there.
         entropy = extras.get("entropy_mode") or _NA
 
-        sections.append(("Video", [
-            ("Encoding", codec),
-            ("Stream ID", _stream_id(v)),
-            ("Frame rate", frame_rate),
-            ("Frame rate flag", rate_flag),
-            ("Encoding size", enc_size),
-            ("Aspect ratio", v.get("display_aspect_ratio") or _NA),
-            ("Header bit rate", header_bit),
-            ("VBV buffer", vbv_str),
-            ("Profile", prof),
-            ("Progressive", progressive),
-            ("Chroma", _CHROMA.get(v.get("pix_fmt", ""), v.get("pix_fmt") or _NA)),
-            ("Entropy mode", entropy),
-            ("Bit rate", bit),
+        sections.append((QT_TRANSLATE_NOOP("ProgramInfo", "Video"), [
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Encoding"), codec),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Stream ID"), _stream_id(v)),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Frame rate"), frame_rate),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Frame rate flag"), rate_flag),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Encoding size"), enc_size),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Aspect ratio"), v.get("display_aspect_ratio") or _NA),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Header bit rate"), header_bit),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "VBV buffer"), vbv_str),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Profile"), prof),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Progressive"), progressive),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Chroma"), _CHROMA.get(v.get("pix_fmt", ""), v.get("pix_fmt") or _NA)),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Entropy mode"), entropy),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Bit rate"), bit),
         ]))
 
     # ---- Audio (one section per stream) ----------------------------------
@@ -414,17 +420,18 @@ def gather_program_info(path, frame_count=None, fps=None):
         pes = pes_stream_id(path, pid)
         pes_str = f"x{pes:02X}" if pes is not None else _NA
 
-        title = "Audio Stream: %d%s" % (i, " (Primary)" if i == 1 else "")
+        title = QT_TRANSLATE_NOOP("ProgramInfo", "Audio Stream: %d%s") % (
+            i, QT_TRANSLATE_NOOP("ProgramInfo", " (Primary)") if i == 1 else "")
         sections.append((title, [
-            ("Codec", codec),
-            ("Format", fmt_label),
-            ("Channels", _channels(channels)),
-            ("Language", lang),
-            ("PID", _stream_id(a)),
-            ("PES Stream Id", pes_str),
-            ("Bit rate", audio_bitrate),
-            ("Sampling rate", sample_rate),
-            ("Sample size", sample_size),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Codec"), codec),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Format"), fmt_label),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Channels"), _channels(channels)),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Language"), lang),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "PID"), _stream_id(a)),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "PES Stream Id"), pes_str),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Bit rate"), audio_bitrate),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Sampling rate"), sample_rate),
+            (QT_TRANSLATE_NOOP("ProgramInfo", "Sample size"), sample_size),
         ]))
 
     return sections
@@ -440,3 +447,29 @@ def to_plaintext(sections):
             lines.append(f"  {label.ljust(width)}  {value}")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
+
+
+# The audio section's title is built by substituting the stream number into a
+# pattern, so the finished string ("Audio Stream: 2") can never be looked up in
+# the translations.  Recognise it here and rebuild it from the translated
+# pattern instead, so both the dialog and the clipboard get it right.
+_AUDIO_TITLE = _re.compile(r"^Audio Stream: (\d+)(.*)$")
+
+
+def translate_text(text):
+    """Translate a gathered section title, field label or value for display.
+
+    The gathered data keeps English keys (they're used for lookups and stay
+    stable), so everything shown to the user goes through here.
+    """
+    text = str(text)
+    match = _AUDIO_TITLE.match(text)
+    if match:
+        primary = (
+            QCoreApplication.translate("ProgramInfo", " (Primary)")
+            if match.group(2).strip() else ""
+        )
+        return QCoreApplication.translate(
+            "ProgramInfo", "Audio Stream: %d%s"
+        ) % (int(match.group(1)), primary)
+    return QCoreApplication.translate("ProgramInfo", text)

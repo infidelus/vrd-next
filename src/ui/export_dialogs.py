@@ -85,7 +85,7 @@ class ExportProgressDialog(QDialog):
     def __init__(self, title, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Exporting")
+        self.setWindowTitle(self.tr("Exporting"))
         self.setModal(True)
         self.setMinimumWidth(420)
 
@@ -104,11 +104,11 @@ class ExportProgressDialog(QDialog):
         self._bar.setValue(0)
         layout.addWidget(self._bar)
 
-        self._eta_label = QLabel("Estimated time remaining: —")
+        self._eta_label = QLabel(self.tr("Estimated time remaining: —"))
         layout.addWidget(self._eta_label)
 
         row = QHBoxLayout()
-        self._phase_label = QLabel("Preparing…")
+        self._phase_label = QLabel(self.tr("Preparing…"))
         self._scene_label = QLabel("")
         row.addWidget(self._phase_label)
         row.addStretch(1)
@@ -117,7 +117,7 @@ class ExportProgressDialog(QDialog):
 
         btn_row = QHBoxLayout()
         btn_row.addStretch(1)
-        self._abort_btn = QPushButton("Abort")
+        self._abort_btn = QPushButton(self.tr("Abort"))
         self._abort_btn.setFocusPolicy(Qt.NoFocus)
         self._abort_btn.clicked.connect(self._on_abort)
         btn_row.addWidget(self._abort_btn)
@@ -131,7 +131,7 @@ class ExportProgressDialog(QDialog):
     def _on_abort(self):
         self._aborted = True
         self._abort_btn.setEnabled(False)
-        self._abort_btn.setText("Aborting…")
+        self._abort_btn.setText(self.tr("Aborting…"))
         if self._abort_callback is not None:
             self._abort_callback()
 
@@ -149,7 +149,7 @@ class ExportProgressDialog(QDialog):
             self._bar.setRange(0, 0)
             self._phase_label.setText(_PHASE_LABELS.get(phase, "Working…"))
             self._scene_label.setText("")
-            self._eta_label.setText("Estimated time remaining: …")
+            self._eta_label.setText(self.tr("Estimated time remaining: …"))
             return
 
         if self._start_time is None and percent > 0:
@@ -190,7 +190,7 @@ class ExportProgressDialog(QDialog):
                     f"Estimated time remaining: {_fmt_secs(remaining)}"
                 )
             else:
-                self._eta_label.setText("Estimated time remaining: …")
+                self._eta_label.setText(self.tr("Estimated time remaining: …"))
         elif self._start_time is not None and 0 < percent < 100:
             elapsed = time.perf_counter() - self._start_time
             est_total = elapsed / (percent / 100.0)
@@ -199,7 +199,7 @@ class ExportProgressDialog(QDialog):
                 f"Estimated time remaining: {_fmt_secs(remaining)}"
             )
         elif percent >= 100:
-            self._eta_label.setText("Estimated time remaining: done")
+            self._eta_label.setText(self.tr("Estimated time remaining: done"))
 
 
 class ExportCompleteDialog(QDialog):
@@ -207,7 +207,7 @@ class ExportCompleteDialog(QDialog):
     def __init__(self, stats, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Output Processing Complete")
+        self.setWindowTitle(self.tr("Output Processing Complete"))
         self.setModal(True)
         self.setMinimumWidth(340)
 
@@ -303,14 +303,14 @@ class ExportCompleteDialog(QDialog):
         btn_row = QHBoxLayout()
         btn_row.setContentsMargins(14, 12, 14, 12)
 
-        open_btn = QPushButton("Open Folder")
+        open_btn = QPushButton(self.tr("Open Folder"))
         open_btn.setFocusPolicy(Qt.NoFocus)
         open_btn.clicked.connect(self._open_folder)
         btn_row.addWidget(open_btn)
 
         btn_row.addStretch(1)
 
-        ok = QPushButton("OK")
+        ok = QPushButton(self.tr("OK"))
         ok.setDefault(True)
         ok.setFocusPolicy(Qt.NoFocus)
         ok.clicked.connect(self.accept)

@@ -186,9 +186,36 @@ class BatchRunner(QThread):
         self._modifier = modifier
         self._config = config
         self._stop = False
+        self._finish_current = False
+        self._cursor = 0
+        # Index of the job currently being processed (-1 when between jobs).
+        # The dialog uses this to protect the running job from removal, and
+        # note_removed() keeps it correct when earlier rows are deleted.
+        self.current_index = -1
 
-    def stop(self):
-        self._stop = True
+    def note_removed(self, rows):
+        """Tell the runner that ``rows`` have just been deleted from the shared
+        job list, so its cursor still points at the same place.
+
+        The runner walks the list by index, so removing an earlier row would
+        otherwise make it skip the next job (everything shifts up by one).
+        Rows at or after the cursor don't affect it.
+        """
+        before = sum(1 for r in rows if r < self._cursor)
+        self._cursor -= before
+        if self.current_index >= 0:
+            self.current_index -= sum(
+                1 for r in rows if r < self.current_index
+            )
+
+    def stop(self, after_current=False):
+        """Stop the batch.  By default the running job is abandoned as soon as
+        it notices; with ``after_current`` it is allowed to finish first and the
+        queue stops before the next job starts."""
+        if after_current:
+            self._finish_current = True
+        else:
+            self._stop = True
 
     def run(self):
         taken = set()
@@ -198,16 +225,23 @@ class BatchRunner(QThread):
         cancelled = False
 
         # Walk by index so jobs appended while running (queued on the fly) are
-        # picked up rather than missed.
-        i = 0
+        # picked up rather than missed.  The cursor lives on self so that
+        # note_removed() can adjust it if rows are deleted mid-run.
+        self._cursor = 0
         while True:
             if self._stop:
                 cancelled = True
                 break
-            if i >= len(self._jobs):
+            # A graceful stop: the job that was running has finished, so pull up
+            # before starting the next one.
+            if self._finish_current:
+                cancelled = True
                 break
-            job = self._jobs[i]
-            i += 1
+            if self._cursor >= len(self._jobs):
+                break
+            job = self._jobs[self._cursor]
+            i = self._cursor + 1
+            self._cursor += 1
 
             if job.status in _SKIP_STATUSES:
                 if job.status == DONE:
@@ -218,6 +252,7 @@ class BatchRunner(QThread):
 
             job.status = RUNNING
             job.percent = 0
+            self.current_index = i - 1
             self.job_started.emit(i - 1)
 
             def _progress(info, _i=i - 1, _job=job):
@@ -271,4 +306,6 @@ class BatchRunner(QThread):
                 log.exception("Batch job crashed: %s", job.name)
                 self.job_failed.emit(i - 1, str(exc))
 
+        # Nothing is running any more, so nothing is protected from removal.
+        self.current_index = -1
         self.batch_finished.emit(completed, failed, held, cancelled)

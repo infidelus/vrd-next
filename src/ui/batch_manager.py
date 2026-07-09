@@ -8,7 +8,7 @@ batch going in the background, and reopening it shows the live state.
 
 import os
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QT_TRANSLATE_NOOP, QCoreApplication
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -36,23 +36,23 @@ from project.vprj import read_source_filename
 
 # Display labels for the job phases the runner reports.
 _PHASE_TEXT = {
-    "qsf": "Repairing",
-    "index": "Indexing",
-    "copy": "Copying",
-    "encode": "Encoding",
-    "verify": "Verifying",
-    "recode_audio": "Recoding audio",
-    "recode_full": "Recoding",
-    "rebuild_audio": "Rebuilding audio",
-    "done": "Finishing",
+    "qsf": QT_TRANSLATE_NOOP("BatchManager", "Repairing"),
+    "index": QT_TRANSLATE_NOOP("BatchManager", "Indexing"),
+    "copy": QT_TRANSLATE_NOOP("BatchManager", "Copying"),
+    "encode": QT_TRANSLATE_NOOP("BatchManager", "Encoding"),
+    "verify": QT_TRANSLATE_NOOP("BatchManager", "Verifying"),
+    "recode_audio": QT_TRANSLATE_NOOP("BatchManager", "Recoding audio"),
+    "recode_full": QT_TRANSLATE_NOOP("BatchManager", "Recoding"),
+    "rebuild_audio": QT_TRANSLATE_NOOP("BatchManager", "Rebuilding audio"),
+    "done": QT_TRANSLATE_NOOP("BatchManager", "Finishing"),
 }
 
 _STATUS_TEXT = {
-    QUEUED: "Queued",
-    DONE: "Done",
-    FAILED: "Failed",
-    CANCELLED: "Cancelled",
-    NEEDS_REVIEW: "Needs review",
+    QUEUED: QT_TRANSLATE_NOOP("BatchManager", "Queued"),
+    DONE: QT_TRANSLATE_NOOP("BatchManager", "Done"),
+    FAILED: QT_TRANSLATE_NOOP("BatchManager", "Failed"),
+    CANCELLED: QT_TRANSLATE_NOOP("BatchManager", "Cancelled"),
+    NEEDS_REVIEW: QT_TRANSLATE_NOOP("BatchManager", "Needs review"),
 }
 
 COL_PROJECT = 0
@@ -69,7 +69,7 @@ class BatchManagerDialog(QDialog):
         self.main = main_window
         self.controller = controller
 
-        self.setWindowTitle("Batch Manager")
+        self.setWindowTitle(self.tr("Batch Manager"))
         self.resize(820, 460)
 
         # Non-modal: the main window stays usable while a batch runs.
@@ -97,16 +97,16 @@ class BatchManagerDialog(QDialog):
         settings = QGridLayout()
         settings.setHorizontalSpacing(10)
 
-        settings.addWidget(QLabel("Output folder:"), 0, 0)
+        settings.addWidget(QLabel(self.tr("Output folder:")), 0, 0)
         self._folder_edit = QLineEdit(c.out_folder)
         self._folder_edit.setReadOnly(True)
         settings.addWidget(self._folder_edit, 0, 1)
-        self._browse_btn = QPushButton("Browse…")
+        self._browse_btn = QPushButton(self.tr("Browse…"))
         self._browse_btn.clicked.connect(self._choose_folder)
         settings.addWidget(self._browse_btn, 0, 2)
 
         # Column 3 is a fixed gap so the two groups don't look cluttered.
-        settings.addWidget(QLabel("Default profile:"), 0, 4)
+        settings.addWidget(QLabel(self.tr("Default profile:")), 0, 4)
         self._default_profile = QComboBox()
         self._default_profile.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self._default_profile.setMinimumWidth(170)
@@ -117,10 +117,10 @@ class BatchManagerDialog(QDialog):
         )
         settings.addWidget(self._default_profile, 0, 5)
 
-        settings.addWidget(QLabel("Name modifier:"), 1, 0)
+        settings.addWidget(QLabel(self.tr("Name modifier:")), 1, 0)
         self._modifier_edit = QLineEdit(c.modifier)
         self._modifier_edit.setPlaceholderText(
-            "optional - prefixes the name, or suffixes it if it starts with - or _"
+            self.tr("optional - prefixes the name, or suffixes it if it starts with - or _")
         )
         self._modifier_edit.textChanged.connect(self._on_modifier_changed)
         settings.addWidget(self._modifier_edit, 1, 1, 1, 5)
@@ -135,7 +135,7 @@ class BatchManagerDialog(QDialog):
         # --- job table --------------------------------------------------- #
         self.table = QTableWidget(0, 5, self)
         self.table.setHorizontalHeaderLabels(
-            ["Project", "Profile", "Output", "Status", ""]
+            [self.tr("Project"), self.tr("Profile"), self.tr("Output"), self.tr("Status"), ""]
         )
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -150,25 +150,25 @@ class BatchManagerDialog(QDialog):
 
         # --- list management buttons ------------------------------------- #
         row = QHBoxLayout()
-        self._add_btn = QPushButton("Add Projects…")
+        self._add_btn = QPushButton(self.tr("Add Projects…"))
         self._add_btn.clicked.connect(self._add_projects)
-        self._add_watch_btn = QPushButton("Add from Watch Folder")
+        self._add_watch_btn = QPushButton(self.tr("Add from Watch Folder"))
         self._add_watch_btn.setToolTip(
-            "Add new projects produced by the VRD Next Watcher (commercial "
-            "detection). They arrive stopped, for you to review and Start."
+            self.tr("Add new projects produced by the VRD Next Watcher (commercial "
+            "detection). They arrive stopped, for you to review and Start.")
         )
         self._add_watch_btn.clicked.connect(self._add_from_watch_folder)
-        self._remove_btn = QPushButton("Remove")
+        self._remove_btn = QPushButton(self.tr("Remove"))
         self._remove_btn.clicked.connect(self._remove_selected)
-        self._up_btn = QPushButton("Move Up")
+        self._up_btn = QPushButton(self.tr("Move Up"))
         self._up_btn.clicked.connect(lambda: self._move_selected(-1))
-        self._down_btn = QPushButton("Move Down")
+        self._down_btn = QPushButton(self.tr("Move Down"))
         self._down_btn.clicked.connect(lambda: self._move_selected(1))
         for b in (self._add_btn, self._add_watch_btn, self._remove_btn,
                   self._up_btn, self._down_btn):
             row.addWidget(b)
         row.addStretch(1)
-        self._clear_done_btn = QPushButton("Clear Finished")
+        self._clear_done_btn = QPushButton(self.tr("Clear Finished"))
         self._clear_done_btn.clicked.connect(self._clear_finished)
         row.addWidget(self._clear_done_btn)
         outer.addLayout(row)
@@ -196,10 +196,10 @@ class BatchManagerDialog(QDialog):
         # --- start / close ----------------------------------------------- #
         bottom = QHBoxLayout()
         bottom.addStretch(1)
-        self._start_btn = QPushButton("Start")
+        self._start_btn = QPushButton(self.tr("Start"))
         self._start_btn.clicked.connect(self._toggle_start)
         bottom.addWidget(self._start_btn)
-        self._close_btn = QPushButton("Close")
+        self._close_btn = QPushButton(self.tr("Close"))
         self._close_btn.clicked.connect(self.close)
         bottom.addWidget(self._close_btn)
         outer.addLayout(bottom)
@@ -244,7 +244,7 @@ class BatchManagerDialog(QDialog):
 
     def _choose_folder(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "Output Folder", self.controller.out_folder
+            self, self.tr("Output Folder"), self.controller.out_folder
         )
         if folder:
             self.controller.out_folder = folder
@@ -265,7 +265,7 @@ class BatchManagerDialog(QDialog):
         for n in names:
             combo.addItem(n, n)
         if selected_name and selected_name not in names:
-            combo.addItem("%s (missing)" % selected_name, selected_name)
+            combo.addItem(self.tr("%s (missing)") % selected_name, selected_name)
         idx = combo.findData(selected_name)
         combo.setCurrentIndex(idx if idx >= 0 else 0)
         combo.blockSignals(False)
@@ -296,9 +296,9 @@ class BatchManagerDialog(QDialog):
         folder = WatchConfig.load().output_dir
         if not folder or not os.path.isdir(folder):
             QMessageBox.information(
-                self, "Add from Watch Folder",
-                "The watch output folder doesn't exist yet. Set it up in the "
-                "VRD Next Watcher first.",
+                self, self.tr("Add from Watch Folder"),
+                self.tr("The watch output folder doesn't exist yet. Set it up in the "
+                "VRD Next Watcher first."),
             )
             return
 
@@ -311,15 +311,15 @@ class BatchManagerDialog(QDialog):
 
         if not new:
             QMessageBox.information(
-                self, "Add from Watch Folder",
-                "No new projects in the watch folder — everything there is "
-                "already in the queue.",
+                self, self.tr("Add from Watch Folder"),
+                self.tr("No new projects in the watch folder — everything there is "
+                "already in the queue."),
             )
             return
 
         self.controller.add_jobs(new)
         QMessageBox.information(
-            self, "Add from Watch Folder",
+            self, self.tr("Add from Watch Folder"),
             f"Added {len(new)} project(s) from the watch folder. They're "
             "queued and stopped — review each with Edit, then Start.",
         )
@@ -338,14 +338,26 @@ class BatchManagerDialog(QDialog):
         if len(rows) == 1 and 0 <= rows[0] < len(jobs):
             job = jobs[rows[0]]
             working = read_source_filename(job.vprj_path) or "(unknown)"
-            self._info_label.setText("Working from:  %s" % working)
+            self._info_label.setText(self.tr("Working from:  %s") % working)
         else:
             self._info_label.setText("")
 
     def _remove_selected(self):
         rows = self._selected_rows()
-        if rows:
-            self.controller.remove(rows)
+        if not rows:
+            return
+        active = self.controller.running_row()
+        if active in rows:
+            if len(rows) == 1:
+                QMessageBox.information(
+                    self, self.tr("Remove"),
+                    self.tr("That file is being processed right now. Stop the "
+                            "batch first if you want to remove it."),
+                )
+                return
+            # A mixed selection: drop the waiting ones, keep the active job.
+            rows = [r for r in rows if r != active]
+        self.controller.remove(rows)
 
     def _clear_finished(self):
         self.controller.clear_finished()
@@ -417,7 +429,7 @@ class BatchManagerDialog(QDialog):
             # to this same .vprj, which the runner re-reads at process time.
             edit_btn = self.table.cellWidget(r, COL_EDIT)
             if not isinstance(edit_btn, QPushButton):
-                edit_btn = QPushButton("Edit…")
+                edit_btn = QPushButton(self.tr("Edit…"))
                 edit_btn.clicked.connect(
                     lambda _checked=False, _r=r: self._edit_row(_r)
                 )
@@ -441,10 +453,13 @@ class BatchManagerDialog(QDialog):
         if job.status == RUNNING:
             return f"Running… {job.percent}%"
         if job.status == NEEDS_REVIEW:
-            return "Needs review — Edit to repair & confirm"
+            return self.tr("Needs review — Edit to repair & confirm")
         if job.status == FAILED and job.message:
             return f"Failed: {job.message.splitlines()[0]}"
-        return _STATUS_TEXT.get(job.status, "Queued")
+        return QCoreApplication.translate(
+            "BatchManager",
+            _STATUS_TEXT.get(job.status, QT_TRANSLATE_NOOP("BatchManager", "Queued")),
+        )
 
     def _set_row_status(self, row):
         jobs = self._jobs()
@@ -474,7 +489,7 @@ class BatchManagerDialog(QDialog):
             return
         if not os.path.isfile(job.vprj_path):
             QMessageBox.warning(
-                self, "Edit",
+                self, self.tr("Edit"),
                 f"The project file no longer exists:\n\n{job.vprj_path}",
             )
             return
@@ -495,37 +510,66 @@ class BatchManagerDialog(QDialog):
 
     def _toggle_start(self):
         if self.controller.is_running():
-            self._status_label.setText("Stopping after the current job…")
-            self._start_btn.setEnabled(False)
-            self.controller.stop()
+            self._prompt_stop()
         else:
             self._start_batch()
+
+    def _prompt_stop(self):
+        """Ask how to stop: abandon the job that's running, or let it finish
+        first and stop before the next one starts."""
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Question)
+        box.setWindowTitle(self.tr("Stop Batch"))
+        box.setText(self.tr("Stop processing the queue?"))
+        box.setInformativeText(self.tr(
+            "The job that's currently running can be finished first, or stopped "
+            "straight away and left unfinished."
+        ))
+        finish_btn = box.addButton(
+            self.tr("Finish current file, then stop"), QMessageBox.AcceptRole
+        )
+        now_btn = box.addButton(self.tr("Stop now"), QMessageBox.DestructiveRole)
+        box.addButton(self.tr("Keep going"), QMessageBox.RejectRole)
+        box.setDefaultButton(finish_btn)
+        box.exec()
+
+        clicked = box.clickedButton()
+        if clicked is finish_btn:
+            self._status_label.setText(
+                self.tr("Stopping after the current file…")
+            )
+            self._start_btn.setEnabled(False)
+            self.controller.stop(after_current=True)
+        elif clicked is now_btn:
+            self._status_label.setText(self.tr("Stopping…"))
+            self._start_btn.setEnabled(False)
+            self.controller.stop()
 
     def _start_batch(self):
         jobs = self._jobs()
         if not jobs:
             QMessageBox.information(
-                self, "Batch Manager", "Add at least one project first."
+                self, self.tr("Batch Manager"), self.tr("Add at least one project first.")
             )
             return
         if not self.controller.pending_count():
             held = self.controller.held_count()
             if held:
                 QMessageBox.information(
-                    self, "Batch Manager",
+                    self, self.tr("Batch Manager"),
                     f"{held} job(s) are waiting for review. Click Edit on each "
                     "to repair and confirm the cuts, then run the batch again.",
                 )
             else:
                 QMessageBox.information(
-                    self, "Batch Manager",
-                    "Every job is already done. Add more, or use Clear Finished.",
+                    self, self.tr("Batch Manager"),
+                    self.tr("Every job is already done. Add more, or use Clear Finished."),
                 )
             return
         self.controller.start()
 
     def _on_running_changed(self, running):
-        self._start_btn.setText("Stop" if running else "Start")
+        self._start_btn.setText(self.tr("Stop") if running else self.tr("Start"))
         self._start_btn.setEnabled(True)
         self._set_controls_enabled(not running)
         if not running:
@@ -536,20 +580,23 @@ class BatchManagerDialog(QDialog):
     def _sync_running_state(self):
         """Reflect the controller's current state when (re)opening the dialog."""
         running = self.controller.is_running()
-        self._start_btn.setText("Stop" if running else "Start")
+        self._start_btn.setText(self.tr("Stop") if running else self.tr("Start"))
         self._set_controls_enabled(not running)
         if running:
-            self._status_label.setText("Batch running…")
+            self._status_label.setText(self.tr("Batch running…"))
 
     def _set_controls_enabled(self, on):
-        # Adding more projects is always allowed (queue while it runs); the
-        # rest is locked down during a run.
+        # Adding more projects is always allowed (queue while it runs), and so
+        # is removing ones that are still waiting - the controller refuses to
+        # remove the job that's actually running.  Reordering and the output
+        # settings stay locked down during a run.
         for w in (
-            self._remove_btn, self._up_btn, self._down_btn,
+            self._up_btn, self._down_btn,
             self._clear_done_btn, self._default_profile, self._modifier_edit,
             self._browse_btn,
         ):
             w.setEnabled(on)
+        self._remove_btn.setEnabled(True)
         self._update_buttons()
 
     def _on_job_started(self, index):
@@ -567,7 +614,11 @@ class BatchManagerDialog(QDialog):
         pct = info.get("percent")
         if isinstance(pct, (int, float)):
             self._progress.setValue(int(pct))
-        self._progress.setFormat(f"{_PHASE_TEXT.get(phase, 'Working')} — %p%")
+        phase_text = QCoreApplication.translate(
+            "BatchManager",
+            _PHASE_TEXT.get(phase, QT_TRANSLATE_NOOP("BatchManager", "Working")),
+        )
+        self._progress.setFormat(f"{phase_text} — %p%")
         self._set_row_status(index)
 
     def _on_job_done(self, index, stats):
@@ -588,7 +639,7 @@ class BatchManagerDialog(QDialog):
     def _on_batch_finished(self, completed, failed, held, cancelled):
         self._progress.setValue(0)
         self._progress.setFormat("")
-        verb = "Stopped" if cancelled else "Finished"
+        verb = self.tr("Stopped") if cancelled else self.tr("Finished")
         parts = [f"{completed} done"]
         if held:
             parts.append(f"{held} need review")
@@ -599,14 +650,14 @@ class BatchManagerDialog(QDialog):
         self._refresh_table()
         if held and not cancelled:
             QMessageBox.information(
-                self, "Batch finished",
+                self, self.tr("Batch finished"),
                 f"{summary}\n\n{held} file(s) need repairing before they can be "
                 "cut. Click Edit on each to run Quick Stream Fix and confirm "
                 "the cut points, then run the batch again.",
             )
         elif failed and not cancelled:
             QMessageBox.warning(
-                self, "Batch finished",
+                self, self.tr("Batch finished"),
                 f"{summary}\n\nSee the Status column for what went wrong "
                 "with the failed jobs.",
             )
@@ -618,7 +669,9 @@ class BatchManagerDialog(QDialog):
     def _update_buttons(self):
         running = self.controller.is_running()
         sel = self._selected_rows()
-        self._remove_btn.setEnabled(bool(sel) and not running)
+        # Waiting jobs can be removed even mid-run (the controller protects the
+        # one actually being processed), so this depends only on the selection.
+        self._remove_btn.setEnabled(bool(sel))
         self._up_btn.setEnabled(len(sel) == 1 and not running)
         self._down_btn.setEnabled(len(sel) == 1 and not running)
 

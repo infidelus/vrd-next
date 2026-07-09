@@ -34,9 +34,9 @@ class SceneList(
 
         self.setHorizontalHeaderLabels(
             [
-                "Scene Start",
-                "Scene End",
-                "Duration",
+                self.tr("Scene Start"),
+                self.tr("Scene End"),
+                self.tr("Duration"),
             ]
         )
 

@@ -12,11 +12,16 @@ All video is smart-cut (copied), so the codec column always reads
 "Match Source" and the output mode always "Smart".
 """
 
+from PySide6.QtCore import QT_TRANSLATE_NOOP
+
 from config.loader import save_config
 
+# Display labels.  These stay English here (they're data, and the profile file
+# stores the keys); they are translated where they're shown, under the shared
+# "ProfileEditor" context, so the dropdowns and the table agree.
 _CONTAINER_LABELS = {
-    "match": "Match Source",
-    "mkv": "Matroska MKV",
+    "match": QT_TRANSLATE_NOOP("ProfileEditor", "Match Source"),
+    "mkv": QT_TRANSLATE_NOOP("ProfileEditor", "Matroska MKV"),
     "mp4": "MP4",
 }
 
@@ -59,8 +64,8 @@ class OutputProfile:
     @property
     def codec_label(self):
         if self.video == "hevc":
-            return "HEVC (re-encode)"
-        return "Match Source"               # otherwise the video is copied
+            return QT_TRANSLATE_NOOP("ProfileEditor", "HEVC (re-encode)")
+        return QT_TRANSLATE_NOOP("ProfileEditor", "Match Source")               # otherwise the video is copied
 
     @property
     def container_label(self):
@@ -68,7 +73,7 @@ class OutputProfile:
 
     @property
     def output_mode_label(self):
-        return "Smart"
+        return QT_TRANSLATE_NOOP("ProfileEditor", "Smart")
 
     def audio_label(self):
         if self.audio == "aac":
@@ -150,8 +155,10 @@ class OutputProfile:
 def default_profiles():
     """The built-in profiles seeded on first use."""
     return [
-        OutputProfile("Match Source", "match", favourite=True, builtin=True),
-        OutputProfile("Matroska MKV", "mkv", favourite=True, builtin=True),
+        OutputProfile(QT_TRANSLATE_NOOP("ProfileEditor", "Match Source"),
+                      "match", favourite=True, builtin=True),
+        OutputProfile(QT_TRANSLATE_NOOP("ProfileEditor", "Matroska MKV"),
+                      "mkv", favourite=True, builtin=True),
         OutputProfile("MP4", "mp4", favourite=False, builtin=True),
     ]
 

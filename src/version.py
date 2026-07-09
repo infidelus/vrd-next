@@ -3,7 +3,7 @@
 APP_NAME = "VRD Next"
 
 # major.minor.patch
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 
 # Shown in the title bar, About box and logs, e.g. "VRD Next 1.0.2".
 VERSION_STRING = f"{APP_NAME} {VERSION}"

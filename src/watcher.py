@@ -60,6 +60,21 @@ def main():
     # A tray app must not quit when its (optional) windows close.
     app.setQuitOnLastWindowClosed(False)
 
+    # Match the editor: apply the chosen Light/Dark theme and UI language (both
+    # read from the editor's config, where those settings live) before the tray
+    # is built.  System theme / English are the defaults.
+    try:
+        from ui.theme import apply_theme, remember_original
+        from ui.i18n import install_language
+        from config.loader import ensure_config
+        cfg = ensure_config()
+        settings = cfg.get("settings", {})
+        remember_original(app)
+        apply_theme(app, settings.get("theme", "system"))
+        install_language(app, settings.get("language", "en"))
+    except Exception:
+        pass
+
     # Single-instance guard: refuse to start a second Watcher - two tray icons
     # and two background scanners would only fight each other.  This covers a
     # duplicate from the editor's Extras menu, autostart, or a terminal alike.

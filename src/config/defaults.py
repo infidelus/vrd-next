@@ -54,6 +54,7 @@ DEFAULT_CONFIG = {
         # or "both".
         "frame_type_display": "none",
         "theme": "system",          # "system" | "light" | "dark"
+        "language": "en",           # UI language code; "en" is the built-in default
 
         # Playback audio volume, 0-100.  Audio plays only during real-time
         # playback (not while frame-stepping or jumping).

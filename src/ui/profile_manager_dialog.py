@@ -14,7 +14,7 @@ acting on them in the next step.
 import os
 import tempfile
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QT_TRANSLATE_NOOP, QCoreApplication
 from PySide6.QtGui import QColor, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -43,21 +43,37 @@ from addons.output_profiles import (
     save_profiles,
 )
 
-_CONTAINERS = [("Match Source", "match"), ("Matroska MKV", "mkv"), ("MP4", "mp4")]
-_VIDEO = [("Copy (lossless)", "copy"), ("HEVC (re-encode)", "hevc")]
-_AUDIO = [("Smart copy (lossless)", "copy"), ("Re-encode to AAC", "aac")]
-_ASPECT = [("Source", "source"), ("4:3", "4:3"), ("16:9", "16:9")]
+_CONTAINERS = [
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Match Source"), "match"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Matroska MKV"), "mkv"),
+    ("MP4", "mp4"),
+]
+_VIDEO = [
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Copy (lossless)"), "copy"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "HEVC (re-encode)"), "hevc"),
+]
+_AUDIO = [
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Smart copy (lossless)"), "copy"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Re-encode to AAC"), "aac"),
+]
+_ASPECT = [
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Source"), "source"),
+    ("4:3", "4:3"),
+    ("16:9", "16:9"),
+]
 _CROP = [
-    ("None (lossless)", "none"),
-    ("Auto-detect bars", "auto"),
-    ("Fixed pixels", "fixed"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "None (lossless)"), "none"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Auto-detect bars"), "auto"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Fixed pixels"), "fixed"),
 ]
 
 
 def _combo(pairs):
     c = QComboBox()
     for label, data in pairs:
-        c.addItem(label, data)
+        # Labels are marked with QT_TRANSLATE_NOOP above; translate them here
+        # for display, while the data value stays the English key.
+        c.addItem(QCoreApplication.translate("ProfileEditor", label), data)
     return c
 
 
@@ -82,7 +98,7 @@ class CropPreviewDialog(QDialog):
     def __init__(self, top, bottom, left, right, sample_source="", parent=None,
                  auto_on_open=False):
         super().__init__(parent)
-        self.setWindowTitle("Crop preview")
+        self.setWindowTitle(self.tr("Crop preview"))
         self._sample = sample_source
         self._src_w = 0
         self._src_h = 0
@@ -103,7 +119,7 @@ class CropPreviewDialog(QDialog):
         self._name_label.setStyleSheet("color: gray;")
         v.addWidget(self._name_label)
 
-        self._view = QLabel("Loading…")
+        self._view = QLabel(self.tr("Loading…"))
         self._view.setAlignment(Qt.AlignCenter)
         self._view.setFixedSize(self._BOX_W, self._BOX_H)
         self._view.setStyleSheet(
@@ -113,7 +129,7 @@ class CropPreviewDialog(QDialog):
 
         # Scrub slider to pick a frame.
         srow = QHBoxLayout()
-        srow.addWidget(QLabel("Frame:"))
+        srow.addWidget(QLabel(self.tr("Frame:")))
         self._slider = QSlider(Qt.Horizontal)
         self._slider.setRange(0, 1000)
         self._slider.setValue(400)                 # ~40% in by default
@@ -124,8 +140,11 @@ class CropPreviewDialog(QDialog):
         # Edge values + auto-detect.
         crow = QHBoxLayout()
         self._spins = {}
-        for key in ("Top", "Bottom", "Left", "Right"):
-            crow.addWidget(QLabel(key))
+        for key in (QT_TRANSLATE_NOOP("ProfileEditor", "Top"),
+                    QT_TRANSLATE_NOOP("ProfileEditor", "Bottom"),
+                    QT_TRANSLATE_NOOP("ProfileEditor", "Left"),
+                    QT_TRANSLATE_NOOP("ProfileEditor", "Right")):
+            crow.addWidget(QLabel(QCoreApplication.translate("ProfileEditor", key)))
             sp = QSpinBox()
             sp.setRange(0, 4000)
             sp.setSingleStep(2)
@@ -133,7 +152,7 @@ class CropPreviewDialog(QDialog):
             crow.addWidget(sp)
             self._spins[key.lower()] = sp
         crow.addStretch(1)
-        self._auto_btn = QPushButton("Auto-detect")
+        self._auto_btn = QPushButton(self.tr("Auto-detect"))
         self._auto_btn.clicked.connect(self._auto)
         crow.addWidget(self._auto_btn)
         v.addLayout(crow)
@@ -159,7 +178,7 @@ class CropPreviewDialog(QDialog):
         if sample_source:
             QTimer.singleShot(0, self._load_current_frame)
         else:
-            self._view.setText("No recording open.")
+            self._view.setText(self.tr("No recording open."))
 
     def _edges(self):
         return (self._spins["top"].value(), self._spins["bottom"].value(),
@@ -185,7 +204,7 @@ class CropPreviewDialog(QDialog):
         )
         full = QPixmap(self._tmp_png) if ok else QPixmap()
         if full.isNull():
-            self._view.setText("Couldn't read a frame here.")
+            self._view.setText(self.tr("Couldn't read a frame here."))
             self._base = None
             return
         self._src_w, self._src_h = full.width(), full.height()
@@ -265,7 +284,7 @@ class ProfileEditDialog(QDialog):
 
     def __init__(self, profile, parent=None, sample_source=""):
         super().__init__(parent)
-        self.setWindowTitle("Output Profile")
+        self.setWindowTitle(self.tr("Output Profile"))
         self.setMinimumWidth(440)
         self._result = None
         self._sample_source = sample_source
@@ -281,28 +300,28 @@ class ProfileEditDialog(QDialog):
             layout.addLayout(r)
             return widget
 
-        self.name_edit = row("Profile name:", QLineEdit(profile.name))
+        self.name_edit = row(self.tr("Profile name:"), QLineEdit(profile.name))
 
-        self.container_combo = row("Container:", _combo(_CONTAINERS))
+        self.container_combo = row(self.tr("Container:"), _combo(_CONTAINERS))
         _select_data(self.container_combo, profile.container)
 
-        self.video_combo = row("Video:", _combo(_VIDEO))
+        self.video_combo = row(self.tr("Video:"), _combo(_VIDEO))
         _select_data(self.video_combo, getattr(profile, "video", "copy"))
 
-        self.audio_combo = row("Audio:", _combo(_AUDIO))
+        self.audio_combo = row(self.tr("Audio:"), _combo(_AUDIO))
         _select_data(self.audio_combo, profile.audio)
         self.audio_combo.currentIndexChanged.connect(self._on_audio_changed)
 
-        self.bitrate_combo = row("AAC bitrate:", QComboBox())
-        self.bitrate_combo.addItem("Automatic", 0)
+        self.bitrate_combo = row(self.tr("AAC bitrate:"), QComboBox())
+        self.bitrate_combo.addItem(self.tr("Automatic"), 0)
         for b in AAC_BITRATES:
-            self.bitrate_combo.addItem("%d kbps" % b, b)
+            self.bitrate_combo.addItem(self.tr("%d kbps") % b, b)
         _select_data(self.bitrate_combo, profile.audio_bitrate)
 
-        self.aspect_combo = row("Display aspect:", _combo(_ASPECT))
+        self.aspect_combo = row(self.tr("Display aspect:"), _combo(_ASPECT))
         _select_data(self.aspect_combo, profile.aspect)
 
-        self.crop_combo = row("Cropping:", _combo(_CROP))
+        self.crop_combo = row(self.tr("Cropping:"), _combo(_CROP))
         _select_data(self.crop_combo, getattr(profile, "crop_mode", "none"))
         self.crop_combo.currentIndexChanged.connect(self._on_crop_changed)
 
@@ -311,7 +330,7 @@ class ProfileEditDialog(QDialog):
         # stays narrow.  The grid lines up with the dropdowns above, and the
         # Preview button sits to the right of the four boxes.
         crop_row = QHBoxLayout()
-        clab = QLabel("Crop pixels:")
+        clab = QLabel(self.tr("Crop pixels:"))
         clab.setMinimumWidth(140)
         clab.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         crop_row.addWidget(clab)
@@ -325,13 +344,15 @@ class ProfileEditDialog(QDialog):
         # (label, value index in the stored (top, bottom, left, right) tuple,
         #  grid row, grid column for the label)
         spec = (
-            ("Top", 0, 0, 0),
-            ("Bottom", 1, 0, 2),
-            ("Left", 2, 1, 0),
-            ("Right", 3, 1, 2),
+            (QT_TRANSLATE_NOOP("ProfileEditor", "Top"), 0, 0, 0),
+            (QT_TRANSLATE_NOOP("ProfileEditor", "Bottom"), 1, 0, 2),
+            (QT_TRANSLATE_NOOP("ProfileEditor", "Left"), 2, 1, 0),
+            (QT_TRANSLATE_NOOP("ProfileEditor", "Right"), 3, 1, 2),
         )
         for key, vi, grow, gcol in spec:
-            grid.addWidget(QLabel(key), grow, gcol)
+            grid.addWidget(
+                QLabel(QCoreApplication.translate("ProfileEditor", key)),
+                grow, gcol)
             sp = QSpinBox()
             sp.setRange(0, 4000)
             sp.setSingleStep(2)
@@ -343,37 +364,37 @@ class ProfileEditDialog(QDialog):
         grid.setColumnStretch(3, 1)
         crop_row.addLayout(grid, 1)
 
-        self.crop_preview_btn = QPushButton("Preview…")
+        self.crop_preview_btn = QPushButton(self.tr("Preview…"))
         self.crop_preview_btn.clicked.connect(self._open_crop_preview)
         crop_row.addWidget(self.crop_preview_btn, 0, Qt.AlignVCenter)
         layout.addLayout(crop_row)
 
         # Default output directory (read-only field + Choose/Clear).
         dir_row = QHBoxLayout()
-        lab = QLabel("Default directory:")
+        lab = QLabel(self.tr("Default directory:"))
         lab.setMinimumWidth(140)
         dir_row.addWidget(lab)
         self.dir_edit = QLineEdit(profile.output_dir)
         self.dir_edit.setReadOnly(True)
         if not profile.output_dir:
-            self.dir_edit.setPlaceholderText("(use the export folder)")
+            self.dir_edit.setPlaceholderText(self.tr("(use the export folder)"))
         dir_row.addWidget(self.dir_edit, 1)
-        choose = QPushButton("Choose…")
+        choose = QPushButton(self.tr("Choose…"))
         choose.clicked.connect(self._choose_dir)
-        clear = QPushButton("Clear")
+        clear = QPushButton(self.tr("Clear"))
         clear.clicked.connect(lambda: self.dir_edit.setText(""))
         dir_row.addWidget(choose)
         dir_row.addWidget(clear)
         layout.addLayout(dir_row)
 
         note = QLabel(
-            "Display aspect is applied losslessly on export: 4:3 or 16:9 is "
+            self.tr("Display aspect is applied losslessly on export: 4:3 or 16:9 is "
             "stamped into the video's aspect signalling without re-encoding, so "
             "a wrongly-flagged recording plays at the right shape.  'Source' "
             "leaves it untouched.\n\n"
             "Cropping removes black bars, but unlike everything else it "
             "re-encodes the video (slower, not lossless).  'Auto-detect' finds "
-            "the bars per file; 'Fixed pixels' uses the amounts above."
+            "the bars per file; 'Fixed pixels' uses the amounts above.")
         )
         note.setWordWrap(True)
         note.setStyleSheet("color: gray;")
@@ -402,12 +423,12 @@ class ProfileEditDialog(QDialog):
         if mode == "none":
             self.crop_preview_btn.setEnabled(False)
             self.crop_preview_btn.setToolTip(
-                "Set cropping to Auto-detect or Fixed to preview."
+                self.tr("Set cropping to Auto-detect or Fixed to preview.")
             )
         elif not self._sample_source:
             self.crop_preview_btn.setEnabled(False)
             self.crop_preview_btn.setToolTip(
-                "Open a recording first to preview the crop."
+                self.tr("Open a recording first to preview the crop.")
             )
         else:
             self.crop_preview_btn.setEnabled(True)
@@ -436,7 +457,7 @@ class ProfileEditDialog(QDialog):
     def _choose_dir(self):
         start = self.dir_edit.text().strip() or ""
         folder = QFileDialog.getExistingDirectory(
-            self, "Choose default output folder", start
+            self, self.tr("Choose default output folder"), start
         )
         if folder:
             self.dir_edit.setText(folder)
@@ -444,7 +465,7 @@ class ProfileEditDialog(QDialog):
     def _accept(self):
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.information(self, "Output Profile", "Please give the profile a name.")
+            QMessageBox.information(self, self.tr("Output Profile"), self.tr("Please give the profile a name."))
             return
         self._result = OutputProfile(
             name,
@@ -476,7 +497,7 @@ class ProfileManagerDialog(QDialog):
 
     def __init__(self, config, parent=None, sample_source=""):
         super().__init__(parent)
-        self.setWindowTitle("Manage Output Profiles")
+        self.setWindowTitle(self.tr("Manage Output Profiles"))
         self.setMinimumSize(620, 420)
         self.config = config
         self._sample_source = sample_source
@@ -488,7 +509,8 @@ class ProfileManagerDialog(QDialog):
         body = QHBoxLayout()
         self.table = QTableWidget(0, 6)
         self.table.setHorizontalHeaderLabels(
-            ["On", "Fav", "Profile", "Codec", "Container", "Output Mode"]
+            [self.tr("On"), self.tr("Fav"), self.tr("Profile"),
+             self.tr("Codec"), self.tr("Container"), self.tr("Output Mode")]
         )
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -506,12 +528,12 @@ class ProfileManagerDialog(QDialog):
 
         side = QVBoxLayout()
         for label, slot in (
-            ("Add…", self._add),
-            ("Edit…", self._edit),
-            ("Duplicate", self._duplicate),
-            ("Delete", self._delete),
-            ("Move Up", lambda: self._move(-1)),
-            ("Move Down", lambda: self._move(1)),
+            (self.tr("Add…"), self._add),
+            (self.tr("Edit…"), self._edit),
+            (self.tr("Duplicate"), self._duplicate),
+            (self.tr("Delete"), self._delete),
+            (self.tr("Move Up"), lambda: self._move(-1)),
+            (self.tr("Move Down"), lambda: self._move(1)),
         ):
             b = QPushButton(label)
             b.clicked.connect(slot)
@@ -530,6 +552,11 @@ class ProfileManagerDialog(QDialog):
     # -- table --------------------------------------------------------------
     def _fill_table(self):
         self._filling = True
+
+        def _pl(text):
+            """Translate a built-in (English) profile name or label."""
+            return QCoreApplication.translate("ProfileEditor", text)
+
         self.table.setRowCount(len(self.profiles))
         for i, p in enumerate(self.profiles):
             on = QTableWidgetItem()
@@ -541,10 +568,18 @@ class ProfileManagerDialog(QDialog):
             fav.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, self.COL_FAV, fav)
 
-            self.table.setItem(i, self.COL_NAME, QTableWidgetItem(p.name))
-            self.table.setItem(i, self.COL_CODEC, QTableWidgetItem(p.codec_label))
-            self.table.setItem(i, self.COL_CONTAINER, QTableWidgetItem(p.container_label))
-            self.table.setItem(i, self.COL_MODE, QTableWidgetItem(p.output_mode_label))
+            # Built-in profiles carry English names ("Match Source"), as do the
+            # codec/container/mode labels; translate those for display so the
+            # table matches the dropdowns in the editor.  Names the user typed
+            # are shown exactly as entered, and the stored name never changes.
+            display_name = _pl(p.name) if p.builtin else p.name
+            self.table.setItem(i, self.COL_NAME, QTableWidgetItem(display_name))
+            self.table.setItem(
+                i, self.COL_CODEC, QTableWidgetItem(_pl(p.codec_label)))
+            self.table.setItem(
+                i, self.COL_CONTAINER, QTableWidgetItem(_pl(p.container_label)))
+            self.table.setItem(
+                i, self.COL_MODE, QTableWidgetItem(_pl(p.output_mode_label)))
         self._filling = False
 
     def _on_item_changed(self, item):
@@ -584,9 +619,12 @@ class ProfileManagerDialog(QDialog):
             return
         if self.profiles[row].builtin:
             QMessageBox.information(
-                self, "Built-in profile",
-                "\u201c%s\u201d is a built-in profile and can't be edited "
-                "here.  Use Duplicate to make your own editable copy."
+                self, self.tr("Built-in profile"),
+                self.tr(
+                    "\u201c%s\u201d is a built-in profile and can't be "
+                    "edited here.  Use Duplicate to make your own editable "
+                    "copy."
+                )
                 % self.profiles[row].name,
             )
             return
@@ -619,14 +657,14 @@ class ProfileManagerDialog(QDialog):
         p = self.profiles[row]
         if p.builtin:
             QMessageBox.information(
-                self, "Built-in profile",
-                "\u201c%s\u201d is a built-in profile and can't be deleted."
-                % p.name,
+                self, self.tr("Built-in profile"),
+                self.tr("\u201c%s\u201d is a built-in profile and can't be "
+                        "deleted.") % p.name,
             )
             return
         if QMessageBox.question(
-            self, "Delete Profile",
-            "Delete the profile \u201c%s\u201d?" % p.name,
+            self, self.tr("Delete Profile"),
+            self.tr("Delete the profile \u201c%s\u201d?") % p.name,
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
         ) != QMessageBox.Yes:
             return
