@@ -222,6 +222,12 @@ source's streams are not compatible with.</p>
   unless you specifically want smaller files.</li>
   <li><strong>Audio</strong> &mdash; smart copy (lossless) or re-encode to AAC at a chosen
   or automatic bitrate.</li>
+  <li><strong>Encoder speed</strong> and <strong>Quality&nbsp;(CRF)</strong> &mdash; these
+  apply only when the video is actually re-encoded (HEVC output, or cropping); for a
+  lossless copy they're greyed out. A slower preset gives better quality for the same file
+  size, at the cost of time. A lower CRF means better quality and a bigger file.
+  <strong>Automatic</strong> picks a sensible CRF for the codec, and the defaults are what
+  VRD Next has always used &mdash; so there's no need to touch either unless you want to.</li>
   <li><strong>Display aspect</strong> &mdash; leave as the source, or stamp 4:3 or 16:9.
   This is applied losslessly by correcting the aspect signalling, without re-encoding.</li>
   <li><strong>Cropping</strong> &mdash; remove black bars (see below).</li>

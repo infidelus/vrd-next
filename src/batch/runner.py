@@ -159,6 +159,9 @@ def _index_and_export(
         crop_mode=getattr(profile, "crop_mode", "none"),
         crop=getattr(profile, "crop", (0, 0, 0, 0)),
         video_mode=getattr(profile, "video", "copy"),
+        encoder_preset=getattr(profile, "preset", "faster"),
+        encoder_crf=(profile.effective_crf()
+                     if hasattr(profile, "effective_crf") else None),
     )
 
 

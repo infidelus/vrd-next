@@ -26,6 +26,20 @@ _CONTAINER_LABELS = {
 }
 
 AUDIO_MODES = ("copy", "aac")          # smart copy (lossless) | re-encode AAC
+
+# Encoder speed presets for the re-encode paths (HEVC output, or cropping).
+# These are x264/x265 preset names; slower means better quality per byte.
+# "veryfast" is deliberately absent - it measures the same as "faster" for both
+# speed and quality, so it would only add a pointless choice.
+ENCODER_PRESETS = ("slow", "medium", "faster", "superfast", "ultrafast")
+DEFAULT_PRESET = "faster"               # what VRD Next has always used
+
+# Constant Rate Factor: lower is better quality and a bigger file.  The scales
+# differ between the two encoders, so CRF_AUTO resolves per codec.
+CRF_AUTO = -1                           # -1 == pick a sensible value for the codec
+CRF_MIN, CRF_MAX = 0, 51
+DEFAULT_CRF = {"hevc": 24, "copy": 20}  # "copy" here means an H.264 crop re-encode
+
 ASPECT_MODES = ("source", "4:3", "16:9")
 CROP_MODES = ("none", "auto", "fixed")  # off | auto-detect bars | fixed pixels
 AAC_AUTO = 0                            # 0 == let the bitrate follow the source
@@ -37,7 +51,7 @@ class OutputProfile:
 
     def __init__(self, name, container, *, audio="copy", audio_bitrate=AAC_AUTO,
                  aspect="source", crop_mode="none", crop=(0, 0, 0, 0),
-                 video="copy",
+                 video="copy", preset=DEFAULT_PRESET, crf=CRF_AUTO,
                  output_dir="", favourite=False, enabled=True, builtin=False):
         self.name = name
         self.container = container          # "match" | "mkv" | "mp4"
@@ -48,6 +62,11 @@ class OutputProfile:
         # re-encoding only where a container demands it); "hevc" deliberately
         # re-encodes to HEVC/H.265 for a smaller file (lossy and slower).
         self.video = video if video in ("copy", "hevc") else "copy"
+        # Encoder speed and quality, used only when something is actually
+        # re-encoded (HEVC output, or a crop).  The defaults reproduce what
+        # VRD Next did before these were configurable.
+        self.preset = preset if preset in ENCODER_PRESETS else DEFAULT_PRESET
+        self.crf = self._clean_crf(crf)
         # Cropping re-encodes the video.  "none" leaves the lossless path alone;
         # "auto" detects the black bars per file at export time; "fixed" uses the
         # pixel amounts in ``crop`` = (top, bottom, left, right).
@@ -115,6 +134,27 @@ class OutputProfile:
         return source_ext or ".ts"
 
     # -- persistence -------------------------------------------------------
+    @staticmethod
+    def _clean_crf(value):
+        """Keep CRF within the encoder's range, or CRF_AUTO for 'pick for me'."""
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
+            return CRF_AUTO
+        if value == CRF_AUTO:
+            return CRF_AUTO
+        return max(CRF_MIN, min(CRF_MAX, value))
+
+    def effective_crf(self):
+        """The CRF actually handed to the encoder.
+
+        CRF_AUTO resolves per codec, because the x264 and x265 scales differ -
+        HEVC needs a slightly higher number for the same visible quality.
+        """
+        if self.crf != CRF_AUTO:
+            return self.crf
+        return DEFAULT_CRF["hevc" if self.video == "hevc" else "copy"]
+
     def to_dict(self):
         return {
             "name": self.name,
@@ -125,6 +165,8 @@ class OutputProfile:
             "crop_mode": self.crop_mode,
             "crop": list(self.crop),
             "video": self.video,
+            "preset": self.preset,
+            "crf": self.crf,
             "output_dir": self.output_dir,
             "favourite": self.favourite,
             "enabled": self.enabled,
@@ -142,6 +184,10 @@ class OutputProfile:
             crop_mode=d.get("crop_mode", "none"),
             crop=d.get("crop", (0, 0, 0, 0)),
             video=d.get("video", "copy"),
+            # Older profile files predate these; the defaults reproduce
+            # exactly what those profiles used to do.
+            preset=d.get("preset", DEFAULT_PRESET),
+            crf=d.get("crf", CRF_AUTO),
             output_dir=d.get("output_dir", ""),
             favourite=bool(d.get("favourite", False)),
             enabled=bool(d.get("enabled", True)),

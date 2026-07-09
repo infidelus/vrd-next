@@ -296,6 +296,7 @@ def _run_progress(cmd, total_seconds, progress_cb, cancel_cb):
 
 def crop_reencode(in_path, out_path, rect=None, *, cap_kbps, fps, sar=None,
                   field_order="", codec="libx264", crf=None,
+                  preset="faster",
                   total_seconds=0.0, progress_cb=None, cancel_cb=None):
     """Re-encode ``in_path`` to ``out_path``, optionally cropping.
 
@@ -331,7 +332,7 @@ def crop_reencode(in_path, out_path, rect=None, *, cap_kbps, fps, sar=None,
     if filters:
         cmd += ["-vf", ",".join(filters)]
     cmd += [
-        "-c:v", codec, "-preset", "faster",
+        "-c:v", codec, "-preset", preset,
         "-crf", str(crf),
         "-maxrate", "%dk" % cap_kbps,
         "-bufsize", "%dk" % (cap_kbps * 2),

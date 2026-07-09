@@ -41,6 +41,9 @@ from addons.output_profiles import (
     OutputProfile,
     load_profiles,
     save_profiles,
+    CRF_AUTO,
+    CRF_MAX,
+    DEFAULT_PRESET,
 )
 
 _CONTAINERS = [
@@ -61,6 +64,16 @@ _ASPECT = [
     ("4:3", "4:3"),
     ("16:9", "16:9"),
 ]
+# Encoder speed presets, shown slowest-first so the quality/time trade reads
+# top to bottom.  The data values are the x264/x265 preset names.
+_PRESETS = [
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Slower (best quality)"), "slow"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Slow"), "medium"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Default"), "faster"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Fast"), "superfast"),
+    (QT_TRANSLATE_NOOP("ProfileEditor", "Fastest (lowest quality)"), "ultrafast"),
+]
+
 _CROP = [
     (QT_TRANSLATE_NOOP("ProfileEditor", "None (lossless)"), "none"),
     (QT_TRANSLATE_NOOP("ProfileEditor", "Auto-detect bars"), "auto"),
@@ -282,6 +295,10 @@ class CropPreviewDialog(QDialog):
 class ProfileEditDialog(QDialog):
     """Edit a single profile."""
 
+    # Keeps the dialog (and its dropdowns) a sensible width; the wrapped
+    # explanatory note grows downwards rather than sideways.
+    _BODY_WIDTH = 430
+
     def __init__(self, profile, parent=None, sample_source=""):
         super().__init__(parent)
         self.setWindowTitle(self.tr("Output Profile"))
@@ -307,6 +324,18 @@ class ProfileEditDialog(QDialog):
 
         self.video_combo = row(self.tr("Video:"), _combo(_VIDEO))
         _select_data(self.video_combo, getattr(profile, "video", "copy"))
+
+        self.video_combo.currentIndexChanged.connect(self._on_video_changed)
+
+        # Encoder speed and quality.  These only bite when something is actually
+        # re-encoded (HEVC output, or a crop), so they're greyed out otherwise.
+        self.preset_combo = row(self.tr("Encoder speed:"), _combo(_PRESETS))
+        _select_data(self.preset_combo, getattr(profile, "preset", DEFAULT_PRESET))
+
+        self.crf_spin = row(self.tr("Quality (CRF):"), QSpinBox())
+        self.crf_spin.setRange(CRF_AUTO, CRF_MAX)
+        self.crf_spin.setSpecialValueText(self.tr("Automatic"))
+        self.crf_spin.setValue(getattr(profile, "crf", CRF_AUTO))
 
         self.audio_combo = row(self.tr("Audio:"), _combo(_AUDIO))
         _select_data(self.audio_combo, profile.audio)
@@ -394,10 +423,23 @@ class ProfileEditDialog(QDialog):
             "leaves it untouched.\n\n"
             "Cropping removes black bars, but unlike everything else it "
             "re-encodes the video (slower, not lossless).  'Auto-detect' finds "
-            "the bars per file; 'Fixed pixels' uses the amounts above.")
+            "the bars per file; 'Fixed pixels' uses the amounts above.\n\n"
+            "Encoder speed and Quality apply only when the video is re-encoded "
+            "(HEVC, or cropping).  Slower presets give better quality for the "
+            "same size, at the cost of time.  A lower CRF means better quality "
+            "and a bigger file; 'Automatic' picks a sensible value for the "
+            "codec, which is what VRD Next has always used.")
         )
         note.setWordWrap(True)
         note.setStyleSheet("color: gray;")
+        # Without a width limit this wrapped paragraph asks to be very wide,
+        # which stretches the whole dialog - and every dropdown in it.  Cap it
+        # so the text wraps downwards instead, keeping the dialog narrow.
+        note.setMaximumWidth(self._BODY_WIDTH)
+        # A word-wrapped QLabel doesn't report its wrapped height through
+        # sizeHint(), so the dialog would size itself too short and clip the
+        # last lines.  Ask the label how tall it needs to be at that width.
+        note.setMinimumHeight(note.heightForWidth(self._BODY_WIDTH))
         layout.addWidget(note)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -407,13 +449,36 @@ class ProfileEditDialog(QDialog):
 
         self._keep_builtin = profile.builtin
         self._on_audio_changed()
+        self._sync_encoder_rows()
         self._on_crop_changed()
 
         # Open narrow-and-tall: at this slim width the help text wraps to a
         # couple more lines, so size the height to suit rather than opening wide.
-        self.resize(460, 480)
+        # Size to what the layout actually needs rather than a fixed height:
+        # the dialog has grown (encoder speed, quality, and a longer note), and
+        # a hardcoded height clipped the first and last rows.  The minimum stops
+        # it being dragged back down into clipping.
+        self.adjustSize()
+        hint = self.sizeHint()
+        self.resize(hint.width(), hint.height())
+        self.setMinimumSize(hint.width(), hint.height())
+
+    def _on_video_changed(self):
+        self._sync_encoder_rows()
+
+    def _sync_encoder_rows(self):
+        """Encoder speed and CRF matter only when the video is re-encoded, which
+        happens for HEVC output or when cropping.  A lossless copy ignores both,
+        so grey them out rather than imply they do something."""
+        reencodes = (
+            self.video_combo.currentData() == "hevc"
+            or self.crop_combo.currentData() != "none"
+        )
+        self.preset_combo.setEnabled(reencodes)
+        self.crf_spin.setEnabled(reencodes)
 
     def _on_crop_changed(self):
+        self._sync_encoder_rows()
         mode = self.crop_combo.currentData()
         fixed = mode == "fixed"
         for sp in self.crop_spins.values():
@@ -467,6 +532,26 @@ class ProfileEditDialog(QDialog):
         if not name:
             QMessageBox.information(self, self.tr("Output Profile"), self.tr("Please give the profile a name."))
             return
+        crf = self.crf_spin.value()
+        if crf != CRF_AUTO and (crf < 18 or crf > 30):
+            if crf < 18:
+                warning = self.tr(
+                    "A CRF below 18 gives very large files for little visible "
+                    "gain."
+                )
+            else:
+                warning = self.tr(
+                    "A CRF above 30 is likely to show visible compression "
+                    "artefacts."
+                )
+            reply = QMessageBox.question(
+                self, self.tr("Output Profile"),
+                self.tr("%s\n\nUse it anyway?") % warning,
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return
+
         self._result = OutputProfile(
             name,
             self.container_combo.currentData(),
@@ -474,6 +559,8 @@ class ProfileEditDialog(QDialog):
             audio_bitrate=self.bitrate_combo.currentData(),
             aspect=self.aspect_combo.currentData(),
             video=self.video_combo.currentData(),
+            preset=self.preset_combo.currentData(),
+            crf=self.crf_spin.value(),
             crop_mode=self.crop_combo.currentData(),
             crop=(
                 self.crop_spins["top"].value(),

@@ -1975,6 +1975,8 @@ def export_ranges(
         crop_mode="none",
         crop=(0, 0, 0, 0),
         video_mode="copy",
+        encoder_preset="faster",
+        encoder_crf=None,
 ):
     """Cut and export the kept ranges.
 
@@ -2390,6 +2392,8 @@ def export_ranges(
                 ok = _crop.crop_reencode(
                     out_path, tmp_re, rect,
                     codec=codec,
+                    preset=encoder_preset,
+                    crf=encoder_crf,
                     cap_kbps=_crop.target_cap_kbps(out_path),
                     fps=_crop.source_fps(out_path),
                     field_order=field_order,
@@ -2616,7 +2620,8 @@ class ExportWorker(QThread):
     def __init__(self, source_path, out_path, keep_ranges,
                  frame_index, out_format, parent=None,
                  audio_mode="copy", audio_bitrate=0, aspect="source",
-                 crop_mode="none", crop=(0, 0, 0, 0), video_mode="copy"):
+                 crop_mode="none", crop=(0, 0, 0, 0), video_mode="copy",
+                 encoder_preset="faster", encoder_crf=None):
         super().__init__(parent)
         self.source_path = source_path
         self.out_path = out_path
@@ -2629,6 +2634,8 @@ class ExportWorker(QThread):
         self.crop_mode = crop_mode
         self.crop = crop
         self.video_mode = video_mode
+        self.encoder_preset = encoder_preset
+        self.encoder_crf = encoder_crf
         self._cancel = False
 
     def cancel(self):
@@ -2648,6 +2655,8 @@ class ExportWorker(QThread):
                 crop_mode=self.crop_mode,
                 crop=self.crop,
                 video_mode=self.video_mode,
+                encoder_preset=self.encoder_preset,
+                encoder_crf=self.encoder_crf,
                 progress_cb=self.progress.emit,
                 cancel_cb=lambda: self._cancel,
             )

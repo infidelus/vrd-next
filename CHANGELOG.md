@@ -5,6 +5,29 @@ All notable changes to VRD Next are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-07-09
+
+### Added
+
+- **Encoder speed and quality settings** in the output profile editor, for the
+  paths that actually re-encode (HEVC output, or cropping). **Encoder speed**
+  chooses the x264/x265 preset (Slower … Fastest) and **Quality (CRF)** sets the
+  constant rate factor, with an **Automatic** option. Both default to the values
+  VRD Next used previously - `faster`, and CRF 24 for HEVC or 20 for H.264 - so
+  existing profiles produce identical output. They are disabled for lossless
+  profiles, where they have no effect.
+- Unusually low (<18) or high (>30) CRF values now ask for confirmation,
+  explaining the consequence. Out-of-range values and unknown presets fall back
+  to safe defaults, so a hand-edited profile file cannot break an export.
+
+### Changed
+
+- The output profile editor sizes itself to its contents rather than a fixed
+  height, so no rows are clipped - including in translations, whose longer text
+  needs more room.
+- The timeline's cut regions use a slightly lighter red, reading more clearly
+  against the green kept scenes.
+
 ## [1.4.0] - 2026-07-09
 
 ### Added
@@ -166,6 +189,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 - Initial public release.
 
+[1.5.0]: https://github.com/infidelus/vrd-next/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/infidelus/vrd-next/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/infidelus/vrd-next/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/infidelus/vrd-next/compare/v1.1.0...v1.2.0

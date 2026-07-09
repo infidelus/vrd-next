@@ -2665,6 +2665,9 @@ class MainWindow(QMainWindow):
             crop_mode=getattr(profile, "crop_mode", "none"),
             crop=getattr(profile, "crop", (0, 0, 0, 0)),
             video_mode=getattr(profile, "video", "copy"),
+            encoder_preset=getattr(profile, "preset", "faster"),
+            encoder_crf=(profile.effective_crf()
+                         if hasattr(profile, "effective_crf") else None),
         )
 
     def open_profile_manager(self):
@@ -3153,6 +3156,8 @@ class MainWindow(QMainWindow):
             crop_mode="none",
             crop=(0, 0, 0, 0),
             video_mode="copy",
+            encoder_preset="faster",
+            encoder_crf=None,
     ):
         from ui.export_dialogs import (
             ExportProgressDialog,
@@ -3176,6 +3181,8 @@ class MainWindow(QMainWindow):
             crop_mode=crop_mode,
             crop=crop,
             video_mode=video_mode,
+            encoder_preset=encoder_preset,
+            encoder_crf=encoder_crf,
         )
 
         # Keep a reference so the thread isn't garbage-collected.

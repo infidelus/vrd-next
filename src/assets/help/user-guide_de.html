@@ -148,6 +148,14 @@
   <li><strong>Container</strong> &mdash; Passt sich der Quelle an oder erzwingt MKV oder MP4.</li>
   <li><strong>Video</strong> &mdash; <strong>Kopieren&nbsp;(verlustfrei)</strong> belässt das Video im Stream-Copy-Verfahren, was dem Standard entspricht und die Qualität originalgetreu beibehält. <strong>HEVC&nbsp;(neu kodieren)</strong> kodiert das Video neu nach H.265 für deutlich kleinere Dateien, was allerdings etwas Qualität und ein gutes Stück mehr Zeit kostet. Interlaced-Quellen werden bei der Neukodierung nach HEVC automatisch deinterlaced. Belasse es am besten auf „Kopieren“, es sei denn, Sie benötigen explizit kleinere Dateien.</li>
   <li><strong>Audio</strong> &mdash; Intelligentes Kopieren (verlustfrei) oder Neukodierung nach AAC mit einer festen oder automatischen Bitrate.</li>
+  <li><strong>Encoder-Geschwindigkeit</strong> und <strong>Qualität&nbsp;(CRF)</strong>
+  &mdash; diese gelten nur, wenn das Video tatsächlich neu kodiert wird (HEVC-Ausgabe oder
+  Zuschneiden); bei einer verlustfreien Kopie sind sie ausgegraut. Eine langsamere
+  Voreinstellung liefert bei gleicher Dateigröße eine bessere Qualität, kostet aber Zeit.
+  Ein niedrigerer CRF bedeutet bessere Qualität und eine größere Datei.
+  <strong>Automatisch</strong> wählt einen sinnvollen CRF für den Codec, und die Standardwerte
+  entsprechen dem, was VRD Next bisher immer verwendet hat &mdash; Sie müssen also nichts
+  ändern, sofern Sie es nicht möchten.</li>
   <li><strong>Seitenverhältnis (Aspect ratio)</strong> &mdash; Beibehalten wie Quelle oder fest auf 4:3 oder 16:9 setzen. Dies wird verlustfrei über die Anpassung der Metadaten-Signalisierung umgesetzt, ganz ohne Neukodierung.</li>
   <li><strong>Zuschneiden (Cropping)</strong> &mdash; Schwarze Balken entfernen (siehe unten).</li>
   <li><strong>Standardverzeichnis</strong> &mdash; Ein profilbezogener Zielordner.</li>

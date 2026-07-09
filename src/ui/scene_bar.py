@@ -59,7 +59,10 @@ class SceneBar(QWidget):
             0,
             w,
             h,
-            QColor("#702020")
+            # Slightly lighter than the old #702020 so the cut regions read
+            # more clearly, while staying well behind the green kept scenes and
+            # keeping the white markers legible.
+            QColor("#8a2a2a")
         )
 
         #
