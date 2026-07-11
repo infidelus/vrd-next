@@ -5,6 +5,33 @@ All notable changes to VRD Next are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [1.5.1] - 2026-07-11
+
+### Changed
+
+- **Create Video From Joiner List** now uses the same Save Video dialogue as
+  everywhere else, with full output profiles, matching VideoReDo. A plain
+  lossless-copy profile takes the proven fast path (container change only,
+  byte-for-byte video, per-scene MKV chapters preserved); a profile that
+  processes the picture or audio (HEVC, crop, aspect, or AAC re-encode) is
+  applied to the joined result in a single whole-file pass, so the output is
+  identical to what Save Video produces for the same profile.
+- The Linux installer's virtual environment is now built on Python 3.12,
+  installs the Qt runtime libraries the PySide6 wheels need (notably
+  `libxcb-cursor0`, without which the application starts and then dies without
+  a window on a fresh install), and finishes with an import check that prints
+  the exact error if a dependency didn't install. A failed `apt-get update`
+  no longer aborts the install.
+
+### Fixed
+
+- **Crop Preview showed anamorphic recordings squashed.** UK SD broadcasts are
+  stored 720x576 but displayed 16:9; the preview showed the stored pixel grid.
+  The frame is now resampled to square pixels using the stream's sample aspect
+  ratio, so the picture keeps its on-screen shape. Crop values are unaffected.
+- **Cancelling a join mid-render now reports a quiet "Cancelled."** instead of
+  an error box, and removes the partial output file.
+
 ## [1.5.0] - 2026-07-09
 
 ### Added
@@ -189,6 +216,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 - Initial public release.
 
+[1.5.1]: https://github.com/infidelus/vrd-next/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/infidelus/vrd-next/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/infidelus/vrd-next/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/infidelus/vrd-next/compare/v1.2.0...v1.3.0

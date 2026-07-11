@@ -22,3 +22,6 @@ env/
 vrd-next-changes/
 vrd-next-[0-9]*/
 *-changes.zip
+
+# Local release notes — read by gh at release time, never committed
+release-notes.md

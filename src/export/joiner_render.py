@@ -26,6 +26,7 @@ from export.exporter import (
     export_ranges,
     _write_mkv_chapters,
     _transcode_to_mp4,
+    _Cancelled as _ExporterCancelled,
 )
 
 
@@ -201,16 +202,40 @@ class JoinerRenderWorker(QThread):
     finished_ok = Signal(str)          # output path
     failed = Signal(str)               # message ("Cancelled." if cancelled)
 
-    def __init__(self, entries, out_path, out_format="match",
+    def __init__(self, entries, out_path, profile=None,
                  reencode_target=None, parent=None):
         super().__init__(parent)
         self._entries = list(entries)
         self._out = out_path
-        self._out_format = out_format
+        # The full output profile chosen in the Save Video dialogue (the same
+        # dialogue used everywhere else).  It carries container, video mode
+        # (copy/HEVC), crop, aspect and audio settings, and is applied to the
+        # joined result exactly as Save Video applies it to a single cut.
+        # None falls back to a plain lossless copy to a .ts.
+        self._profile = profile
+        self._out_format = profile.container if profile is not None else "match"
         # None -> lossless stream-copy join (same-format scenes).
         # (width, height, fps) -> re-encode every scene to that and join.
         self._reencode_target = reencode_target
         self._cancel = False
+
+    def _profile_is_lossless_copy(self):
+        """True when the profile asks for nothing beyond a possible container
+        change - so the proven lossless join + finalize path can be used and
+        the output stays byte-for-byte the source video.
+
+        Any of HEVC, crop, an aspect override, or AAC re-encode means the
+        joined stream has to be processed, which we do in one whole-file pass
+        (below), identical to how Save Video handles the same profile."""
+        p = self._profile
+        if p is None:
+            return True
+        return (
+            getattr(p, "video", "copy") == "copy"
+            and getattr(p, "crop_mode", "none") == "none"
+            and getattr(p, "aspect", "source") == "source"
+            and getattr(p, "audio", "copy") == "copy"
+        )
 
     def cancel(self):
         self._cancel = True
@@ -302,18 +327,40 @@ class JoinerRenderWorker(QThread):
                 joined_ts = self._join(segments, tmpdir)
             self._check_cancel()
 
-            self._finalize(joined_ts, durations)
+            # Apply the chosen output profile to the joined stream.  A plain
+            # lossless-copy profile takes the proven fast path (container
+            # change only, per-scene MKV chapters preserved); anything that
+            # processes the picture or audio (HEVC, crop, aspect, AAC) is
+            # applied in a single whole-file pass, so the result matches Save
+            # Video for the same profile and no per-scene seams are re-encoded
+            # independently (which would risk header mismatches at the joins).
+            if self._profile_is_lossless_copy():
+                self._finalize(joined_ts, durations)
+            else:
+                base = int(n * 100 / slots)
+                self.progress.emit(base, "Applying profile…")
+                self._apply_profile(joined_ts, base)
             self._check_cancel()
 
             self.progress.emit(100, "Done")
             self.finished_ok.emit(self._out)
 
-        except _Cancelled:
+        except (_Cancelled, _ExporterCancelled):
+            # Ours, or the exporter's own (raised when the user aborts while a
+            # scene render or the profile pass is inside export_ranges) - both
+            # mean the same thing: a deliberate stop, not an error.
             self._discard_output()
             self.failed.emit("Cancelled.")
         except Exception as exc:                    # noqa: BLE001 - reported
             self._discard_output()
-            self.failed.emit(str(exc))
+            if self._cancel:
+                # The abort can also surface as an ordinary error from the
+                # teardown (smartcut removes its output and returns, and the
+                # pipeline then reports the missing video).  The user pressed
+                # Cancel, so that's the answer - not the wreckage's shape.
+                self.failed.emit("Cancelled.")
+            else:
+                self.failed.emit(str(exc))
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
@@ -548,6 +595,78 @@ class JoinerRenderWorker(QThread):
             tail = "\n".join((result.stderr or "").strip().splitlines()[-6:])
             raise RuntimeError("Building the title card failed.\n\n" + tail)
         return out
+
+    def _apply_profile(self, joined_ts, base=90):
+        """Apply a processing profile (HEVC / crop / aspect / AAC) to the
+        joined stream in one whole-file pass, writing the final output.
+
+        The joined .ts is indexed and handed to the very same exporter Save
+        Video uses, with a single range covering the whole file, so the join
+        honours the profile identically to a normal save.  ``base`` is where
+        the overall progress bar stands as this stage begins; the exporter's
+        own 0-100 is mapped onto the remaining span (this is the slow stage
+        when the profile re-encodes, so it deserves the real range rather
+        than a crawl through the last few percent).
+        """
+        p = self._profile
+        index = build_index_sync(joined_ts)
+        last = max(0, index.frame_count - 1)
+
+        span = max(1, 99 - base)
+
+        # The exporter reports phased progress, each phase counting 0-100 on
+        # its own - and its "done" marker arrives *before* a trailing heavy
+        # encode phase, so it can't be taken at face value.  For the joiner's
+        # single overall bar each phase gets a weighted slice of the span
+        # (the HEVC/crop encode dominates a profile pass; the stream-copy cut
+        # and audio work are quick), the floor ratchets at each phase change,
+        # and the emitted value never moves backwards.  run() emits the real
+        # 100 when everything has finished.
+        weights = {"copy": 0.10, "verify": 0.02, "graft_audio": 0.05,
+                   "recode_audio": 0.15, "rebuild_audio": 0.15,
+                   "encode": 0.75}
+        state = {"phase": None, "floor": base, "ceil": base + span, "last": base}
+
+        def _cb(data):
+            if not isinstance(data, dict):
+                return
+            phase = data.get("phase") or ""
+            if phase == "done":
+                return                          # internal marker, not the end
+            pct = data.get("percent", 0)
+            if phase != state["phase"]:
+                state["phase"] = phase
+                state["floor"] = state["last"]
+                width = int(span * weights.get(phase, 0.15))
+                state["ceil"] = min(base + span, state["floor"] + max(1, width))
+            if pct is None or pct < 0:
+                value = state["last"]          # indeterminate pulse: hold
+            else:
+                pct = max(0, min(100, int(pct)))
+                value = state["floor"] + (
+                    (state["ceil"] - state["floor"]) * pct // 100)
+            value = max(state["last"], min(99, value))
+            state["last"] = value
+            self.progress.emit(value, "Applying profile…")
+
+        export_ranges(
+            joined_ts,
+            self._out,
+            [(0, last)],
+            index,
+            out_format=self._out_format,
+            progress_cb=_cb,
+            cancel_cb=lambda: self._cancel,
+            audio_mode=getattr(p, "audio", "copy"),
+            audio_bitrate=getattr(p, "audio_bitrate", 0),
+            aspect=getattr(p, "aspect", "source"),
+            crop_mode=getattr(p, "crop_mode", "none"),
+            crop=getattr(p, "crop", (0, 0, 0, 0)),
+            video_mode=getattr(p, "video", "copy"),
+            encoder_preset=getattr(p, "preset", "faster"),
+            encoder_crf=(p.effective_crf()
+                         if hasattr(p, "effective_crf") else None),
+        )
 
     def _finalize(self, joined_ts, durations):
         """Write the joined .ts out in the requested format."""

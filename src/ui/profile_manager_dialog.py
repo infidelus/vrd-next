@@ -115,6 +115,7 @@ class CropPreviewDialog(QDialog):
         self._sample = sample_source
         self._src_w = 0
         self._src_h = 0
+        self._sar = None           # source pixel aspect ratio, probed once
         self._base = None          # fitted QPixmap of the current frame, no overlay
         self._result = None
         self._tmp_png = None
@@ -221,6 +222,20 @@ class CropPreviewDialog(QDialog):
             self._base = None
             return
         self._src_w, self._src_h = full.width(), full.height()
+        # Broadcast SD is anamorphic (stored 720x576, displayed 16:9), and the
+        # extracted frame comes out at the stored size - shown as-is it looks
+        # squashed.  Resample it to square pixels first so the preview keeps
+        # the on-screen shape.  The crop values stay in stored-pixel
+        # coordinates: _render's scale factors (fitted size over stored size)
+        # map them onto the widened picture correctly.
+        if self._sar is None:
+            self._sar = self._crop.source_sar(self._sample)
+        if abs(self._sar - 1.0) > 0.01:
+            display_w = max(2, int(round(self._src_w * self._sar)))
+            full = full.scaled(
+                display_w, self._src_h,
+                Qt.IgnoreAspectRatio, Qt.SmoothTransformation
+            )
         # Fit the whole frame inside the fixed box, keeping aspect, so nothing is
         # ever clipped (top/bottom bars included).
         self._base = full.scaled(

@@ -6,8 +6,9 @@
 # Usage:
 #   ./install-desktop-entries.sh [python]
 #
-# Pass a Python interpreter as the first argument to pin a specific one (e.g.
-# your virtualenv's python); otherwise python3 from PATH is used.  Re-run this
+# Pass a Python interpreter as the first argument to pin a specific one (the
+# project's .venv/bin/python is what install-linux.sh passes); otherwise
+# python3 from PATH is used.  The entries embed absolute paths, so re-run this
 # after moving the project to a new location.
 #
 set -e
@@ -60,4 +61,4 @@ echo "Python: $PY"
 echo "Icon:   $ICON"
 echo
 echo "They should appear in your applications menu shortly.  Re-run this script"
-echo "if you move the project, or pass your virtualenv's python as an argument."
+echo "if you move the project (the entries embed absolute paths)."

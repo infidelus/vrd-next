@@ -30,7 +30,6 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication,
-    QComboBox,
     QCheckBox,
     QDialog,
     QDialogButtonBox,
@@ -1234,34 +1233,60 @@ class MainWindow(QMainWindow):
                 return
             reencode_target = (tw, th, tfps)
 
-        out_format = self._ask_export_options()
-        if out_format is None:
-            return
-        ext = {"match": ".ts", "mkv": ".mkv", "mp4": ".mp4"}.get(
-            out_format, ".ts")
-        save_filter = {
-            "match": "Transport stream (*.ts)",
-            "mkv": "Matroska video (*.mkv)",
-            "mp4": "MP4 video (*.mp4)",
-        }.get(out_format, "Transport stream (*.ts)")
+        # Same Save Video dialogue used everywhere else - pick a full output
+        # profile (container, video, crop, aspect, audio) and destination in
+        # one step.  The suggested name is built from the first real scene, and
+        # the profile carries the last-used container.
+        from ui.save_video_dialog import SaveVideoDialog
 
-        out, _ = QFileDialog.getSaveFileName(
-            self, self.tr("Create Joined Video"), self._start_dir("export"),
-            "%s;;All files (*)" % (save_filter,),
-            "", QFileDialog.Option.DontConfirmOverwrite)
-        if not out:
+        stem = "Joined Video"
+        sample_source = ""
+        source_ext = ".ts"
+        for entry in entries:
+            if entry.kind != JoinerEntry.KIND_TITLE and entry.source:
+                stem = "%s - Joined" % (
+                    os.path.splitext(os.path.basename(entry.source))[0],)
+                sample_source = entry.source
+                source_ext = os.path.splitext(entry.source)[1] or ".ts"
+                break
+        suggested = os.path.join(self._start_dir("export") or "", stem)
+        default_container = self.config.get("joiner", {}).get(
+            "out_format", "match")
+
+        dialog = SaveVideoDialog(
+            self.config, suggested, source_ext, self,
+            default_container=default_container,
+            sample_source=sample_source,
+        )
+        if dialog.exec() != QDialog.Accepted:
             return
-        if not out.lower().endswith(ext):
-            out += ext
-        if os.path.exists(out):
-            resp = QMessageBox.question(
-                self, self.tr("Create Joined Video"),
-                self.tr("%s already exists.\n\nOverwrite it?")
-                % (os.path.basename(out),),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No)
-            if resp != QMessageBox.StandardButton.Yes:
+        out = dialog.result_path()
+        profile = dialog.result_profile()
+        out_format = profile.container
+
+        # MKV without mkvmerge still works and stays lossless - the audio just
+        # lands in a less-portable wrapper.  Warn so the choice is informed.
+        if out_format == "mkv" and not self._mkvmerge_available():
+            reply = QMessageBox.question(
+                self,
+                self.tr("mkvmerge not found"),
+                self.tr("mkvmerge (mkvtoolnix) isn't installed or set in Settings.\n\n"
+                "MKV export will still work and stays lossless, but the audio "
+                "is stored in a less-portable wrapper that some video players "
+                "may reject, rather than native AAC.\n\n"
+                "Installing mkvtoolnix - or pointing Settings > Paths at an "
+                "mkvmerge - gives the portable, widely-compatible result.\n\n"
+                "Export to MKV anyway?"),
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
                 return
+
+        # Remember the chosen container as the joiner's default for next time.
+        self.config.setdefault("joiner", {})["out_format"] = out_format
+        save_config(self.config)
+        self._remember_dir("export", out)
 
         progress = QProgressDialog(self.tr("Preparing…"), self.tr("Cancel"), 0, 100, self)
         progress.setWindowTitle(self.tr("Create Joined Video"))
@@ -1271,7 +1296,7 @@ class MainWindow(QMainWindow):
         progress.setAutoReset(False)
 
         worker = JoinerRenderWorker(
-            entries, out, out_format, reencode_target, self)
+            entries, out, profile, reencode_target, self)
         self._joiner_worker = worker          # keep a reference while it runs
 
         def on_progress(percent, label):
@@ -3068,70 +3093,6 @@ class MainWindow(QMainWindow):
         progress.canceled.connect(worker.cancel)
 
         worker.start()
-
-    def _ask_export_options(self, default_format=None):
-        """Modal dialog for output format.  MKV always gets chapters.
-
-        If default_format is given, that option starts selected.
-
-        Returns out_format or None if cancelled.
-        """
-        dialog = QDialog(self)
-        dialog.setWindowTitle(self.tr("Export Options"))
-
-        layout = QVBoxLayout(dialog)
-
-        layout.addWidget(
-            QLabel(self.tr("Output format:"))
-        )
-
-        combo = QComboBox()
-        combo.addItem(self.tr("Match source"), "match")
-        combo.addItem(self.tr("MKV (Matroska, with chapters)"), "mkv")
-        combo.addItem(self.tr("MP4 (no subtitles)"), "mp4")
-        if default_format is not None:
-            i = combo.findData(default_format)
-            if i >= 0:
-                combo.setCurrentIndex(i)
-        layout.addWidget(combo)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok
-            | QDialogButtonBox.Cancel
-        )
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
-
-        # Make OK the default and give it focus, so Enter accepts the dialog
-        # instead of dropping into the format combo and opening its list.
-        ok_btn = buttons.button(QDialogButtonBox.Ok)
-        ok_btn.setDefault(True)
-        ok_btn.setAutoDefault(True)
-        ok_btn.setFocus()
-
-        if dialog.exec() != QDialog.Accepted:
-            return None
-
-        chosen = combo.currentData()
-        if chosen == "mkv" and not self._mkvmerge_available():
-            from PySide6.QtWidgets import QMessageBox
-            reply = QMessageBox.question(
-                self,
-                self.tr("mkvmerge not found"),
-                self.tr("mkvmerge (mkvtoolnix) isn't installed or set in Settings.\n\n"
-                "MKV export will still work and stays lossless, but the audio "
-                "is stored in a less-portable wrapper that some video players "
-                "may reject, rather than native AAC.\n\n"
-                "Installing mkvtoolnix - or pointing Settings > Paths at an "
-                "mkvmerge - gives the portable, widely-compatible result.\n\n"
-                "Export to MKV anyway?"),
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
-            )
-            if reply != QMessageBox.Yes:
-                return None
-        return chosen
 
     def _mkvmerge_available(self):
         """True if mkvmerge can be found - the path set in Settings, or on PATH.

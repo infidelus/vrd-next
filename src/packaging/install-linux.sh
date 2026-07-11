@@ -5,34 +5,38 @@
 #   ./install-linux.sh
 #
 # It will, in order:
-#   1. install the system packages VRD Next needs (Python, ffmpeg, mkvmerge)
-#      via apt, asking for sudo only if something is actually missing;
-#   2. create a virtual environment in the project root (.venv) and install the
-#      Python dependencies from requirements.txt into it;
-#   3. add "VRD Next" and "VRD Next Watcher" to your applications menu, pointing
-#      at that virtual environment (by calling install-desktop-entries.sh).
+#   1. install the system packages VRD Next needs (Python, venv support,
+#      ffmpeg, mkvmerge, and the Qt runtime libraries) via apt, asking for
+#      sudo only if something is actually missing;
+#   2. create a self-contained virtual environment in the project root
+#      (.venv) and install the Python dependencies into it;
+#   3. add "VRD Next" and "VRD Next Watcher" to your applications menu,
+#      pointing at the environment's Python (via install-desktop-entries.sh);
+#   4. check the installed dependencies actually import, and print the exact
+#      error if they don't.
 #
-# Re-running it is safe: existing packages are left alone and the venv is
-# reused.  Nothing is installed system-wide except the apt packages.
+# Re-running it is safe: existing system packages are left alone and the venv
+# is reused.  Re-run it (or just install-desktop-entries.sh) after moving the
+# project to a new folder, so the menu entries pick up the new absolute paths.
 #
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SRC="$(cd "$HERE/.." && pwd)"                    # the src/ directory
 ROOT="$(cd "$SRC/.." && pwd)"                    # the project root (holds src/)
-VENV="$ROOT/.venv"
 REQ="$ROOT/requirements.txt"
+VENV="$ROOT/.venv"
 
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }    # bold heading
 info() { printf '  %s\n' "$*"; }
 
 # --- 1. system packages ---------------------------------------------------
-say "1/3  System packages"
+say "1/4  System packages"
 
 if ! command -v apt-get >/dev/null 2>&1; then
     info "This script uses apt (Debian/Ubuntu/Mint).  On another distribution,"
-    info "install these yourself, then re-run to finish the Python setup:"
-    info "  python3, python3-venv, python3-pip, ffmpeg, mkvtoolnix"
+    info "install these yourself, then re-run to finish the setup:"
+    info "  python3, python3-venv, ffmpeg, mkvtoolnix, libxcb-cursor0"
 else
     # Map required commands to the apt package that provides them.
     declare -A NEED=(
@@ -44,74 +48,89 @@ else
     for cmd in "${!NEED[@]}"; do
         command -v "$cmd" >/dev/null 2>&1 || missing+=("${NEED[$cmd]}")
     done
-    # python3-venv / python3-pip provide no command of their own to probe.
-    # NB: "import venv" can succeed while ensurepip is missing - and ensurepip is
-    # exactly what "python3 -m venv" needs to bootstrap pip.  So probe ensurepip,
-    # and pull in the version-specific python3.X-venv package that newer Ubuntus
-    # (e.g. 26.04 with Python 3.14) require, using whichever names actually exist.
-    if ! python3 -c "import ensurepip" >/dev/null 2>&1; then
-        pyver="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' \
-                 2>/dev/null)"
-        for pkg in "python3-venv" "python3.${pyver}-venv"; do
+    # venv support isn't a command; probe the module on the system Python.
+    python3 -c "import venv, ensurepip" >/dev/null 2>&1 || missing+=("python3-venv")
+    # Qt runtime libraries the PySide6 wheels need but a fresh install can
+    # lack.  libxcb-cursor0 in particular is required by Qt 6.5+ - without it
+    # the application dies silently when launched from the menu.
+    for pkg in libxcb-cursor0 libegl1 libxkbcommon-x11-0; do
+        if ! dpkg -s "$pkg" >/dev/null 2>&1; then
             if apt-cache show "$pkg" >/dev/null 2>&1; then
                 missing+=("$pkg")
             fi
-        done
-    fi
-    python3 -c "import pip" >/dev/null 2>&1 || missing+=("python3-pip")
+        fi
+    done
 
     if [ "${#missing[@]}" -eq 0 ]; then
-        info "All present (python3, ffmpeg, mkvmerge, venv, pip)."
+        info "All present (python3, venv, ffmpeg, mkvmerge, Qt libraries)."
     else
         # De-duplicate.
         mapfile -t missing < <(printf '%s\n' "${missing[@]}" | sort -u)
         info "Installing: ${missing[*]}"
-        sudo apt-get update
-        sudo apt-get install -y "${missing[@]}"
+        APT="apt-get"
+        [ "$(id -u)" -ne 0 ] && APT="sudo apt-get"
+        # A failed update (say, one stale third-party repository) shouldn't
+        # abort the install - the packages we need are in the main archives.
+        $APT update || info "apt-get update reported problems; carrying on."
+        $APT install -y "${missing[@]}"
     fi
 fi
 
-# --- 2. virtual environment ----------------------------------------------
-say "2/3  Python environment"
+# --- 2. virtual environment + Python dependencies -------------------------
+say "2/4  Virtual environment"
 
-if [ ! -d "$VENV" ]; then
-    info "Creating virtual environment: $VENV"
-    if ! python3 -m venv "$VENV"; then
-        info "Virtual environment creation failed (see the message above)."
-        info "Install the package it names (usually 'sudo apt install python3-venv'"
-        info "or 'python3.X-venv'), delete the incomplete $VENV folder, then re-run."
-        exit 1
-    fi
-else
-    info "Reusing existing virtual environment: $VENV"
-fi
-
-# Belt and braces: make sure the interpreter is actually there before we use it.
-if [ ! -x "$VENV/bin/python" ]; then
-    info "The virtual environment is missing its interpreter ($VENV/bin/python)."
-    info "Delete the $VENV folder and re-run."
+# VRD Next runs on Python 3.12 (Linux Mint 22's system Python).  Prefer an
+# explicit python3.12 if present, so the venv is built on it even where the
+# default python3 is something else; fall back to python3 otherwise.
+BUILD_PY="$(command -v python3.12 || command -v python3 || true)"
+if [ -z "$BUILD_PY" ]; then
+    info "No python3 found on PATH - install Python 3.12 and re-run."
     exit 1
 fi
+PY_VER="$("$BUILD_PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
 
-info "Installing Python dependencies (this can take a minute)…"
-"$VENV/bin/python" -m pip install --upgrade pip >/dev/null
+if [ ! -x "$VENV/bin/python" ]; then
+    info "Creating $VENV on Python $PY_VER…"
+    "$BUILD_PY" -m venv "$VENV"
+else
+    have="$("$VENV/bin/python" -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+    info "Reusing existing $VENV (Python $have)."
+    if [ "$have" != "$PY_VER" ]; then
+        info "(To rebuild it on Python $PY_VER instead: rm -rf \"$VENV\" and re-run.)"
+    fi
+fi
+
+PY="$VENV/bin/python"
+
+info "Installing the Python dependencies into the environment…"
+"$PY" -m pip install --upgrade pip >/dev/null
 if [ -f "$REQ" ]; then
-    "$VENV/bin/python" -m pip install -r "$REQ"
+    "$PY" -m pip install -r "$REQ"
 else
     info "requirements.txt not found at $REQ - installing the known set instead."
-    "$VENV/bin/python" -m pip install PySide6 av numpy bitstring tqdm
+    "$PY" -m pip install PySide6 av numpy bitstring tqdm
 fi
 
 # --- 3. menu entries ------------------------------------------------------
-say "3/3  Application menu entries"
-if [ -x "$HERE/install-desktop-entries.sh" ]; then
-    "$HERE/install-desktop-entries.sh" "$VENV/bin/python"
+say "3/4  Application menu entries"
+bash "$HERE/install-desktop-entries.sh" "$PY"
+
+# --- 4. verification --------------------------------------------------------
+say "4/4  Checking the installation"
+if err="$("$PY" -c 'import PySide6, av, numpy, bitstring, tqdm' 2>&1)"; then
+    info "All Python dependencies import cleanly."
 else
-    bash "$HERE/install-desktop-entries.sh" "$VENV/bin/python"
+    info "A dependency didn't install correctly:"
+    printf '%s\n' "$err" | sed 's/^/    /'
+    info "Try re-running this script; if it still fails, please report the"
+    info "text above at https://github.com/infidelus/vrd-next/issues"
+    exit 1
 fi
 
 say "Done."
 info "Launch VRD Next from your applications menu, or run it directly with:"
-info "  $VENV/bin/python $SRC/main.py"
+info "  $PY $SRC/main.py"
 info "The Watcher is \"VRD Next Watcher\" in the menu, or:"
-info "  $VENV/bin/python $SRC/watcher.py"
+info "  $PY $SRC/watcher.py"
+info "If the menu entry ever fails to launch, run the command above in a"
+info "terminal - the error it prints says what's wrong."

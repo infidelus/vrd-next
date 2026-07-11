@@ -11,11 +11,19 @@ chmod +x install-linux.sh          # first time only
 ./install-linux.sh
 ```
 
-It installs the system packages VRD Next needs (Python, ffmpeg, mkvmerge) via
-apt — asking for sudo only if something's missing — creates a virtual
-environment in the project root (`.venv`), installs the Python dependencies
-into it, and adds **VRD Next** and **VRD Next Watcher** to your applications
-menu pointing at that environment.  Re-running it is safe.
+It installs the system packages VRD Next needs (Python, `python3-venv`,
+ffmpeg, mkvmerge and the Qt runtime libraries) via apt — asking for sudo only
+if something's missing — creates a virtual environment in the project root
+(`.venv`) on Python 3.12, installs the Python dependencies into it, adds
+**VRD Next** and **VRD Next Watcher** to your applications menu pointing at
+that environment, and finally checks the installation imports cleanly.
+Re-running it is safe (the venv is reused), and re-running it (or just
+`install-desktop-entries.sh`) after moving the project updates the menu
+entries' absolute paths.
+
+The Qt runtime libraries matter on a fresh install: without `libxcb-cursor0`
+(required by Qt 6.5+) the application starts and then dies without a window,
+which is easy to mistake for a broken install.
 
 ## Windows 10 / 11
 
@@ -43,7 +51,7 @@ you with the venv's interpreter.
 
 ```sh
 ./install-desktop-entries.sh                       # uses python3 from PATH
-./install-desktop-entries.sh /path/to/venv/bin/python   # or pin an interpreter
+./install-desktop-entries.sh ../../.venv/bin/python   # or pin the venv's Python
 ```
 
 It writes two `.desktop` files into `~/.local/share/applications/` with

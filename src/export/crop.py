@@ -77,6 +77,37 @@ def source_dimensions(path):
         return 0, 0
 
 
+def _ratio(text):
+    """Parse an ffprobe aspect ratio ("64:45" or "16/9") to a float, 0.0 when
+    it can't be read or is degenerate ("0:1", "N/A")."""
+    try:
+        num, den = str(text).replace("/", ":").split(":")
+        num, den = float(num), float(den)
+        return num / den if num > 0 and den > 0 else 0.0
+    except (ValueError, AttributeError):
+        return 0.0
+
+
+def source_sar(path):
+    """Sample (pixel) aspect ratio of the first video stream, as a float.
+
+    Broadcast SD is anamorphic - stored as 720x576 but displayed 16:9 - so its
+    pixels aren't square.  Falls back to deriving the value from the declared
+    display aspect ratio, and to 1.0 (square pixels) when nothing is declared.
+    """
+    vals = _probe(path, "sample_aspect_ratio", stream=True)
+    sar = _ratio(vals[0]) if vals else 0.0
+    if sar > 0:
+        return sar
+    vals = _probe(path, "display_aspect_ratio", stream=True)
+    dar = _ratio(vals[0]) if vals else 0.0
+    if dar > 0:
+        width, height = source_dimensions(path)
+        if width and height:
+            return dar * height / width
+    return 1.0
+
+
 def source_fps(path):
     """Frame rate as a float, defaulting to 25.0 when it can't be read."""
     vals = _probe(path, "r_frame_rate", stream=True)
