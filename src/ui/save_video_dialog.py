@@ -262,9 +262,11 @@ class SaveVideoDialog(QDialog):
             ext, "Transport stream"
         )
         start = self.file_edit.text().strip() or ""
+        ext_u = ext.upper()
+        ext_globs = ("*%s *%s" % (ext, ext_u)) if ext_u != ext else ("*%s" % ext)
         chosen, _ = QFileDialog.getSaveFileName(
             self, self.tr("Save Video As"), start,
-            "%s (*%s);;All files (*)" % (label, ext),
+            "%s (%s);;All files (*)" % (label, ext_globs),
         )
         if not chosen:
             return

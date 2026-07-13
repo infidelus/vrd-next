@@ -168,8 +168,9 @@ class TitleEditorDialog(QDialog):
     def _pick_image(self):
         path, _ = QFileDialog.getOpenFileName(
             self, self.tr("Choose background image"), "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.tif *.tiff)"
-            ";;All files (*)")
+            "Images (*.png *.PNG *.jpg *.JPG *.jpeg *.JPEG"
+            " *.bmp *.BMP *.gif *.GIF *.webp *.WEBP"
+            " *.tif *.TIF *.tiff *.TIFF);;All files (*)")
         if path:
             self._bg_image = path
             self._update_image_state()

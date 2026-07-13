@@ -946,160 +946,160 @@ Zeilen, die mit # beginnen, sind Kommentare.</translation>
 <context>
     <name>JoinerDialog</name>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="198"/>
+        <location filename="../ui/joiner_dialog.py" line="199"/>
         <source>Joiner editing</source>
         <translation>Joiner-Bearbeitung</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="216"/>
+        <location filename="../ui/joiner_dialog.py" line="217"/>
         <source>Load Joiner List…</source>
         <translation>Joiner-Liste laden…</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="217"/>
-        <location filename="../ui/joiner_dialog.py" line="538"/>
-        <location filename="../ui/joiner_dialog.py" line="552"/>
+        <location filename="../ui/joiner_dialog.py" line="218"/>
+        <location filename="../ui/joiner_dialog.py" line="539"/>
+        <location filename="../ui/joiner_dialog.py" line="553"/>
         <source>Save Joiner List</source>
         <translation>Joiner-Liste speichern</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="218"/>
+        <location filename="../ui/joiner_dialog.py" line="219"/>
         <source>Save Joiner List As…</source>
         <translation>Joiner-Liste speichern unter…</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="240"/>
+        <location filename="../ui/joiner_dialog.py" line="241"/>
         <source>Up</source>
         <translation>Nach oben</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="242"/>
+        <location filename="../ui/joiner_dialog.py" line="243"/>
         <source>Down</source>
         <translation>Nach unten</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="244"/>
+        <location filename="../ui/joiner_dialog.py" line="245"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="227"/>
-        <location filename="../ui/joiner_dialog.py" line="246"/>
-        <location filename="../ui/joiner_dialog.py" line="412"/>
+        <location filename="../ui/joiner_dialog.py" line="228"/>
+        <location filename="../ui/joiner_dialog.py" line="247"/>
+        <location filename="../ui/joiner_dialog.py" line="413"/>
         <source>Description</source>
         <translation>Beschreibung</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="215"/>
+        <location filename="../ui/joiner_dialog.py" line="216"/>
         <source>File</source>
         <translation>Datei</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="227"/>
+        <location filename="../ui/joiner_dialog.py" line="228"/>
         <source>Filename</source>
         <translation>Dateiname</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="227"/>
+        <location filename="../ui/joiner_dialog.py" line="228"/>
         <source>Duration</source>
         <translation>Dauer</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="248"/>
+        <location filename="../ui/joiner_dialog.py" line="249"/>
         <source>Edit selection</source>
         <translation>Auswahl bearbeiten</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="250"/>
+        <location filename="../ui/joiner_dialog.py" line="251"/>
         <source>Add title</source>
         <translation>Titel hinzufügen</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="261"/>
+        <location filename="../ui/joiner_dialog.py" line="262"/>
         <source>Display full path name</source>
         <translation>Vollständigen Pfad anzeigen</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="263"/>
+        <location filename="../ui/joiner_dialog.py" line="264"/>
         <source>Clear after successful save/queue</source>
         <translation>Nach erfolgreichem Speichern/Einreihen leeren</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="273"/>
+        <location filename="../ui/joiner_dialog.py" line="274"/>
         <source>Fade to/from black (selected clip)</source>
         <translation>Ein-/Ausblenden aus Schwarz (ausgewählter Clip)</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="276"/>
+        <location filename="../ui/joiner_dialog.py" line="277"/>
         <source>In:</source>
         <translation>Anfang:</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="286"/>
+        <location filename="../ui/joiner_dialog.py" line="287"/>
         <source>Out:</source>
         <translation>Ende:</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="300"/>
-        <location filename="../ui/joiner_dialog.py" line="482"/>
+        <location filename="../ui/joiner_dialog.py" line="301"/>
+        <location filename="../ui/joiner_dialog.py" line="483"/>
         <source>Clear all</source>
         <translation>Alles löschen</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="302"/>
+        <location filename="../ui/joiner_dialog.py" line="303"/>
         <source>Create video from joiner list…</source>
         <translation>Video aus Joiner-Liste erstellen…</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="304"/>
+        <location filename="../ui/joiner_dialog.py" line="305"/>
         <source>OK</source>
         <translation>OK</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="307"/>
+        <location filename="../ui/joiner_dialog.py" line="308"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="351"/>
+        <location filename="../ui/joiner_dialog.py" line="352"/>
         <source>File not found: %s</source>
         <translation>Datei nicht gefunden: %s</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="412"/>
+        <location filename="../ui/joiner_dialog.py" line="413"/>
         <source>Description:</source>
         <translation>Beschreibung:</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="473"/>
+        <location filename="../ui/joiner_dialog.py" line="474"/>
         <source>Joiner</source>
         <translation>Joiner</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="473"/>
+        <location filename="../ui/joiner_dialog.py" line="474"/>
         <source>The joiner list is empty.</source>
         <translation>Die Joiner-Liste ist leer.</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="483"/>
+        <location filename="../ui/joiner_dialog.py" line="484"/>
         <source>Remove all entries from the joiner list?</source>
         <translation>Alle Einträge aus der Joiner-Liste entfernen?</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="500"/>
-        <location filename="../ui/joiner_dialog.py" line="509"/>
-        <location filename="../ui/joiner_dialog.py" line="525"/>
+        <location filename="../ui/joiner_dialog.py" line="501"/>
+        <location filename="../ui/joiner_dialog.py" line="510"/>
+        <location filename="../ui/joiner_dialog.py" line="526"/>
         <source>Load Joiner List</source>
         <translation>Joiner-Liste laden</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="501"/>
-        <location filename="../ui/joiner_dialog.py" line="539"/>
+        <location filename="../ui/joiner_dialog.py" line="502"/>
+        <location filename="../ui/joiner_dialog.py" line="540"/>
         <source>Joiner list (*%s);;All files (*)</source>
         <translation>Joiner-Liste (*%s);;Alle Dateien (*)</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="510"/>
+        <location filename="../ui/joiner_dialog.py" line="511"/>
         <source>Add the loaded entries to the current list?
 
 Yes = append,  No = replace the current list.</source>
@@ -1108,7 +1108,7 @@ Yes = append,  No = replace the current list.</source>
 Ja = anhängen,  Nein = aktuelle Liste ersetzen.</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="526"/>
+        <location filename="../ui/joiner_dialog.py" line="527"/>
         <source>Could not load the joiner list:
 
 %s</source>
@@ -1117,7 +1117,7 @@ Ja = anhängen,  Nein = aktuelle Liste ersetzen.</translation>
 %s</translation>
     </message>
     <message>
-        <location filename="../ui/joiner_dialog.py" line="553"/>
+        <location filename="../ui/joiner_dialog.py" line="554"/>
         <source>Could not save the joiner list:
 
 %s</source>
@@ -1177,8 +1177,8 @@ Möchten Sie diese vor dem Fortfahren als Projekt speichern?</translation>
     </message>
     <message>
         <location filename="../main.py" line="678"/>
-        <location filename="../main.py" line="2160"/>
-        <location filename="../main.py" line="2199"/>
+        <location filename="../main.py" line="2162"/>
+        <location filename="../main.py" line="2262"/>
         <source>Open Video</source>
         <translation>Video öffnen</translation>
     </message>
@@ -1214,10 +1214,10 @@ Möchten Sie diese vor dem Fortfahren als Projekt speichern?</translation>
     </message>
     <message>
         <location filename="../main.py" line="718"/>
-        <location filename="../main.py" line="2739"/>
-        <location filename="../main.py" line="2747"/>
-        <location filename="../main.py" line="2761"/>
-        <location filename="../main.py" line="2786"/>
+        <location filename="../main.py" line="2802"/>
+        <location filename="../main.py" line="2810"/>
+        <location filename="../main.py" line="2824"/>
+        <location filename="../main.py" line="2849"/>
         <source>Queue to Batch</source>
         <translation>Zur Stapelverarbeitung</translation>
     </message>
@@ -1468,9 +1468,9 @@ Fortfahren?</translation>
     <message>
         <location filename="../main.py" line="1291"/>
         <location filename="../main.py" line="1471"/>
-        <location filename="../main.py" line="2328"/>
-        <location filename="../main.py" line="2931"/>
-        <location filename="../main.py" line="3054"/>
+        <location filename="../main.py" line="2391"/>
+        <location filename="../main.py" line="2994"/>
+        <location filename="../main.py" line="3117"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
@@ -1525,9 +1525,9 @@ Fortfahren?</translation>
     <message>
         <location filename="../main.py" line="1428"/>
         <location filename="../main.py" line="1675"/>
-        <location filename="../main.py" line="2599"/>
-        <location filename="../main.py" line="2739"/>
-        <location filename="../main.py" line="2858"/>
+        <location filename="../main.py" line="2662"/>
+        <location filename="../main.py" line="2802"/>
+        <location filename="../main.py" line="2921"/>
         <source>Open a video first.</source>
         <translation>Öffnen Sie zuerst ein Video.</translation>
     </message>
@@ -1648,12 +1648,22 @@ Möchten Sie manuell nach der Datei suchen?</translation>
         <translation>Später</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2189"/>
+        <location filename="../main.py" line="2224"/>
+        <source>Open Multiple Files</source>
+        <translation>Mehrere Dateien öffnen</translation>
+    </message>
+    <message>
+        <location filename="../main.py" line="2225"/>
+        <source>These files could not be read and were not added:</source>
+        <translation>Diese Dateien konnten nicht gelesen werden und wurden nicht hinzugefügt:</translation>
+    </message>
+    <message>
+        <location filename="../main.py" line="2252"/>
         <source>External tools</source>
         <translation>Externe Werkzeuge</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2190"/>
+        <location filename="../main.py" line="2253"/>
         <source>The preview works without them, but exporting, joining and showing stream info need ffmpeg and ffprobe.
 
 </source>
@@ -1662,39 +1672,39 @@ Möchten Sie manuell nach der Datei suchen?</translation>
 </translation>
     </message>
     <message>
-        <location filename="../main.py" line="2200"/>
+        <location filename="../main.py" line="2263"/>
         <source>That file no longer exists:
 %s</source>
         <translation>Diese Datei existiert nicht mehr:
 %s</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2279"/>
+        <location filename="../main.py" line="2342"/>
         <source>(no recent files)</source>
         <translation>(keine zuletzt geöffneten Dateien)</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2301"/>
+        <location filename="../main.py" line="2364"/>
         <source>Clear Recent</source>
         <translation>Liste leeren</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2327"/>
+        <location filename="../main.py" line="2390"/>
         <source>Quick Stream Fix on open (remuxing)…</source>
         <translation>Schnelle Stream-Reparatur beim Öffnen (Remuxing)…</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2333"/>
+        <location filename="../main.py" line="2396"/>
         <source>Opening</source>
         <translation>Wird geöffnet</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2356"/>
+        <location filename="../main.py" line="2419"/>
         <source>Quick Stream Fix on open failed</source>
         <translation>Schnelle Stream-Reparatur beim Öffnen fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2357"/>
+        <location filename="../main.py" line="2420"/>
         <source>%s
 
 Opening the original file instead.</source>
@@ -1703,29 +1713,29 @@ Opening the original file instead.</source>
 Es wird stattdessen die Originaldatei geöffnet.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2418"/>
+        <location filename="../main.py" line="2481"/>
         <source>Indexing video…</source>
         <translation>Video wird indiziert…</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2598"/>
-        <location filename="../main.py" line="2612"/>
+        <location filename="../main.py" line="2661"/>
+        <location filename="../main.py" line="2675"/>
         <source>Export</source>
         <translation>Exportieren</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2613"/>
+        <location filename="../main.py" line="2676"/>
         <source>No segments marked to keep. Mark at least one green segment before exporting.</source>
         <translation>Keine Segmente zum Behalten markiert. Markieren Sie mindestens ein grünes Segment vor dem Exportieren.</translation>
     </message>
     <message>
         <location filename="../main.py" line="1272"/>
-        <location filename="../main.py" line="2664"/>
+        <location filename="../main.py" line="2727"/>
         <source>mkvmerge not found</source>
         <translation>mkvmerge nicht gefunden</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2665"/>
+        <location filename="../main.py" line="2728"/>
         <source>mkvmerge (mkvtoolnix) isn&apos;t installed or set in Settings.
 
 MKV export still works and stays lossless, but the audio is stored in a less-portable wrapper rather than native AAC.  It plays in Plex/Jellyfin and other ffmpeg-based players.
@@ -1742,12 +1752,12 @@ Die Installation von mkvtoolnix – oder das Verweisen unter Einstellungen &gt; 
 Trotzdem als MKV exportieren?</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2748"/>
+        <location filename="../main.py" line="2811"/>
         <source>No segments marked to keep. Mark at least one green segment before queueing.</source>
         <translation>Keine Segmente zum Behalten markiert. Markieren Sie mindestens ein grünes Segment, bevor Sie es in die Warteschlange einreihen.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2762"/>
+        <location filename="../main.py" line="2825"/>
         <source>Couldn&apos;t create the batch queue folder:
 
 %s</source>
@@ -1756,7 +1766,7 @@ Trotzdem als MKV exportieren?</translation>
 %s</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2787"/>
+        <location filename="../main.py" line="2850"/>
         <source>The project couldn&apos;t be saved for batching:
 
 %s</source>
@@ -1765,12 +1775,12 @@ Trotzdem als MKV exportieren?</translation>
 %s</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2822"/>
+        <location filename="../main.py" line="2885"/>
         <source>Already Quick Stream Fixed</source>
         <translation>Bereits mit Schneller Stream-Reparatur verarbeitet</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2823"/>
+        <location filename="../main.py" line="2886"/>
         <source>This file appears to have already been processed by Quick Stream Fix.
 
 Run Quick Stream Fix on it again anyway?</source>
@@ -1779,20 +1789,20 @@ Run Quick Stream Fix on it again anyway?</source>
 Möchten Sie die Schnelle Stream-Reparatur trotzdem erneut ausführen?</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2857"/>
-        <location filename="../main.py" line="2868"/>
-        <location filename="../main.py" line="2936"/>
-        <location filename="../main.py" line="3059"/>
+        <location filename="../main.py" line="2920"/>
+        <location filename="../main.py" line="2931"/>
+        <location filename="../main.py" line="2999"/>
+        <location filename="../main.py" line="3122"/>
         <source>Quick Stream Fix</source>
         <translation>Schnelle Stream-Reparatur</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2870"/>
+        <location filename="../main.py" line="2933"/>
         <source>How would you like to run Quick Stream Fix?</source>
         <translation>Wie möchten Sie die schnelle Stream-Reparatur ausführen?</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2872"/>
+        <location filename="../main.py" line="2935"/>
         <source>Repair and reload: repair to temporary storage and reload it now, carrying your current scene markers across (recommended when editing).
 
 Repair and save a copy: write a permanently-fixed copy to a location you choose, without changing what&apos;s currently open.</source>
@@ -1801,40 +1811,40 @@ Repair and save a copy: write a permanently-fixed copy to a location you choose,
 Reparieren und Kopie speichern: eine dauerhaft reparierte Kopie an einem Ort Ihrer Wahl ablegen, ohne das aktuell Geöffnete zu verändern.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2879"/>
+        <location filename="../main.py" line="2942"/>
         <source>Repair and reload</source>
         <translation>Reparieren und neu laden</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2880"/>
+        <location filename="../main.py" line="2943"/>
         <source>Repair and save a copy…</source>
         <translation>Reparieren und Kopie speichern…</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2930"/>
-        <location filename="../main.py" line="3053"/>
+        <location filename="../main.py" line="2993"/>
+        <location filename="../main.py" line="3116"/>
         <source>Repairing stream (remuxing)…</source>
         <translation>Stream wird repariert (Remuxing)…</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2949"/>
-        <location filename="../main.py" line="3291"/>
+        <location filename="../main.py" line="3012"/>
+        <location filename="../main.py" line="3354"/>
         <source>Re-indexing repaired stream…</source>
         <translation>Reparierter Stream wird neu indiziert…</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2989"/>
+        <location filename="../main.py" line="3052"/>
         <source>Stream repaired and reloaded - check your scene markers.</source>
         <translation>Stream repariert und neu geladen - prüfen Sie Ihre Szenenmarkierungen.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2994"/>
-        <location filename="../main.py" line="3345"/>
+        <location filename="../main.py" line="3057"/>
+        <location filename="../main.py" line="3408"/>
         <source>Stream repaired</source>
         <translation>Stream repariert</translation>
     </message>
     <message>
-        <location filename="../main.py" line="2995"/>
+        <location filename="../main.py" line="3058"/>
         <source>The stream has been repaired and reloaded.
 
 Your scene markers have been carried over, but the repair can shift them slightly. Please check each scene (double-click a scene to jump to its start) and adjust if needed.</source>
@@ -1843,28 +1853,28 @@ Your scene markers have been carried over, but the repair can shift them slightl
 Ihre Szenenmarker wurden übernommen, aber die Reparatur kann sie leicht verschieben. Bitte überprüfen Sie jede Szene (Doppelklick auf eine Szene, um zu deren Anfang zu springen) und passen Sie sie bei Bedarf an.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3003"/>
+        <location filename="../main.py" line="3066"/>
         <source>Stream repaired and reloaded.</source>
         <translation>Stream repariert und neu geladen.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3014"/>
-        <location filename="../main.py" line="3086"/>
+        <location filename="../main.py" line="3077"/>
+        <location filename="../main.py" line="3149"/>
         <source>Quick Stream Fix failed</source>
         <translation>Schnelle Stream-Reparatur fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3044"/>
+        <location filename="../main.py" line="3107"/>
         <source>Quick Stream Fix - Save As</source>
         <translation>Schnelle Stream-Reparatur - Speichern unter</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3077"/>
+        <location filename="../main.py" line="3140"/>
         <source>Quick Stream Fix complete</source>
         <translation>Schnelle Stream-Reparatur abgeschlossen</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3078"/>
+        <location filename="../main.py" line="3141"/>
         <source>Saved:
 %s</source>
         <translation>Gespeichert:
@@ -1888,12 +1898,12 @@ Die Installation von mkvtoolnix – oder das Verweisen unter Einstellungen &gt; 
 Trotzdem als MKV exportieren?</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3183"/>
+        <location filename="../main.py" line="3246"/>
         <source>Export produced no video</source>
         <translation>Export hat kein Video erzeugt</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3184"/>
+        <location filename="../main.py" line="3247"/>
         <source>The export contained no usable video. This can happen with some broadcast recordings whose streams need repairing first.
 
 Would you like to run Quick Stream Fix on the source? The repaired file will be reloaded with your scene markers so you can check them before saving.</source>
@@ -1902,27 +1912,27 @@ Would you like to run Quick Stream Fix on the source? The repaired file will be 
 Möchten Sie die Schnelle Stream-Reparatur auf der Quelle ausführen? Die reparierte Datei wird mit Ihren Szenenmarkern neu geladen, sodass Sie diese vor dem Speichern überprüfen können.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3201"/>
+        <location filename="../main.py" line="3264"/>
         <source>Export failed</source>
         <translation>Export fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3271"/>
+        <location filename="../main.py" line="3334"/>
         <source>Repairing the stream (Quick Stream Fix)…</source>
         <translation>Der Stream wird repariert (schnelle Stream-Reparatur)…</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3277"/>
+        <location filename="../main.py" line="3340"/>
         <source>Repairing</source>
         <translation>Reparatur läuft</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3339"/>
+        <location filename="../main.py" line="3402"/>
         <source>Stream repaired and reloaded - check your scene markers, then Save Video.</source>
         <translation>Stream repariert und neu geladen - prüfen Sie Ihre Szenenmarkierungen und speichern Sie dann das Video.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3346"/>
+        <location filename="../main.py" line="3409"/>
         <source>The stream has been repaired and reloaded.
 
 Your scene markers have been carried over, but the repair can shift them slightly. Please check each scene (double-click a scene to jump to its start) and adjust if needed, then click Save Video when you&apos;re happy.</source>
@@ -1931,12 +1941,12 @@ Your scene markers have been carried over, but the repair can shift them slightl
 Ihre Szenenmarker wurden übernommen, aber die Reparatur kann sie leicht verschieben. Bitte überprüfen Sie jede Szene (Doppelklick auf eine Szene, um zu deren Anfang zu springen), passen Sie sie bei Bedarf an und klicken Sie auf Video speichern, wenn Sie zufrieden sind.</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3361"/>
+        <location filename="../main.py" line="3424"/>
         <source>Repair failed</source>
         <translation>Reparatur fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../main.py" line="3362"/>
+        <location filename="../main.py" line="3425"/>
         <source>The stream could not be repaired automatically:
 
 %s</source>
@@ -1945,12 +1955,12 @@ Ihre Szenenmarker wurden übernommen, aber die Reparatur kann sie leicht verschi
 %s</translation>
     </message>
     <message>
-        <location filename="../main.py" line="4927"/>
+        <location filename="../main.py" line="4990"/>
         <source>Batch running</source>
         <translation>Stapelverarbeitung läuft</translation>
     </message>
     <message>
-        <location filename="../main.py" line="4928"/>
+        <location filename="../main.py" line="4991"/>
         <source>A batch is still running. Quitting will stop it after the current job.
 
 Quit anyway?</source>
@@ -1995,6 +2005,39 @@ Trotzdem beenden?</translation>
         <location filename="../ui/settings_pages/maintenance.py" line="58"/>
         <source>Reset every setting - paths, options and keyboard shortcuts - back to its default. Your recordings and projects aren&apos;t affected.</source>
         <translation>Setzt jede Einstellung – Pfade, Optionen und Tastaturkürzel – auf die Standardwerte zurück. Ihre Aufnahmen und Projekte sind davon nicht betroffen.</translation>
+    </message>
+</context>
+<context>
+    <name>MultiOpenDialog</name>
+    <message>
+        <location filename="../ui/multi_open_dialog.py" line="32"/>
+        <source>Open Multiple Files</source>
+        <translation>Mehrere Dateien öffnen</translation>
+    </message>
+    <message>
+        <location filename="../ui/multi_open_dialog.py" line="45"/>
+        <source>Add these files to the Joiner list?  Each is added as a whole file, in the order below - drag to reorder.</source>
+        <translation>Diese Dateien zur Joiner-Liste hinzufügen?  Jede wird als ganze Datei in der unten stehenden Reihenfolge hinzugefügt - zum Umsortieren ziehen.</translation>
+    </message>
+    <message>
+        <location filename="../ui/multi_open_dialog.py" line="52"/>
+        <source>From %s</source>
+        <translation>Aus %s</translation>
+    </message>
+    <message>
+        <location filename="../ui/multi_open_dialog.py" line="73"/>
+        <source>Sort List</source>
+        <translation>Liste sortieren</translation>
+    </message>
+    <message>
+        <location filename="../ui/multi_open_dialog.py" line="74"/>
+        <source>Sort the files by name.</source>
+        <translation>Dateien nach Namen sortieren.</translation>
+    </message>
+    <message>
+        <location filename="../ui/multi_open_dialog.py" line="81"/>
+        <source>Add To Joiner List</source>
+        <translation>Zur Joiner-Liste hinzufügen</translation>
     </message>
 </context>
 <context>
@@ -2973,9 +3016,9 @@ Trotzdem verwenden?</translation>
     <message>
         <location filename="../ui/save_video_dialog.py" line="39"/>
         <location filename="../ui/save_video_dialog.py" line="149"/>
-        <location filename="../ui/save_video_dialog.py" line="281"/>
-        <location filename="../ui/save_video_dialog.py" line="284"/>
-        <location filename="../ui/save_video_dialog.py" line="294"/>
+        <location filename="../ui/save_video_dialog.py" line="283"/>
+        <location filename="../ui/save_video_dialog.py" line="286"/>
+        <location filename="../ui/save_video_dialog.py" line="296"/>
         <source>Save Video</source>
         <translation>Video speichern</translation>
     </message>
@@ -3027,17 +3070,17 @@ Trotzdem verwenden?</translation>
     </message>
     <message>
         <location filename="../ui/save_video_dialog.py" line="149"/>
-        <location filename="../ui/save_video_dialog.py" line="281"/>
+        <location filename="../ui/save_video_dialog.py" line="283"/>
         <source>Please choose a profile.</source>
         <translation>Bitte wählen Sie ein Profil.</translation>
     </message>
     <message>
-        <location filename="../ui/save_video_dialog.py" line="266"/>
+        <location filename="../ui/save_video_dialog.py" line="268"/>
         <source>Save Video As</source>
         <translation>Video speichern unter</translation>
     </message>
     <message>
-        <location filename="../ui/save_video_dialog.py" line="284"/>
+        <location filename="../ui/save_video_dialog.py" line="286"/>
         <source>Please choose an output file.</source>
         <translation>Bitte wählen Sie eine Ausgabedatei.</translation>
     </message>

@@ -790,6 +790,43 @@ def _aspect_dar(aspect):
     return {"4:3": "4/3", "16:9": "16/9"}.get(aspect)
 
 
+def _audio_ad_tracks(path):
+    """Per audio track (in stream order): language and whether the track is
+    flagged as broadcast audio description (visual-impaired narration).
+
+    The .ts carries this in an MPEG-TS descriptor (audio_type), which ffmpeg
+    surfaces as the visual_impaired/descriptions dispositions - and players
+    label the track "visual impaired [eng]" from it.  Matroska and MP4 have
+    their own equivalents, but nothing translates the TS descriptor across
+    automatically, so the mux steps use this probe to re-state it explicitly.
+    """
+    tracks = []
+    try:
+        out = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "a",
+             "-show_entries",
+             "stream=index:stream_tags=language:"
+             "stream_disposition=visual_impaired,descriptions",
+             "-of", "json", path],
+            capture_output=True, text=True,
+        ).stdout
+        seen = set()
+        for s in json.loads(out).get("streams", []):
+            idx = s.get("index")
+            if idx in seen:      # .ts lists streams once per program
+                continue
+            seen.add(idx)
+            disp = s.get("disposition", {}) or {}
+            tracks.append({
+                "language": (s.get("tags", {}) or {}).get("language", ""),
+                "visual_impaired": bool(disp.get("visual_impaired")),
+                "descriptions": bool(disp.get("descriptions")),
+            })
+    except Exception:
+        logger.exception("Audio disposition probe failed")
+    return tracks
+
+
 def _mkvmerge_video_track_id(exe, ts_path):
     """The first video track's id as mkvmerge sees it (needed to target
     --aspect-ratio).  Falls back to 0 - the usual id for a single-video .ts -
@@ -987,6 +1024,41 @@ def _write_mkv_chapters_mkvmerge(ts_path, mkv_path, segment_durations, exe,
             cmd += ["--aspect-ratio", "%d:%s" % (vid, dar)]
             logger.info("Setting %s display aspect on the MKV (track %d).",
                         aspect, vid)
+        # Re-state broadcast audio-description marking.  The .ts carries it as
+        # an MPEG-TS descriptor which mkvmerge doesn't translate, so the MKV
+        # would show a bare "[eng]" where the .ts shows "visual impaired
+        # [eng]".  Matroska's own equivalent is the visual-impaired track flag
+        # plus a track name; map the .ts audio order onto mkvmerge's track ids
+        # and set both on any flagged track.
+        ad = _audio_ad_tracks(ts_path)
+        if any(t["visual_impaired"] for t in ad):
+            try:
+                ident = json.loads(subprocess.run(
+                    [exe, "-J", ts_path], capture_output=True, text=True,
+                ).stdout)
+                audio_tids = [t.get("id") for t in ident.get("tracks", [])
+                              if t.get("type") == "audio"]
+            except Exception:
+                logger.exception("mkvmerge identify failed; AD flag not set")
+                audio_tids = []
+            # --visual-impaired-flag needs MKVToolNix 52+ (2021); older ones
+            # reject unknown options outright, so probe before using it.
+            try:
+                have_vi_flag = "--visual-impaired-flag" in subprocess.run(
+                    [exe, "--help"], capture_output=True, text=True,
+                ).stdout
+            except Exception:
+                have_vi_flag = False
+            for info, tid in zip(ad, audio_tids):
+                if not info["visual_impaired"] or tid is None:
+                    continue
+                if have_vi_flag:
+                    cmd += ["--visual-impaired-flag", "%d:1" % tid]
+                cmd += ["--track-name", "%d:visual impaired" % tid]
+                logger.info(
+                    "Marking MKV track %d as visual impaired (broadcast "
+                    "audio description).", tid,
+                )
         cmd.append(ts_path)
         result = _run_cancellable(cmd, cancel_cb=cancel_cb)
         # mkvmerge: 0 = OK, 1 = OK with warnings, 2 = error.
@@ -1043,6 +1115,12 @@ def _write_mkv_chapters_ffmpeg(ts_path, mkv_path, segment_durations,
             "-map_metadata", "1",
             "-c", "copy",
         ]
+        # ffmpeg carries the visual-impaired disposition through to Matroska's
+        # track flag by itself, but players display the track NAME - name any
+        # audio-description track for parity with the .ts ("visual impaired").
+        for i, info in enumerate(_audio_ad_tracks(ts_path)):
+            if info["visual_impaired"]:
+                cmd += ["-metadata:s:a:%d" % i, "title=visual impaired"]
         dar = _aspect_dar(aspect)
         if dar:
             # Container display aspect, set without re-encoding the video.
@@ -1105,6 +1183,15 @@ def _transcode_to_mp4(
     cmd += [
         "-c:a", "aac",
         "-b:a", "192k",
+    ]
+    # Name any audio-description track ("visual impaired"), for parity with
+    # the .ts label.  MP4 has no equivalent of the TS descriptor and its muxer
+    # drops per-track titles, so the name goes in the handler atom - which is
+    # what players display as the track label for MP4.
+    for i, info in enumerate(_audio_ad_tracks(ts_path)):
+        if info["visual_impaired"]:
+            cmd += ["-metadata:s:a:%d" % i, "handler_name=visual impaired"]
+    cmd += [
         "-movflags", "+faststart",
         "-f", "mp4",
         "-progress", "pipe:1",
@@ -1251,26 +1338,26 @@ def _progress_seconds(prog_path):
     return best / 1_000_000.0
 
 
-def _audio_decodes(path):
-    """True if the file's first audio track decodes to a usable length.
+def _one_audio_track_decodes(path, track=0):
+    """True if audio track ``track`` decodes to a usable length.
 
     The aac_latm a mid-stream copy produces is normally perfectly decodable, so
     the broadcast audio can be kept as-is (copied for .ts/.mkv, re-encoded only
     for .mp4).  But a broadcast can change audio configuration partway through
     (stereo<->surround at break points), and ffmpeg re-initialises its decoder
     across such a change - a recoverable event we must NOT treat as fatal.  So
-    we decode the whole main track and judge by how much actually came out,
-    instead of aborting on the first warning (which used to push these
-    legitimately-copyable files into a needless rebuild).  Only a track that
-    yields almost nothing falls back to the rebuild.  It's an audio-only decode
-    to null, far cheaper than the rebuild it guards."""
+    we decode the whole track and judge by how much actually came out, instead
+    of aborting on the first warning (which used to push these legitimately-
+    copyable files into a needless rebuild).  Only a track that yields almost
+    nothing fails.  It's an audio-only decode to null, far cheaper than the
+    rebuild it guards."""
     expected = _container_seconds(path)
-    prog = path + ".decodecheck"
+    prog = path + (".decodecheck%d" % track)
     try:
         result = subprocess.run(
             ["ffmpeg", "-hide_banner", "-loglevel", "error",
              "-progress", prog, "-i", path,
-             "-map", "0:a:0", "-vn", "-f", "null", "-"],
+             "-map", "0:a:%d" % track, "-vn", "-f", "null", "-"],
             capture_output=True, text=True,
         )
         decoded = _progress_seconds(prog)
@@ -1291,12 +1378,34 @@ def _audio_decodes(path):
     if not ok:
         tail = (result.stderr or "").strip().splitlines()
         logger.warning(
-            "Cut audio not usable as-is (rc=%s, decoded %.1fs of ~%.1fs); "
+            "Audio track %d not usable as-is (rc=%s, decoded %.1fs of ~%.1fs); "
             "rebuilding from source. ffmpeg: %s",
-            result.returncode, decoded, expected,
+            track, result.returncode, decoded, expected,
             tail[-1] if tail else "(no error output)",
         )
     return ok
+
+
+def _audio_decodes(path):
+    """True if the file's first audio track decodes to a usable length."""
+    return _one_audio_track_decodes(path, 0)
+
+
+def _all_audio_tracks_decode(path):
+    """True only if *every* audio track in the file decodes to a usable length.
+
+    Used to verify a multi-track lossless graft: a mis-synced or mangled
+    secondary track (e.g. audio description) must not be shipped, so if any
+    track fails to decode the caller falls back to the re-encode rebuild.  A
+    file with no audio tracks is considered fine (there's nothing to break).
+    """
+    n = len(_audio_codecs(path))
+    if n <= 1:
+        return _audio_decodes(path)
+    for t in range(n):
+        if not _one_audio_track_decodes(path, t):
+            return False
+    return True
 
 
 def _cut_audio_intact(path):
@@ -1564,12 +1673,13 @@ def _graft_source_audio(video_path, source_path, scene_times, n_audio,
     Every usable audio track is grafted (each gets its own output stream copied
     from the source's parameters); a malformed secondary track (e.g. a 0-channel
     descriptions track) is skipped, as for the straight passthrough.  Returns
-    True on success.  The caller verifies the result decodes and falls back to
-    the re-encode rebuild if it does not, so a stream this cannot graft cleanly
-    is never shipped.
+    the number of tracks grafted (0 on failure).  The caller verifies the result
+    (for more than one track, that every track decodes) and falls back to the
+    re-encode rebuild if it does not, so a stream this cannot graft cleanly is
+    never shipped.
     """
     if not scene_times:
-        return False
+        return 0
 
     # Per-scene cumulative video offset: scene i's audio starts where the video
     # of all the earlier scenes ends, so the two stay locked together.
@@ -1579,21 +1689,16 @@ def _graft_source_audio(video_path, source_path, scene_times, n_audio,
     usable = _usable_audio_tracks(source_path, n_audio)
     if not usable:
         logger.warning("Audio graft: no usable audio tracks found.")
-        return False
+        return 0
 
-    # The lossless graft is trusted only for a single (primary) audio track.
-    # On multi-track broadcasts a secondary track - typically audio description
-    # on Channel 4 HD - can carry its own timing offset that this packet copy
-    # does not reproduce the way smartcut/VideoReDo do, so rather than risk a
-    # mis-synced secondary track we defer the whole job to the re-encode
-    # rebuild, which handles every track with the established sync.  (No
-    # regression: multi-track repair already went through that path.)
-    if len(usable) > 1:
-        logger.info(
-            "Audio graft declined: %d usable audio tracks - deferring to the "
-            "re-encode rebuild for multi-track sync.", len(usable),
-        )
-        return False
+    # Every usable track is grafted against one shared container origin (below),
+    # which keeps them locked to each other and to the video - so a secondary
+    # track (typically audio description on Channel 4 HD) stays in sync.  A
+    # packet copy lands each track's audio within one AAC frame (~21ms) of the
+    # video cut, exactly as a lossless cut must.  The caller verifies the result
+    # (for more than one track, that *every* track decodes) and falls back to
+    # the re-encode rebuild if anything is off, so a stream this cannot graft
+    # cleanly is never shipped.
 
     # One shared origin for every track, taken from the primary (first usable)
     # track, so all tracks stay locked to each other and to the scene_times
@@ -1624,7 +1729,7 @@ def _graft_source_audio(video_path, source_path, scene_times, n_audio,
     try:
         for t in usable:
             if cancel_cb is not None and cancel_cb():
-                return False
+                return 0
             tmp = video_path + (".graft_a%d.ts" % t)
             try:
                 n = _graft_one_track_audio(
@@ -1634,13 +1739,13 @@ def _graft_source_audio(video_path, source_path, scene_times, n_audio,
             except Exception:
                 logger.exception("Audio graft failed on track %d", t)
                 _safe_remove(tmp)
-                return False
+                return 0
             if n <= 0:
                 logger.warning(
                     "Audio graft: track %d produced no packets.", t
                 )
                 _safe_remove(tmp)
-                return False
+                return 0
             tmp_tracks.append(tmp)
             logger.info("  track %d: grafted %d audio packets.", t, n)
 
@@ -1669,11 +1774,14 @@ def _graft_source_audio(video_path, source_path, scene_times, n_audio,
                 res.returncode, tail[-1] if tail else "(no error output)",
             )
             _safe_remove(out_tmp)
-            return False
+            return 0
 
         os.replace(out_tmp, video_path)
-        logger.info("Audio graft complete (lossless broadcast audio kept).")
-        return True
+        logger.info(
+            "Audio graft complete (lossless broadcast audio kept, %d track%s).",
+            len(tmp_tracks), "" if len(tmp_tracks) == 1 else "s",
+        )
+        return len(tmp_tracks)
     finally:
         for tmp in tmp_tracks:
             _safe_remove(tmp)
@@ -1960,6 +2068,49 @@ def _reencode_cut_audio_to_aac(cut_path, bitrate, cancel_cb=None):
     return False
 
 
+def _reinterleave_ts(path, progress_cb=None):
+    """Rewrite a finished .ts in place with proper audio/video interleaving.
+
+    smartcut muxes each cut segment generator-by-generator (all the video
+    packets, then the audio), and at seams this can leave a long run of
+    video-only packets with the matching audio arriving in a lump many seconds
+    later.  Structurally the file is perfect - timestamps, PCR and continuity
+    counters are all clean - but players with small demux buffers (Kodi, VLC)
+    wait for the late audio, give up, and play silent video until the skew
+    shrinks back under their buffer; mpv-based players buffer deeply enough to
+    ride it out.  A straight stream-copy remux re-orders the packets by
+    timestamp, which fixes the playback everywhere at the cost of one fast
+    disk copy.  -max_interleave_delta raises the muxer's reordering window to
+    comfortably cover the worst bunching seen in the wild (~23s) while still
+    capping memory if a stream has a genuine long gap.
+    """
+    tmp = path + ".ileave.ts"
+    cmd = [
+        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+        "-i", path,
+        "-map", "0", "-map", "-0:d", "-ignore_unknown",
+        "-c", "copy",
+        "-max_interleave_delta", "60000000",   # 60s window (microseconds)
+        "-muxpreload", "0", "-muxdelay", "0",
+        tmp,
+    ]
+    if progress_cb is not None:
+        progress_cb({"percent": -1, "phase": "interleave"})
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0 or not os.path.exists(tmp) or \
+            os.path.getsize(tmp) == 0:
+        tail = (res.stderr or "").strip().splitlines()
+        logger.warning(
+            "Interleave pass failed (rc=%s); keeping the un-reordered file. "
+            "ffmpeg: %s", res.returncode, tail[-1] if tail else "(no output)",
+        )
+        _safe_remove(tmp)
+        return False
+    os.replace(tmp, path)
+    logger.info("Re-interleaved the finished .ts (audio/video packet order).")
+    return True
+
+
 def export_ranges(
         source_path,
         out_path,
@@ -2215,12 +2366,24 @@ def export_ranges(
                     cut_target, source_path, segments, n_audio,
                     progress_cb=progress_cb, cancel_cb=cancel_cb,
                 )
-                # .mkv keeps the graft on faith (mkvmerge repackages the clean
-                # LATM losslessly below, even a 6-channel track ffmpeg can't
-                # stand up for a decode check); .ts must hold audio players can
-                # read, so it keeps the graft only when it decodes.
-                if grafted and _has_audio(cut_target) and \
-                        (want_mkv or _audio_decodes(cut_target)):
+                # _graft_source_audio returns the number of tracks it grafted
+                # (0 on failure).  Acceptance:
+                #   * a single track keeps the established behaviour - .mkv on
+                #     faith (mkvmerge repackages even a 6-channel LATM track
+                #     ffmpeg can't stand up for a decode check), .ts only when
+                #     it decodes;
+                #   * more than one track must have EVERY track decode, for both
+                #     containers, so a mis-synced or mangled secondary track
+                #     (e.g. audio description) can never ship - it falls back to
+                #     the re-encode rebuild instead, exactly as multi-track did
+                #     before the graft learned to handle it.
+                if grafted > 1:
+                    graft_ok = _has_audio(cut_target) and \
+                        _all_audio_tracks_decode(cut_target)
+                else:
+                    graft_ok = grafted and _has_audio(cut_target) and \
+                        (want_mkv or _audio_decodes(cut_target))
+                if graft_ok:
                     logger.info(
                         "Kept the broadcast audio losslessly via the source "
                         "graft (copied, no re-encode)."
@@ -2323,6 +2486,14 @@ def export_ranges(
                 progress_cb=progress_cb,
                 cancel_cb=cancel_cb,
             )
+        else:
+            # Plain .ts delivery (cut_target IS out_path).  Fix the packet
+            # interleaving smartcut leaves at seams; without this, players
+            # with small demux buffers (Kodi, VLC) can lose audio for tens of
+            # seconds after a cut.  MKV goes through mkvmerge and MP4 through
+            # the transcode above, both of which re-interleave inherently.
+            if cancel_cb is None or not cancel_cb():
+                _reinterleave_ts(out_path, progress_cb=progress_cb)
 
         if progress_cb is not None:
             progress_cb({

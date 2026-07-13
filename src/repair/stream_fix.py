@@ -59,10 +59,39 @@ def quick_stream_fix(
 
     cmd = [
         "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-        # Regenerate presentation timestamps and reset mux timing so the
-        # output starts cleanly at zero with sequential stamps.
+        # Regenerate missing presentation timestamps.
         "-fflags", "+genpts",
+        # Preserve every stream's timing exactly, uniformly shifted so the
+        # file starts at zero.  Without -copyts, ffmpeg's input discontinuity
+        # correction misfires on sparse streams: the audio-description track
+        # on Channel 4 HD legitimately stops transmitting during ad breaks
+        # (gaps of several minutes), and ffmpeg treated each gap as a
+        # timestamp discontinuity, shifting the whole input back by the gap
+        # length - then bounced the offset back on the next video packet, over
+        # and over ("timestamp discontinuity ... new offset" ping-pong).  The
+        # net effect collapsed the AD track's gaps, displacing its narration
+        # by minutes, while drifting everything else a microsecond per bounce.
+        # -copyts disables that machinery entirely; -start_at_zero keeps the
+        # QSF convention of a zero-based output.
+        "-copyts",
+        "-start_at_zero",
         "-i", source_path,
+        # Map every stream from the input so no tracks are silently dropped.
+        # Without this ffmpeg's default selection picks only one stream per
+        # type, which strips secondary audio tracks (e.g. the HE-AACv2
+        # audio-description track on Channel 4 HD recordings).  Two classes of
+        # stream are then excluded again deliberately:
+        #   * -map -0:d drops data streams (SCTE-35 splice markers, EPG feeds):
+        #     they're useless for editing or playback, and their timestamps can
+        #     run non-monotonically, which the mpegts muxer rejects outright
+        #     ("non monotonically increasing dts ... in stream N") - failing
+        #     the whole repair for a stream nobody needs;
+        #   * -ignore_unknown skips streams ffmpeg cannot represent at all
+        #     (type "unknown"), instead of failing with "Cannot map stream".
+        # Video, all audio tracks, and subtitles always survive.
+        "-map", "0",
+        "-map", "-0:d",
+        "-ignore_unknown",
         "-c", "copy",
         "-muxpreload", "0",
         "-muxdelay", "0",

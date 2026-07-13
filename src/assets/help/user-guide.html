@@ -121,7 +121,9 @@ system. Comskip is optional but recommended for automatic ad detection (see sect
 or pick a recent one from <strong>File &rarr; Open Recent</strong>. VRD Next opens the
 common broadcast and file types &mdash; <code>.ts</code>, <code>.mkv</code>,
 <code>.mp4</code>, <code>.m2ts</code>, <code>.mov</code> and <code>.avi</code> &mdash;
-and you can pick any other file with the <strong>All files</strong> filter. The editor
+and you can pick any other file with the <strong>All files</strong> filter. Selecting
+<em>several</em> files at once offers to add them all to the joiner list, each as a whole
+file &mdash; see <a href="#saving">Joining recordings</a>. The editor
 window has four main areas:</p>
 <ul>
   <li><strong>Preview</strong> &mdash; the current frame.</li>
@@ -211,6 +213,11 @@ keyframe. A <strong>full</strong> re-encode of the whole video &mdash; which is
 significantly slower than a lossless save &mdash; only happens if you crop the video,
 choose a profile that re-encodes to HEVC (see below), or save to a container that the
 source's streams are not compatible with.</p>
+<div class="note">Recordings with more than one audio track keep them all &mdash; including
+the audio-description track some broadcasters transmit (Channel&nbsp;4&nbsp;HD, for
+example). The tracks are kept losslessly wherever the source allows, stay in sync with the
+picture, and the description track keeps its &ldquo;visual impaired&rdquo; label in every
+output container.</div>
 <h3>Output profiles</h3>
 <p>Manage profiles under <strong>Tools &rarr; Manage Profiles</strong>. A profile controls:</p>
 <ul>
@@ -247,6 +254,27 @@ file is never larger than the original. The scan type is preserved &mdash; inter
 interlaced, progressive stays progressive.</div>
 <p align="center" class="figrow"><img class="gimg m566" src="img/crop-preview.png" width="566" height="475" alt="The crop preview, showing the crop shaded on a real frame"></p>
 <p align="center" class="cap">The crop preview shades the area to be removed over a real frame.</p>
+<h3 id="joiner">Joining recordings</h3>
+<p>The <strong>Joiner</strong> menu combines scenes &mdash; from one recording or several
+&mdash; into a single video. There are two ways to fill the list:</p>
+<ul>
+  <li><strong>Joiner &rarr; Add Current Project To Joiner List</strong> adds each kept
+  scene of the open recording as its own entry, so scenes can be reordered and mixed with
+  scenes from other videos.</li>
+  <li>Selecting <em>several</em> files in <strong>File &rarr; Open Video</strong> adds
+  whole files in one go: a dialogue lists them, lets you drag them into order (or sort
+  by name), and adds each as a full-length entry.</li>
+</ul>
+<p><strong>Joiner &rarr; Edit Joiner List</strong> is where the list is arranged: reorder
+or remove entries, add <strong>title cards</strong> (text over a colour or background
+image), set per-clip <strong>fades</strong> to and from black, save and load joiner lists,
+or send an entry back to the editor to trim it.</p>
+<p><strong>Joiner &rarr; Create Video From Joiner List</strong> renders the result through
+the same Save Video dialogue and output profiles as a normal save. Scenes that share one
+format are joined losslessly by stream copy &mdash; an MKV gets a chapter at each join
+&mdash; while a mix of formats is re-encoded to a common one (VRD Next recommends
+suitable settings). Title cards and fades apply during a re-encoded join, so adding them
+to otherwise matching clips trades a little speed and quality for the effect.</p>
 
 <h2 id="renaming">6. Renaming recordings</h2>
 <p>VRD Next can rename recordings into a tidy layout that media servers like

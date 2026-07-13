@@ -5,6 +5,43 @@ All notable changes to VRD Next are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] - 2026-07-12
+
+### Added
+
+- **Open several files at once.** Selecting more than one file in
+  File → Open Video brings up an Open Multiple Files dialogue (modelled on
+  VideoReDo's): reorder by dragging or sort by name, then every file is added
+  — whole — to the Joiner list and the Joiner opens.
+- **Multi-track lossless audio.** The broadcast-audio graft now covers
+  recordings with more than one audio track, so Channel 4 HD-style
+  audio-description tracks are kept losslessly and in sync instead of being
+  dropped by the re-encode fallback. A safety net verifies every grafted track
+  decodes, falling back to the previous behaviour if anything is off.
+- **Audio-description labelling in every container.** The "visual impaired"
+  marking a .ts carries is now re-stated on export: MKV gets Matroska's
+  visual-impaired flag plus a track name, MP4 gets the name in its handler
+  atom, so players label the track as the broadcaster intended.
+
+### Fixed
+
+- **Quick Stream Fix no longer strips secondary audio tracks** (it kept only
+  one stream per type), no longer fails outright on recordings carrying data
+  or unrecognised streams (SCTE-35 splice markers, EPG oddments — these are
+  now skipped), and **no longer displaces audio-description timing**: ffmpeg's
+  discontinuity correction misread the AD track's legitimate transmission gaps
+  during ad breaks and shifted its narration by minutes; QSF now preserves
+  every stream's timing exactly.
+- **Audio dropouts in Kodi/VLC/Jellyfin after cutting.** Exports could leave a
+  long run of video-only packets at a cut seam with the matching audio muxed
+  many seconds later; players with small demux buffers played silent video
+  until the skew passed. Finished .ts exports now get a fast lossless
+  re-interleave pass. (Existing affected files can be repaired by running
+  Quick Stream Fix on them.)
+- **File dialogs were case-sensitive on Linux**, hiding upper-case names such
+  as `VIDEO.MP4` until the filter was switched to All files. Every open/save
+  dialog now matches both cases.
+
 ## [1.5.1] - 2026-07-11
 
 ### Changed
@@ -216,6 +253,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 - Initial public release.
 
+[1.6.0]: https://github.com/infidelus/vrd-next/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/infidelus/vrd-next/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/infidelus/vrd-next/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/infidelus/vrd-next/compare/v1.3.0...v1.4.0

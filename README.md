@@ -16,7 +16,12 @@ distilling the part many people relied on most into a free, open-source tool.
 - **Scene-based editing** with mark-in / mark-out, a thumbnail strip, and
   clickable thumbnails for fast navigation.
 - **Lossless export**, including a broadcast-audio graft that copies the
-  source audio losslessly rather than re-encoding it.
+  source audio losslessly rather than re-encoding it — every track, with
+  audio-description tracks kept in sync and correctly labelled.
+- **A VideoReDo-style Joiner** that combines scenes or whole recordings —
+  with optional title cards and fades — into one video, joined losslessly
+  when the formats match. Select several files in Open Video to fill the
+  list in one go.
 - **Automatic commercial detection** via Comskip, with the breaks turned into
   ready-to-review cuts.
 - **A background Watcher** that scans your recording folders and prepares

@@ -220,7 +220,7 @@ class TrimCopyDialog(QDialog):
         )
         path, _ = QFileDialog.getOpenFileName(
             self, self.tr("Select Source File"), start_dir,
-            "Transport streams (*.ts *.m2ts *.mpg *.mpeg);;All files (*)",
+            "Transport streams (*.ts *.TS *.m2ts *.M2TS *.mpg *.MPG *.mpeg *.MPEG);;All files (*)",
         )
         if path:
             # Browsing to a different source drops the editor's markers, since
@@ -241,7 +241,7 @@ class TrimCopyDialog(QDialog):
         )
         path, selected = QFileDialog.getSaveFileName(
             self, self.tr("Select Output File"), start_dir,
-            "Transport stream (*.ts);;All files (*)",
+            "Transport stream (*.ts *.TS);;All files (*)",
             "",
             QFileDialog.Option.DontConfirmOverwrite,
         )

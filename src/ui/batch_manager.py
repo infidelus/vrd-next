@@ -283,7 +283,7 @@ class BatchManagerDialog(QDialog):
             self,
             "Add Projects",
             self.controller.out_folder,
-            "VideoReDo Project (*.vprj *.VPrj *.Vprj);;All files (*)",
+            "VideoReDo Project (*.vprj *.VPRJ);;All files (*)",
         )
         if paths:
             self.controller.add_jobs(paths)

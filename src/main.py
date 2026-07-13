@@ -117,18 +117,18 @@ DEFAULT_FPS = 25
 # Name filter for "save a video" dialogs.  Listing the common broadcast/video
 # extensions (and defaulting to it) means a Save As into a folder of recordings
 # shows the videos already there, rather than every file or nothing useful.
-VIDEO_SAVE_FILTER = (
-    "Videos (*.ts *.m2ts *.mkv *.mp4 *.mpg *.mpeg);;All files (*)"
-)
+# Both lower and upper case are listed so that all-caps names (e.g. VIDEO.MP4)
+# appear without having to switch to "All files" first.  On Linux, Qt's native
+# file picker is case-sensitive, so omitting the upper-case form hides them.
+from utils.filters import video_filter as _vf
+VIDEO_SAVE_FILTER = _vf("Videos", ".ts", ".m2ts", ".mkv", ".mp4", ".mpg", ".mpeg")
 
 # Name filter for "open a video" dialogs.  The cutter decodes through ffmpeg,
 # so the mainstream containers all open; ".ts" and ".mkv" remain the primary
 # formats, with the others offered for convenience and "All files" as a
 # fall-back so nothing is ever blocked from opening.  ".avi" is old but still
 # turns up in older recordings, so it's included too.
-VIDEO_OPEN_FILTER = (
-    "Videos (*.ts *.m2ts *.mkv *.mp4 *.mov *.avi);;All files (*)"
-)
+VIDEO_OPEN_FILTER = _vf("Videos", ".ts", ".m2ts", ".mkv", ".mp4", ".mov", ".avi")
 
 
 log = logging.getLogger("vrd-next")
@@ -1542,7 +1542,7 @@ class MainWindow(QMainWindow):
             self,
             self.tr("Import Project"),
             start,
-            "VideoReDo Project (*.vprj *.VPrj *.Vprj);;All files (*)",
+            "VideoReDo Project (*.vprj *.VPRJ);;All files (*)",
         )
 
         if not path:
@@ -2153,9 +2153,11 @@ class MainWindow(QMainWindow):
 
     def open_video(self):
 
-        filename, _ = (
+        # Multi-select: one file opens as always; several offer the VideoReDo
+        # flow - add each file, whole, to the Joiner list.
+        filenames, _ = (
             QFileDialog
-            .getOpenFileName(
+            .getOpenFileNames(
                 self,
                 self.tr("Open Video"),
                 self._start_dir("open"),
@@ -2163,11 +2165,72 @@ class MainWindow(QMainWindow):
             )
         )
 
-        if not filename:
+        if not filenames:
             return
 
-        self._remember_dir("open", filename)
-        self._open_video_path(filename)
+        self._remember_dir("open", filenames[0])
+        if len(filenames) == 1:
+            self._open_video_path(filenames[0])
+        else:
+            self._add_files_to_joiner(filenames)
+
+    def _add_files_to_joiner(self, filenames):
+        """Open Video with several files selected: confirm and reorder in the
+        Open Multiple Files dialogue, then add each file - whole - to the
+        Joiner list and open it (as VideoReDo does)."""
+        from ui.multi_open_dialog import MultiOpenDialog
+        from project.joiner import JoinerEntry
+        from utils.timecode import seconds_to_timecode
+        from export.crop import source_duration, source_fps
+
+        dialog = MultiOpenDialog(filenames, self)
+        if dialog.exec() != QDialog.Accepted:
+            return
+        paths = dialog.result_paths() or []
+
+        added, failed = 0, []
+        for path in paths:
+            try:
+                duration = float(source_duration(path))
+                fps = float(source_fps(path)) or 25.0
+            except Exception:
+                duration, fps = 0.0, 25.0
+            if duration <= 0:
+                failed.append(os.path.basename(path))
+                continue
+            try:
+                size_mb = os.path.getsize(path) / (1024 * 1024)
+            except OSError:
+                size_mb = 0.0
+            # A whole file is a scene spanning the full length with no cuts -
+            # the exact shape add_current_to_joiner produces for an untouched
+            # recording, so the render pipeline treats it identically.
+            self.joiner_list.add(JoinerEntry(
+                kind=JoinerEntry.KIND_SCENE,
+                source=path,
+                description="%s - %s" % (
+                    seconds_to_timecode(0.0), seconds_to_timecode(duration)),
+                start=0.0,
+                end=duration,
+                cuts=[],
+                total_duration=duration,
+                fps=fps,
+                size_mb=size_mb,
+            ))
+            added += 1
+
+        if failed:
+            QMessageBox.warning(
+                self, self.tr("Open Multiple Files"),
+                self.tr("These files could not be read and were not added:")
+                + "\n\n" + "\n".join(failed))
+        if added:
+            self.statusBar().showMessage(
+                "Added %d file%s to the joiner list (%d entries)."
+                % (added, "" if added == 1 else "s", len(self.joiner_list)),
+                5000)
+            self.info_panel.update_info()
+            self.edit_joiner_list()
 
     def _warn_if_tools_missing(self):
         """Warn once per session about ffmpeg/ffprobe problems.

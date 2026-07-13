@@ -103,7 +103,7 @@
 <div class="note">VRD Next benötigt <code>ffmpeg</code> und <code>ffprobe</code> auf Ihrem System. Comskip ist optional, wird für die automatische Werbeerkennung jedoch dringend empfohlen (siehe Abschnitt 4).</div>
 
 <h2 id="start">2. Erste Schritte</h2>
-<p>Öffnen Sie eine Aufnahme über <strong>Datei &rarr; Video öffnen</strong> (<kbd>Ctrl+O</kbd>) oder wählen Sie eine kürzlich verwendete Datei unter <strong>Datei &rarr; Zuletzt geöffnet</strong> aus. VRD Next unterstützt gängige TV-Broadcast- und Videotypen &mdash; <code>.ts</code>, <code>.mkv</code>, <code>.mp4</code>, <code>.m2ts</code>, <code>.mov</code> und <code>.avi</code> &mdash; und Sie können jede andere Datei über den Filter <strong>Alle Dateien</strong> aufrufen. Das Editor-Fenster ist in vier Hauptbereiche unterteilt:</p>
+<p>Öffnen Sie eine Aufnahme über <strong>Datei &rarr; Video öffnen</strong> (<kbd>Ctrl+O</kbd>) oder wählen Sie eine kürzlich verwendete Datei unter <strong>Datei &rarr; Zuletzt geöffnet</strong> aus. VRD Next unterstützt gängige TV-Broadcast- und Videotypen &mdash; <code>.ts</code>, <code>.mkv</code>, <code>.mp4</code>, <code>.m2ts</code>, <code>.mov</code> und <code>.avi</code> &mdash; und Sie können jede andere Datei über den Filter <strong>Alle Dateien</strong> aufrufen. Wenn Sie <em>mehrere</em> Dateien auf einmal auswählen, wird angeboten, sie alle &mdash; jeweils als ganze Datei &mdash; zur Joiner-Liste hinzuzufügen; siehe <a href="#saving">Aufnahmen zusammenfügen</a>. Das Editor-Fenster ist in vier Hauptbereiche unterteilt:</p>
 <ul>
   <li><strong>Vorschau</strong> &mdash; Das aktuelle Videobild.</li>
   <li><strong>Vorschaubilder-Leiste (Thumbnails)</strong> &mdash; Eine Reihe von Einzelbildern rund um den Cursor, um Schnittpunkte präzise zu bestimmen. Klicken Sie auf ein Vorschaubild, um direkt dorthin zu springen.</li>
@@ -142,6 +142,11 @@
 <p align="center" class="figrow"><img class="gimg m640" src="img/save-video.png" width="640" height="492" alt="Der Video-speichern-Dialog"></p>
 <p align="center" class="cap">Der Video-speichern-Dialog, bei dem Ausgabeprofil und Zielort zusammen ausgewählt werden.</p>
 <p>Der Schnitt ist so verlustfrei wie möglich: Das beibehaltene Video wird via Stream-Copy übertragen und nicht neu kodiert. Die einzige regelmäßige Ausnahme betrifft eine Handvoll Frames an den jeweiligen Schnittgrenzen. Diese werden kurz neu kodiert (Smart-Encoding), damit der Schnitt exakt auf dem von Ihnen gewählten Frame landet und nicht auf dem nächstgelegenen Keyframe. Eine <strong>vollständige</strong> Neukodierung des gesamten Videos &mdash; was erheblich langsamer ist als ein verlustfreies Speichern &mdash; erfolgt nur, wenn Sie das Video zuschneiden (Cropping), ein Profil wählen, das explizit nach HEVC neu kodiert (siehe unten), oder in ein Containerformat speichern, das mit den Original-Streams der Quelle inkompatibel ist.</p>
+<div class="note">Aufnahmen mit mehr als einer Tonspur behalten alle Spuren &mdash;
+einschließlich der Audiodeskriptionsspur, die manche Sender ausstrahlen (zum Beispiel
+Channel&nbsp;4&nbsp;HD). Die Spuren bleiben verlustfrei erhalten, wo die Quelle es
+zulässt, laufen synchron zum Bild, und die Audiodeskriptionsspur behält in jedem
+Ausgabecontainer ihre Kennzeichnung &bdquo;visual impaired&ldquo;.</div>
 <h3>Ausgabeprofile</h3>
 <p>Sie können Profile unter <strong>Werkzeuge &rarr; Profile verwalten</strong> konfigurieren. Ein Profil steuert Folgendes:</p>
 <ul>
@@ -167,6 +172,32 @@
 <div class="note">Das Zuschneiden kodiert mit der Bitrate der Quelle als Obergrenze neu, sodass eine zugeschnittene Datei niemals größer wird als das Original. Der Scan-Typ bleibt erhalten &mdash; Interlaced bleibt Interlaced, Progressive bleibt Progressive.</div>
 <p align="center" class="figrow"><img class="gimg m566" src="img/crop-preview.png" width="566" height="475" alt="Die Zuschnitt-Vorschau, die den Crop schattiert auf einem echten Frame zeigt"></p>
 <p align="center" class="cap">Die Zuschnitt-Vorschau blendet den zu entfernenden Bereich schattiert über einem echten Frame ein.</p>
+<h3 id="joiner">Aufnahmen zusammenfügen</h3>
+<p>Über das Menü <strong>Joiner</strong> werden Szenen &mdash; aus einer Aufnahme oder aus
+mehreren &mdash; zu einem einzigen Video zusammengefügt. Die Liste lässt sich auf zwei
+Wegen füllen:</p>
+<ul>
+  <li><strong>Joiner &rarr; Aktuelles Projekt zur Joiner-Liste hinzufügen</strong> fügt
+  jede behaltene Szene der geöffneten Aufnahme als eigenen Eintrag hinzu, sodass Szenen
+  frei umsortiert und mit Szenen aus anderen Videos gemischt werden können.</li>
+  <li>Werden in <strong>Datei &rarr; Video öffnen</strong> <em>mehrere</em> Dateien
+  ausgewählt, lassen sich ganze Dateien in einem Schritt hinzufügen: Ein Dialog listet
+  sie auf, die Reihenfolge kann per Ziehen (oder Sortieren nach Namen) festgelegt werden,
+  und jede Datei wird in voller Länge übernommen.</li>
+</ul>
+<p>In <strong>Joiner &rarr; Joiner-Liste bearbeiten</strong> wird die Liste gestaltet:
+Einträge umsortieren oder entfernen, <strong>Titelkarten</strong> hinzufügen (Text über
+einer Farbe oder einem Hintergrundbild), <strong>Ein- und Ausblendungen</strong> je Clip
+festlegen, Joiner-Listen speichern und laden oder einen Eintrag zum Zuschneiden zurück in
+den Editor holen.</p>
+<p><strong>Joiner &rarr; Video aus Joiner-Liste erstellen</strong> rendert das Ergebnis
+über denselben Dialog &bdquo;Video speichern&ldquo; und dieselben Ausgabeprofile wie ein
+normales Speichern. Szenen mit übereinstimmendem Format werden verlustfrei per Stream-Copy
+verbunden &mdash; eine MKV erhält an jeder Nahtstelle ein Kapitel &mdash;, während eine
+Mischung verschiedener Formate auf ein gemeinsames Format neu kodiert wird (VRD Next
+schlägt passende Einstellungen vor). Titelkarten und Überblendungen greifen nur bei einem
+neu kodierten Zusammenfügen; werden sie zu ansonsten passenden Clips hinzugefügt, kostet
+das etwas Geschwindigkeit und Qualität.</p>
 
 <h2 id="renaming">6. Aufnahmen umbenennen</h2>
 <p>VRD Next kann Aufnahmen in eine saubere Struktur bringen, die von Medienservern wie <strong>Plex</strong>, <strong>Jellyfin</strong>, <strong>Emby</strong> und <strong>Kodi</strong> problemlos verstanden wird. Hierzu werden Daten von <strong>TMDB</strong> (The Movie Database) herangezogen. Es gibt separate Renamer für Serien und Filme, die Sie über das Menü <strong>Werkzeuge</strong> erreichen.</p>
