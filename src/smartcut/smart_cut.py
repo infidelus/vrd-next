@@ -25,6 +25,37 @@ from smartcut.video_cutter import (
 __version__ = "1.7"
 
 
+def _packet_sort_key(packet: Packet) -> float:
+    """Decode-order time of a packet, in seconds, for interleaving.
+
+    Uses DTS (decode order, which is what a muxer needs) where present, in the
+    packet's own stream time base so streams with different bases compare
+    correctly.  Falls back to PTS, then to 0.0 for the rare packet that
+    carries neither, which keeps it adjacent to its neighbours rather than
+    jumping to the front or back.
+    """
+    ts = packet.dts
+    if ts is None:
+        ts = packet.pts
+    if ts is None:
+        return 0.0
+    tb = getattr(packet, "time_base", None) or getattr(
+        getattr(packet, "stream", None), "time_base", None)
+    return float(ts * tb) if tb else float(ts)
+
+
+def _interleave_by_time(packets: list[Packet]) -> list[Packet]:
+    """Order a batch of packets from several streams by decode time.
+
+    A stable sort, so packets sharing a timestamp keep the order the
+    generators produced them in (video ahead of its audio, which is the
+    conventional and safe arrangement).  Muxing in this order keeps each
+    stream's packets adjacent to the others', instead of one stream arriving
+    in a block ahead of the rest.
+    """
+    return sorted(packets, key=_packet_sort_key)
+
+
 class ProgressCallback(Protocol):
     """Protocol for progress callback objects."""
     def emit(self, value: int) -> None:
@@ -184,18 +215,34 @@ def smart_cut(media_container: MediaContainer, positive_segments: list[tuple[Fra
                     progress.emit(previously_done_segments)
                 previously_done_segments += 1
                 assert s.start_time < s.end_time, f"Invalid segment: start_time {s.start_time} >= end_time {s.end_time}"
+                # Collect this segment's packets from every generator, then mux
+                # them in timestamp order rather than one whole stream at a
+                # time.  Draining each generator to completion in turn left a
+                # long run of video packets followed by the segment's audio in
+                # a lump; on players with small demux buffers (Kodi, VLC) that
+                # bunching at seams caused the audio to drop out for seconds.
+                # Interleaving by decode time as we mux keeps audio and video
+                # adjacent, so the output plays cleanly everywhere without a
+                # separate re-interleave pass afterwards.
+                seg_packets = []
                 for g in generators:
                     for packet in g.segment(s):
                         if packet.dts is not None and packet.dts < -900_000:
                             packet.dts = None
                         if packet.dts is not None and packet.dts > 1_000_000_000_000:
                             print(f"BAD DTS: seg {s.start_time:.3f}-{s.end_time:.3f} gop={s.gop_index} recode={s.require_recode} pts={packet.pts} dts={packet.dts}")
-                        output_av_container.mux(packet)
+                        seg_packets.append(packet)
+                for packet in _interleave_by_time(seg_packets):
+                    output_av_container.mux(packet)
+            # Flush: same interleave so any tail packets stay ordered.
+            fin_packets = []
             for g in generators:
                 for packet in g.finish():
                     if packet.dts is not None and packet.dts > 1_000_000_000_000:
                         print(f"BAD DTS in finish: pts={packet.pts} dts={packet.dts}", flush=True)
-                    output_av_container.mux(packet)
+                    fin_packets.append(packet)
+            for packet in _interleave_by_time(fin_packets):
+                output_av_container.mux(packet)
             if progress is not None:
                 progress.emit(previously_done_segments)
 

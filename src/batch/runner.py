@@ -262,6 +262,7 @@ class BatchRunner(QThread):
                 pct = info.get("percent")
                 if isinstance(pct, (int, float)):
                     _job.percent = int(pct)
+                _job.phase = info.get("phase", _job.phase)
                 self.job_progress.emit(_i, info)
 
             try:

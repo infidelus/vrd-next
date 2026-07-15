@@ -60,6 +60,11 @@ class VideoSettings:
     mode: VideoExportMode
     quality: VideoExportQuality
     codec_override: str = 'copy'
+    # Whether the source stream is interlaced (e.g. 1080i MBAFF, 576i MPEG-2).
+    # True: open boundary encoders in interlaced mode - MBAFF codes any
+    # progressive stretches as frame macroblocks, so mixed content is handled
+    # correctly.  False: never.  None: decide from the first recoded frame.
+    source_interlaced: bool | None = None
 
 
 @dataclass
@@ -200,6 +205,10 @@ class VideoCutter:
         self.video_settings = video_settings
 
         self.enc_codec = None
+        # Set once, from the first frame handed to the boundary encoder: if
+        # the source is interlaced the encoder must be opened in interlaced
+        # mode (see _configure_interlace).
+        self._interlace_done = False
 
         self.in_stream = cast(VideoStream, media_container.video_stream)
         # Assert time_base is not None once at initialization
@@ -360,6 +369,40 @@ class VideoCutter:
             self.encoding_options['x265-params'] = ':'.join(x265_params)
 
 
+    def _configure_interlace(self, frame: VideoFrame) -> None:
+        """Open the boundary encoder in interlaced mode when the source is.
+
+        Decoded frames from interlaced broadcasts (1080i H.264 MBAFF, 576i
+        MPEG-2) carry their field flags, but the encoder ignores them unless
+        it is opened for interlaced coding - without this, the re-encoded
+        frames at each cut boundary come out progressive-flagged with the
+        woven fields coded as-is, so players skip deinterlacing and show
+        combing on motion until the copied stream resumes.  Called with every
+        frame about to be encoded; the first one decides, and it must run
+        before the codec is opened by its first encode().  Content that is
+        progressive (including progressive-coded stretches of an MBAFF
+        stream, common on film-sourced material) is left exactly as before.
+        """
+        if self._interlace_done:
+            return
+        self._interlace_done = True
+        hint = self.video_settings.source_interlaced
+        if hint is False:
+            return
+        if hint is None and not getattr(frame, 'interlaced_frame', False):
+            # No stream-level hint: the first frame decides.  (A hint of True
+            # applies even when the first frame happens to be progressive -
+            # MBAFF streams mix per-frame, and interlaced mode codes the
+            # progressive stretches as frame macroblocks without penalty.)
+            return
+        if self.codec_name not in ('h264', 'mpeg2video'):
+            return   # x265's interlace support is poor; HEVC broadcast is progressive
+        assert self.enc_codec is not None
+        if getattr(self.enc_codec, 'is_open', False):
+            return   # too late to change; first frame normally decides in time
+        existing = self.enc_codec.options.get('flags', '')
+        self.enc_codec.options['flags'] = existing + '+ildct+ilme'
+
     def _fix_packet_timestamps(self, packet: Packet) -> None:
         """Fix packet DTS/PTS to ensure monotonic increase and PTS >= DTS."""
         packet.stream = self.out_stream
@@ -519,6 +562,7 @@ class VideoCutter:
 
             frame.pict_type = PictureType.NONE
             frame = self._scale_frame_if_needed(frame)
+            self._configure_interlace(frame)
             result_packets.extend(self.enc_codec.encode(frame))
 
         if self.codec_name == 'mpeg2video':
@@ -632,6 +676,7 @@ class VideoCutter:
             self.enc_last_pts = frame.pts
 
             frame.pict_type = PictureType.NONE
+            self._configure_interlace(frame)
             result_packets.extend(self.enc_codec.encode(frame))
 
         result_packets.extend(self.flush_encoder())

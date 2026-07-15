@@ -677,8 +677,23 @@ def _call_smartcut(*args, **kwargs):
     return result
 
 
+def _video_settings(source_interlaced):
+    """smartcut settings for a normal lossless cut.
+
+    Mode and quality are smartcut's defaults; source_interlaced tells the
+    boundary re-encoder to open in interlaced mode for 1080i/576i broadcasts,
+    so the handful of re-encoded frames at each cut match the copied stream
+    instead of being coded progressive (which players would show with combing
+    on motion until the copy resumes).
+    """
+    from smartcut.video_cutter import VideoSettings
+    from smartcut.media_utils import VideoExportMode, VideoExportQuality
+    return VideoSettings(VideoExportMode.SMARTCUT, VideoExportQuality.NORMAL,
+                         source_interlaced=source_interlaced)
+
+
 def _run_smartcut(source_path, out_path, segments, n_audio, keep_ranges, fps,
-                  progress_cb=None, cancel_cb=None):
+                  progress_cb=None, cancel_cb=None, source_interlaced=None):
     """Export, passing through only usable audio tracks.
 
     Broken secondary tracks (0 channels / no sample rate) are detected and
@@ -713,6 +728,7 @@ def _run_smartcut(source_path, out_path, segments, n_audio, keep_ranges, fps,
     try:
         err = _call_smartcut(mc, segments, out_path,
                         audio_export_info=audio_info, log_level="warning",
+                        video_settings=_video_settings(source_interlaced),
                         progress=prog, cancel_object=cancel)
         if err is None:
             logger.info(
@@ -746,6 +762,7 @@ def _run_smartcut(source_path, out_path, segments, n_audio, keep_ranges, fps,
 
     err = _call_smartcut(mc, segments, out_path,
                     audio_export_info=audio_info, log_level="warning",
+                    video_settings=_video_settings(source_interlaced),
                     progress=prog, cancel_object=cancel)
     if err is not None:
         raise ExportError(f"Export failed: {err}")
@@ -790,23 +807,37 @@ def _aspect_dar(aspect):
     return {"4:3": "4/3", "16:9": "16/9"}.get(aspect)
 
 
-def _audio_ad_tracks(path):
-    """Per audio track (in stream order): language and whether the track is
-    flagged as broadcast audio description (visual-impaired narration).
+# Broadcast audio dispositions worth mirroring onto the output.  Kept small and
+# explicit: these are the flags a UK broadcast actually sets that a player uses
+# to label or choose a track.  "visual_impaired" (audio description) is the one
+# users notice; the others are carried through for faithfulness.
+_AUDIO_DISPOSITIONS = ("visual_impaired", "descriptions", "hearing_impaired",
+                       "comment", "dub", "original")
 
-    The .ts carries this in an MPEG-TS descriptor (audio_type), which ffmpeg
-    surfaces as the visual_impaired/descriptions dispositions - and players
-    label the track "visual impaired [eng]" from it.  Matroska and MP4 have
-    their own equivalents, but nothing translates the TS descriptor across
-    automatically, so the mux steps use this probe to re-state it explicitly.
+
+def _source_audio_meta(path):
+    """Per audio track (in stream order): the language and dispositions the
+    source carries, so the export can reproduce them faithfully.
+
+    Broadcast .ts flags audio description with an MPEG-TS descriptor that
+    ffmpeg surfaces as the visual_impaired/descriptions dispositions; players
+    label the track "visual impaired [eng]" from it.  The lossless cut and the
+    audio graft both drop these, and none of the output containers translate
+    the descriptor across on their own - so the mux step reads them from the
+    original recording here and re-states them (see _apply_audio_meta_args).
+
+    Returns a list of dicts: {"language": str, "dispositions": set[str]}.
+    Deliberately does NOT invent track names: mirroring the source means a
+    track the broadcaster left unnamed stays unnamed, and players fall back to
+    language + disposition for their label, exactly as they do on the source.
     """
+    entries = ",".join(_AUDIO_DISPOSITIONS)
     tracks = []
     try:
         out = subprocess.run(
             ["ffprobe", "-v", "error", "-select_streams", "a",
              "-show_entries",
-             "stream=index:stream_tags=language:"
-             "stream_disposition=visual_impaired,descriptions",
+             "stream=index:stream_tags=language:stream_disposition=" + entries,
              "-of", "json", path],
             capture_output=True, text=True,
         ).stdout
@@ -819,12 +850,36 @@ def _audio_ad_tracks(path):
             disp = s.get("disposition", {}) or {}
             tracks.append({
                 "language": (s.get("tags", {}) or {}).get("language", ""),
-                "visual_impaired": bool(disp.get("visual_impaired")),
-                "descriptions": bool(disp.get("descriptions")),
+                "dispositions": {name for name in _AUDIO_DISPOSITIONS
+                                 if disp.get(name)},
             })
     except Exception:
-        logger.exception("Audio disposition probe failed")
+        logger.exception("Source audio metadata probe failed")
     return tracks
+
+
+def _ffmpeg_audio_meta_args(ad_source):
+    """ffmpeg args that reproduce the source's per-track audio language and
+    dispositions on the output (for the .ts re-interleave, the ffmpeg MKV
+    fallback and the MP4 transcode).
+
+    Faithful to the source and nothing more: it sets each track's dispositions
+    to exactly the source's set (so nothing spurious is invented and no name is
+    added), and restores the language where the intermediate lost it.  Players
+    then label an audio-description track from its visual_impaired flag just as
+    they do on the original, which keeps the *other* tracks showing their
+    language rather than a bare index.
+    """
+    args = []
+    for i, info in enumerate(_source_audio_meta(ad_source or "")):
+        # ffmpeg joins multiple disposition flags with "+"; an empty set is
+        # cleared with "0" so nothing the muxer added by default lingers.
+        disp = "+".join(sorted(info["dispositions"])) if info["dispositions"] \
+            else "0"
+        args += ["-disposition:a:%d" % i, disp]
+        if info["language"]:
+            args += ["-metadata:s:a:%d" % i, "language=%s" % info["language"]]
+    return args
 
 
 def _mkvmerge_video_track_id(exe, ts_path):
@@ -928,7 +983,7 @@ def _mkv_audio_ok(mkv_path, cancel_cb=None):
 
 
 def _write_mkv_chapters(ts_path, mkv_path, segment_durations, aspect="source",
-                        cancel_cb=None, progress_cb=None):
+                        cancel_cb=None, progress_cb=None, ad_source=None):
     """Build the final .mkv from the cut .ts, one chapter per scene.
 
     mkvmerge (mkvtoolnix) is preferred: it repackages the broadcast LATM-muxed
@@ -959,7 +1014,8 @@ def _write_mkv_chapters(ts_path, mkv_path, segment_durations, aspect="source",
     if exe:
         _busy("finalise_mkv")
         _write_mkv_chapters_mkvmerge(ts_path, mkv_path, segment_durations, exe,
-                                     aspect=aspect, cancel_cb=cancel_cb)
+                                     aspect=aspect, cancel_cb=cancel_cb,
+                                     ad_source=ad_source)
         if _mkv_audio_ok(mkv_path, cancel_cb=cancel_cb):
             logger.info(
                 "MKV audio repackaged to native AAC by mkvmerge "
@@ -972,7 +1028,8 @@ def _write_mkv_chapters(ts_path, mkv_path, segment_durations, aspect="source",
         )
         _busy("rebuild_audio")
         _write_mkv_chapters_ffmpeg(ts_path, mkv_path, segment_durations,
-                                   aspect=aspect, cancel_cb=cancel_cb)
+                                   aspect=aspect, cancel_cb=cancel_cb,
+                                   ad_source=ad_source)
         return True
     else:
         logger.warning(
@@ -984,12 +1041,13 @@ def _write_mkv_chapters(ts_path, mkv_path, segment_durations, aspect="source",
         )
         _busy("rebuild_audio")
         _write_mkv_chapters_ffmpeg(ts_path, mkv_path, segment_durations,
-                                   aspect=aspect, cancel_cb=cancel_cb)
+                                   aspect=aspect, cancel_cb=cancel_cb,
+                                   ad_source=ad_source)
         return True
 
 
 def _write_mkv_chapters_mkvmerge(ts_path, mkv_path, segment_durations, exe,
-                                 aspect="source", cancel_cb=None):
+                                 aspect="source", cancel_cb=None, ad_source=None):
     """Mux the cut .ts into .mkv with mkvmerge (native AAC, lossless)."""
     # mkvmerge's simple/OGM chapter format: absolute HH:MM:SS.mmm timestamps.
     lines = []
@@ -1027,11 +1085,21 @@ def _write_mkv_chapters_mkvmerge(ts_path, mkv_path, segment_durations, exe,
         # Re-state broadcast audio-description marking.  The .ts carries it as
         # an MPEG-TS descriptor which mkvmerge doesn't translate, so the MKV
         # would show a bare "[eng]" where the .ts shows "visual impaired
-        # [eng]".  Matroska's own equivalent is the visual-impaired track flag
-        # plus a track name; map the .ts audio order onto mkvmerge's track ids
-        # and set both on any flagged track.
-        ad = _audio_ad_tracks(ts_path)
-        if any(t["visual_impaired"] for t in ad):
+        # [eng]".  Read it from the original recording (ad_source) rather than
+        # the cut intermediate: smartcut's remux and the lossless audio graft
+        # both drop the descriptor, so the intermediate no longer carries it.
+        # Matroska's own equivalent is the visual-impaired track flag plus a
+        # track name; map the source audio order onto mkvmerge's track ids and
+        # set both on any flagged track.
+        # Re-state the source's audio-description marking on the MKV.  The .ts
+        # carries it as an MPEG-TS descriptor that mkvmerge doesn't translate,
+        # and the cut/graft dropped it from the intermediate, so read it from
+        # the original recording (ad_source).  We set only Matroska's
+        # visual-impaired FLAG - not a track name - so players label the track
+        # from the flag exactly as they do on the source, and the other tracks
+        # keep showing their language rather than a bare index.
+        meta = _source_audio_meta(ad_source or ts_path)
+        if any("visual_impaired" in t["dispositions"] for t in meta):
             try:
                 ident = json.loads(subprocess.run(
                     [exe, "-J", ts_path], capture_output=True, text=True,
@@ -1049,12 +1117,11 @@ def _write_mkv_chapters_mkvmerge(ts_path, mkv_path, segment_durations, exe,
                 ).stdout
             except Exception:
                 have_vi_flag = False
-            for info, tid in zip(ad, audio_tids):
-                if not info["visual_impaired"] or tid is None:
+            for info, tid in zip(meta, audio_tids):
+                if "visual_impaired" not in info["dispositions"] or tid is None:
                     continue
                 if have_vi_flag:
                     cmd += ["--visual-impaired-flag", "%d:1" % tid]
-                cmd += ["--track-name", "%d:visual impaired" % tid]
                 logger.info(
                     "Marking MKV track %d as visual impaired (broadcast "
                     "audio description).", tid,
@@ -1078,7 +1145,7 @@ def _write_mkv_chapters_mkvmerge(ts_path, mkv_path, segment_durations, exe,
 
 
 def _write_mkv_chapters_ffmpeg(ts_path, mkv_path, segment_durations,
-                               aspect="source", cancel_cb=None):
+                               aspect="source", cancel_cb=None, ad_source=None):
     """Fallback MKV mux via ffmpeg (lossless, but audio stays LATM-in-ACM)."""
     chapters = [";FFMETADATA1"]
     cursor_ms = 0
@@ -1115,12 +1182,12 @@ def _write_mkv_chapters_ffmpeg(ts_path, mkv_path, segment_durations,
             "-map_metadata", "1",
             "-c", "copy",
         ]
-        # ffmpeg carries the visual-impaired disposition through to Matroska's
-        # track flag by itself, but players display the track NAME - name any
-        # audio-description track for parity with the .ts ("visual impaired").
-        for i, info in enumerate(_audio_ad_tracks(ts_path)):
-            if info["visual_impaired"]:
-                cmd += ["-metadata:s:a:%d" % i, "title=visual impaired"]
+        # Re-state the source's audio dispositions and language (visual-
+        # impaired flag included).  ffmpeg carries the flag through by itself
+        # when the intermediate still has it, but the cut/graft can drop it -
+        # so we mirror it from the original recording.  No track name is set:
+        # the flag alone is what players label from, matching the source.
+        cmd += _ffmpeg_audio_meta_args(ad_source or ts_path)
         dar = _aspect_dar(aspect)
         if dar:
             # Container display aspect, set without re-encoding the video.
@@ -1140,7 +1207,7 @@ def _write_mkv_chapters_ffmpeg(ts_path, mkv_path, segment_durations,
 def _transcode_to_mp4(
         ts_path, mp4_path, video_codec, interlaced,
         total_seconds=0.0, phase="recode_audio", progress_cb=None,
-        cancel_cb=None,
+        cancel_cb=None, ad_source=None,
 ):
     """Convert the freshly-cut .ts into an .mp4.
 
@@ -1184,12 +1251,14 @@ def _transcode_to_mp4(
         "-c:a", "aac",
         "-b:a", "192k",
     ]
-    # Name any audio-description track ("visual impaired"), for parity with
-    # the .ts label.  MP4 has no equivalent of the TS descriptor and its muxer
-    # drops per-track titles, so the name goes in the handler atom - which is
-    # what players display as the track label for MP4.
-    for i, info in enumerate(_audio_ad_tracks(ts_path)):
-        if info["visual_impaired"]:
+    # Reproduce the source's audio dispositions and language.  MP4 is the one
+    # container whose players don't surface the visual-impaired disposition as
+    # a label, so for an audio-description track we ALSO set the handler name
+    # (the only thing MP4 players show as a track label) to "visual impaired".
+    # Other tracks get no name - matching the source, which names nothing.
+    cmd += _ffmpeg_audio_meta_args(ad_source or ts_path)
+    for i, info in enumerate(_source_audio_meta(ad_source or ts_path)):
+        if "visual_impaired" in info["dispositions"]:
             cmd += ["-metadata:s:a:%d" % i, "handler_name=visual impaired"]
     cmd += [
         "-movflags", "+faststart",
@@ -2068,46 +2137,52 @@ def _reencode_cut_audio_to_aac(cut_path, bitrate, cancel_cb=None):
     return False
 
 
-def _reinterleave_ts(path, progress_cb=None):
-    """Rewrite a finished .ts in place with proper audio/video interleaving.
+def _finalise_ts_audio_meta(path, ad_source=None, progress_cb=None):
+    """Restore the source's audio dispositions/language on a finished .ts.
 
-    smartcut muxes each cut segment generator-by-generator (all the video
-    packets, then the audio), and at seams this can leave a long run of
-    video-only packets with the matching audio arriving in a lump many seconds
-    later.  Structurally the file is perfect - timestamps, PCR and continuity
-    counters are all clean - but players with small demux buffers (Kodi, VLC)
-    wait for the late audio, give up, and play silent video until the skew
-    shrinks back under their buffer; mpv-based players buffer deeply enough to
-    ride it out.  A straight stream-copy remux re-orders the packets by
-    timestamp, which fixes the playback everywhere at the cost of one fast
-    disk copy.  -max_interleave_delta raises the muxer's reordering window to
-    comfortably cover the worst bunching seen in the wild (~23s) while still
-    capping memory if a stream has a genuine long gap.
+    The lossless cut and the audio graft drop the MPEG-TS descriptor that
+    flags an audio-description track (and can drop the language on grafted
+    tracks), so if the original recording carried any audio dispositions we
+    re-state them here with a quick stream-copy remux, mirroring the source
+    faithfully - no track names invented (see _ffmpeg_audio_meta_args).
+
+    Interleaving is now handled inside smartcut as it muxes, so this is no
+    longer needed to fix packet ordering; the remux keeps a generous
+    interleave window anyway as cheap insurance for the graft path (which muxes
+    audio separately), but only runs at all when there's metadata to apply.
+    Returns True if the file was rewritten, False if it was left untouched.
     """
-    tmp = path + ".ileave.ts"
+    meta = _source_audio_meta(ad_source) if ad_source else []
+    if not any(t["dispositions"] or t["language"] for t in meta):
+        return False        # nothing to restore - leave the file as smartcut wrote it
+
+    tmp = path + ".meta.ts"
     cmd = [
         "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
         "-i", path,
         "-map", "0", "-map", "-0:d", "-ignore_unknown",
         "-c", "copy",
+    ]
+    cmd += _ffmpeg_audio_meta_args(ad_source)
+    cmd += [
         "-max_interleave_delta", "60000000",   # 60s window (microseconds)
         "-muxpreload", "0", "-muxdelay", "0",
         tmp,
     ]
     if progress_cb is not None:
-        progress_cb({"percent": -1, "phase": "interleave"})
+        progress_cb({"percent": -1, "phase": "finalise"})
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0 or not os.path.exists(tmp) or \
             os.path.getsize(tmp) == 0:
         tail = (res.stderr or "").strip().splitlines()
         logger.warning(
-            "Interleave pass failed (rc=%s); keeping the un-reordered file. "
+            "Audio-metadata finalise failed (rc=%s); keeping the file as cut. "
             "ffmpeg: %s", res.returncode, tail[-1] if tail else "(no output)",
         )
         _safe_remove(tmp)
         return False
     os.replace(tmp, path)
-    logger.info("Re-interleaved the finished .ts (audio/video packet order).")
+    logger.info("Restored source audio dispositions/language on the .ts.")
     return True
 
 
@@ -2244,6 +2319,7 @@ def export_ranges(
         audio_written = _run_smartcut(
             source_path, cut_target, segments, n_audio, keep_ranges, fps,
             progress_cb=progress_cb, cancel_cb=cancel_cb,
+            source_interlaced=getattr(frame_index, "interlaced", None),
         )
 
         #
@@ -2453,6 +2529,7 @@ def export_ranges(
             audio_repackaged = _write_mkv_chapters(
                 cut_target, out_path, segment_durations,
                 aspect=aspect, cancel_cb=cancel_cb, progress_cb=progress_cb,
+                ad_source=source_path,
             )
         elif want_mp4:
             #
@@ -2485,6 +2562,7 @@ def export_ranges(
                 phase=phase,
                 progress_cb=progress_cb,
                 cancel_cb=cancel_cb,
+                ad_source=source_path,
             )
         else:
             # Plain .ts delivery (cut_target IS out_path).  Fix the packet
@@ -2493,7 +2571,8 @@ def export_ranges(
             # seconds after a cut.  MKV goes through mkvmerge and MP4 through
             # the transcode above, both of which re-interleave inherently.
             if cancel_cb is None or not cancel_cb():
-                _reinterleave_ts(out_path, progress_cb=progress_cb)
+                _finalise_ts_audio_meta(out_path, ad_source=source_path,
+                                        progress_cb=progress_cb)
 
         if progress_cb is not None:
             progress_cb({

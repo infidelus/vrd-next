@@ -149,6 +149,7 @@ class BatchJob:
         self.status = QUEUED
         self.message = ""            # error detail when FAILED
         self.percent = 0             # 0-100 within the current job
+        self.phase = ""              # last progress phase (for seeding the UI)
 
     # -- persistence -------------------------------------------------------- #
 

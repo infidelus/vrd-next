@@ -41,6 +41,48 @@ def _probe_duration_us(path):
         return 0
 
 
+def _dead_audio_streams(path):
+    """Indices of audio streams that cannot be copied: declared in the
+    broadcast tables but carrying no usable parameters.
+
+    Broadcasters register PIDs (typically for audio description) that are
+    never actually transmitted, or only during certain programmes.  Such a
+    stream has no sample rate even with a generous probe window, and the
+    mpegts muxer refuses to write a header for it ("sample rate not set"),
+    which would fail the whole repair for a stream holding nothing.  Streams
+    that are merely sparse but real (a normal AD track) have parameters and
+    are kept.
+    """
+    dead = []
+    try:
+        out = subprocess.run(
+            [
+                "ffprobe", "-hide_banner", "-loglevel", "error",
+                "-analyzeduration", "30M", "-probesize", "60M",
+                "-select_streams", "a",
+                "-show_entries", "stream=index,sample_rate",
+                "-of", "csv=p=0",
+                path,
+            ],
+            capture_output=True, text=True,
+        ).stdout
+        seen = set()
+        for line in out.strip().splitlines():
+            parts = line.rstrip(",").split(",")
+            if not parts or not parts[0]:
+                continue
+            idx = int(parts[0])
+            if idx in seen:          # .ts lists streams once per program
+                continue
+            seen.add(idx)
+            rate = parts[1] if len(parts) > 1 else ""
+            if rate in ("", "0", "N/A"):
+                dead.append(idx)
+    except Exception:
+        pass                          # if the probe fails, exclude nothing
+    return dead
+
+
 def quick_stream_fix(
         source_path,
         out_path,
@@ -92,6 +134,14 @@ def quick_stream_fix(
         "-map", "0",
         "-map", "-0:d",
         "-ignore_unknown",
+    ]
+    # Exclude audio streams that are declared but never transmitted (no
+    # sample rate even with a generous probe) - the muxer cannot write a
+    # header for them and would fail the whole repair.  Real-but-sparse
+    # tracks (audio description) have parameters and are kept.
+    for idx in _dead_audio_streams(source_path):
+        cmd += ["-map", "-0:%d" % idx]
+    cmd += [
         "-c", "copy",
         "-muxpreload", "0",
         "-muxdelay", "0",

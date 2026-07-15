@@ -44,6 +44,8 @@ _PHASE_TEXT = {
     "recode_audio": QT_TRANSLATE_NOOP("BatchManager", "Recoding audio"),
     "recode_full": QT_TRANSLATE_NOOP("BatchManager", "Recoding"),
     "rebuild_audio": QT_TRANSLATE_NOOP("BatchManager", "Rebuilding audio"),
+    "graft_audio": QT_TRANSLATE_NOOP("BatchManager", "Copying audio"),
+    "finalise": QT_TRANSLATE_NOOP("BatchManager", "Finalising"),
     "done": QT_TRANSLATE_NOOP("BatchManager", "Finishing"),
 }
 
@@ -220,6 +222,17 @@ class BatchManagerDialog(QDialog):
         c.job_held.connect(self._on_job_held)
         c.batch_finished.connect(self._on_batch_finished)
         c.running_changed.connect(self._on_running_changed)
+        # Seed the bar from the job already running, so opening the window
+        # mid-batch shows the current progress immediately rather than a blank
+        # bar until the next whole-percent tick arrives.
+        self._seed_progress()
+
+    def _seed_progress(self):
+        for i, job in enumerate(self._jobs()):
+            if job.status == RUNNING:
+                self._on_job_progress(
+                    i, {"percent": job.percent, "phase": job.phase})
+                return
 
     def _disconnect_controller(self):
         c = self.controller
@@ -364,7 +377,7 @@ class BatchManagerDialog(QDialog):
 
     def _move_selected(self, delta):
         rows = self._selected_rows()
-        if len(rows) != 1:
+        if len(rows) != 1 or not self._can_move(rows[0], delta):
             return
         nr = self.controller.move(rows[0], delta)
         self.table.selectRow(nr)
@@ -588,16 +601,19 @@ class BatchManagerDialog(QDialog):
     def _set_controls_enabled(self, on):
         # Adding more projects is always allowed (queue while it runs), and so
         # is removing ones that are still waiting - the controller refuses to
-        # remove the job that's actually running.  Reordering and the output
+        # remove the job that's actually running.  Clear Finished is likewise
+        # safe mid-run (it only drops inert DONE jobs), so it's driven by
+        # whether anything is finished rather than by the run state.  Output
         # settings stay locked down during a run.
         for w in (
-            self._up_btn, self._down_btn,
-            self._clear_done_btn, self._default_profile, self._modifier_edit,
+            self._default_profile, self._modifier_edit,
             self._browse_btn,
         ):
             w.setEnabled(on)
         self._remove_btn.setEnabled(True)
-        self._update_buttons()
+        self._clear_done_btn.setEnabled(
+            any(j.status == DONE for j in self._jobs()))
+        self._update_buttons()   # refresh the per-selection move gating too
 
     def _on_job_started(self, index):
         self._set_row_status(index)
@@ -629,6 +645,9 @@ class BatchManagerDialog(QDialog):
             item.setToolTip(out)
             self.table.setItem(index, COL_OUTPUT, item)
             self._set_row_status(index)
+        # A job just finished, so Clear Finished may now have something to do.
+        self._clear_done_btn.setEnabled(
+            any(j.status == DONE for j in self._jobs()))
 
     def _on_job_failed(self, index, message):
         self._set_row_status(index)
@@ -667,13 +686,35 @@ class BatchManagerDialog(QDialog):
     # ------------------------------------------------------------------ #
 
     def _update_buttons(self):
-        running = self.controller.is_running()
         sel = self._selected_rows()
         # Waiting jobs can be removed even mid-run (the controller protects the
         # one actually being processed), so this depends only on the selection.
         self._remove_btn.setEnabled(bool(sel))
-        self._up_btn.setEnabled(len(sel) == 1 and not running)
-        self._down_btn.setEnabled(len(sel) == 1 and not running)
+        # Reordering is allowed while the batch runs - you just can't move the
+        # job that's currently processing, and you can't move another job past
+        # it (into a slot at or before the running one).  _can_move works that
+        # out per direction so, for example, the job right after the running
+        # one can move down but not up.
+        one = len(sel) == 1
+        self._up_btn.setEnabled(one and self._can_move(sel[0], -1))
+        self._down_btn.setEnabled(one and self._can_move(sel[0], 1))
+
+    def _can_move(self, row, delta):
+        """Whether the job at `row` may move by `delta` (-1 up, +1 down).
+
+        A running job is pinned, and no job may cross it - so a move is refused
+        when the job itself is running, when the target slot is out of range,
+        or when the neighbour being swapped with is the running job.
+        """
+        jobs = self._jobs()
+        target = row + delta
+        if not (0 <= row < len(jobs) and 0 <= target < len(jobs)):
+            return False
+        if jobs[row].status == RUNNING:
+            return False
+        if jobs[target].status == RUNNING:
+            return False
+        return True
 
     def closeEvent(self, event):
         # Closing the window does NOT stop a running batch - it keeps going in

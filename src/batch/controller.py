@@ -11,7 +11,7 @@ import os
 
 from PySide6.QtCore import QObject, Signal
 
-from batch.job import BatchJob, QUEUED, DONE, NEEDS_REVIEW
+from batch.job import BatchJob, QUEUED, RUNNING, DONE, NEEDS_REVIEW
 from batch.runner import BatchRunner
 from addons.output_profiles import default_profile_name
 
@@ -140,6 +140,11 @@ class BatchController(QObject):
     def move(self, row, delta):
         nr = row + delta
         if 0 <= row < len(self.jobs) and 0 <= nr < len(self.jobs):
+            # Never move the running job, and never swap another job past it -
+            # the UI gates this too, but guard here as the source of truth.
+            if self.jobs[row].status == RUNNING or \
+                    self.jobs[nr].status == RUNNING:
+                return row
             self.jobs[row], self.jobs[nr] = self.jobs[nr], self.jobs[row]
             self.save_queue()
             self.jobs_changed.emit()
@@ -153,8 +158,18 @@ class BatchController(QObject):
         and produced no usable output, and pressing Start again picks it up
         where it left off - so it stays, as do failed jobs and ones held for
         review.  Anything unwanted can still be removed by hand.
+
+        Safe to call while the batch is running: DONE jobs are inert, and this
+        goes through the same cursor-aware removal as remove(), so the runner's
+        position stays correct and the job being processed is untouched.
         """
-        self.jobs = [j for j in self.jobs if j.status != DONE]
+        done_rows = [i for i, j in enumerate(self.jobs) if j.status == DONE]
+        if not done_rows:
+            return
+        for r in sorted(done_rows, reverse=True):
+            del self.jobs[r]
+        if self.runner is not None:
+            self.runner.note_removed(done_rows)
         self.save_queue()
         self.jobs_changed.emit()
 

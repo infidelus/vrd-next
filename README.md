@@ -37,9 +37,10 @@ distilling the part many people relied on most into a free, open-source tool.
 
 ## Requirements
 
-- **Linux.** Developed and tested on Linux Mint; other distributions should
-  work but are less tested. Windows has had basic testing — it installs and
-  runs — see [Status](#status) for the caveats.
+- **An operating system that runs Python.** Developed and tested on Linux
+  Mint, so Linux is the best-supported platform. Windows has had limited
+  testing — it installs and runs — and macOS has had none at all, though
+  there's no reason it shouldn't work. See [Status](#status) for the caveats.
 - **Python 3.10 or newer.**
 - **Python packages:** PySide6, PyAV (`av`), numpy, bitstring, tqdm — see
   [`requirements.txt`](requirements.txt).
@@ -55,7 +56,7 @@ distilling the part many people relied on most into a free, open-source tool.
 The quickest way is the one-step installer for your platform, which sets up the
 dependencies, a virtual environment, and menu/desktop shortcuts.
 
-**Linux (Debian / Ubuntu / Mint):**
+**Linux:**
 
 ```bash
 git clone https://github.com/infidelus/vrd-next.git
@@ -64,9 +65,20 @@ chmod +x install-linux.sh
 ./install-linux.sh
 ```
 
+The installer uses `apt` to fetch anything missing, so on Debian-based
+distributions (Mint, Ubuntu, Pop!\_OS and so on) it's fully automatic. On other
+families — Fedora/RHEL (`dnf`), Arch (`pacman`), openSUSE (`zypper`) — install
+the handful of system dependencies with your own package manager first
+(`python3`, `ffmpeg`, `mkvtoolnix`, and the Qt/`xcb` runtime libraries), then
+run the installer to set up the Python side and the menu shortcuts.
+
 **Windows 10 / 11:** clone or download the repository, then right-click
 `src/packaging/install-windows.ps1` and choose **Run with PowerShell** (it uses
-winget to fetch Python, ffmpeg and mkvmerge if they're missing).
+winget to fetch Python, ffmpeg and mkvmerge if they're missing). Windows may
+first warn that the script is from an untrusted source and ask you to confirm —
+answer **Y** (or, if it's blocked outright, run
+`Set-ExecutionPolicy -Scope Process RemoteSigned` in the same PowerShell window
+first, which lifts the restriction for that one session only).
 
 See [`src/packaging/README.md`](src/packaging/README.md) for details.
 
@@ -132,9 +144,14 @@ thoroughly.
 It's had basic testing on Windows — it installs (via the installer above) and
 runs — though it hasn't been through extensive functionality testing there. The
 core is cross-platform Python (PySide6 and PyAV), so the editor and cutting work
-as expected. A couple of Linux-only conveniences won't carry over — most notably
-the Watcher's start-on-login — and on Windows the settings land in a `.config`
-folder under your user profile rather than the usual location.
+as expected. Two conveniences differ on Windows: the settings land in a
+`.config` folder under your user profile rather than the usual location, and the
+Watcher's **start-on-login** checkbox has no effect yet (it's implemented for
+Linux's autostart mechanism only). To start the Watcher automatically on Windows
+in the meantime, press <kbd>Win</kbd>+<kbd>R</kbd>, enter `shell:startup`, and
+place a shortcut to it in the folder that opens — Windows launches everything
+there at login. Proper support for the checkbox on Windows is on the to-do
+list.
 
 It's shared as-is, in the hope that others find it useful. The issue tracker is
 turned off, and updates are likely to be occasional — chiefly the odd bug fix

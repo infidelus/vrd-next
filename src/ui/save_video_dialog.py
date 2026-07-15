@@ -34,7 +34,8 @@ class SaveVideoDialog(QDialog):
     """Pick an output profile and a destination file in one step."""
 
     def __init__(self, config, suggested_path, source_ext, parent=None,
-                 default_container=None, sample_source=""):
+                 default_container=None, sample_source="",
+                 preselect_profile=None):
         super().__init__(parent)
         self.setWindowTitle(self.tr("Save Video"))
         self.setMinimumWidth(640)
@@ -44,6 +45,10 @@ class SaveVideoDialog(QDialog):
         self._sample_source = sample_source
         self._source_ext = source_ext or ".ts"
         self._preselect_container = default_container
+        # Exact profile name to preselect (used after a QSF reload to restore
+        # the profile the user had already chosen).  Falls back to container
+        # matching when None or when the named profile is no longer present.
+        self._preselect_profile = preselect_profile
         self._result_path = None
         self._result_profile = None
         # A one-off, in-memory edit of the chosen profile for this export only.
@@ -129,8 +134,18 @@ class SaveVideoDialog(QDialog):
         if not loaded:
             loaded = load_profiles(self.config) or default_profiles()
         self._profiles = loaded
+        # On the first load, honour an exact profile preselection (from a QSF
+        # reload) if that profile still exists; otherwise fall back to
+        # container matching.
+        if keep_name is None and self._preselect_profile and any(
+                p.name == self._preselect_profile for p in self._profiles):
+            keep_name = self._preselect_profile
         # If favourites-only would hide the profile we want preselected, show all.
-        if (self._preselect_container is not None and not any(
+        want_name = keep_name
+        if want_name is not None and not any(
+                p.favourite and p.name == want_name for p in self._profiles):
+            self.fav_only.setChecked(False)
+        elif (self._preselect_container is not None and not any(
                 p.favourite and p.container == self._preselect_container
                 for p in self._profiles)):
             self.fav_only.setChecked(False)

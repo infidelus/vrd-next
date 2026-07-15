@@ -32,9 +32,28 @@ Icon=$ICON
 Terminal=false
 StartupWMClass=vrd-next
 Categories=AudioVideo;Video;AudioVideoEditing;
-MimeType=video/mp2t;video/x-matroska;
+MimeType=video/mp2t;video/x-matroska;video/mp4;video/mpeg;video/quicktime;video/x-msvideo;video/x-vrd-project;
 StartupNotify=true
 EOF
+
+# Register a MIME type for VideoReDo project files (.vprj) so the file manager
+# offers "Open with VRD Next" on them and shows the app icon.  Without this the
+# desktop has no idea what a .vprj is.
+MIME="$HOME/.local/share/mime"
+mkdir -p "$MIME/packages"
+cat > "$MIME/packages/vrd-next.xml" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="video/x-vrd-project">
+    <comment>VideoReDo project</comment>
+    <glob pattern="*.vprj"/>
+    <glob pattern="*.VPRJ"/>
+  </mime-type>
+</mime-info>
+EOF
+if command -v update-mime-database >/dev/null 2>&1; then
+    update-mime-database "$MIME" >/dev/null 2>&1 || true
+fi
 
 cat > "$APPS/vrd-next-watcher.desktop" <<EOF
 [Desktop Entry]

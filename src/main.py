@@ -303,9 +303,13 @@ class MainWindow(QMainWindow):
         # during the very first open) never hit an unset attribute.
         self.current_filename = None
 
-        # After a QSF reload, remembers the (out_path, out_format) the user had
-        # chosen, so the next Save can default to the same destination.
+        # After a QSF reload, remembers the (out_path, out_format,
+        # profile_name) the user had chosen, so the next Save can default to
+        # the same destination and the exact same profile.
         self._pending_export = None
+        # The profile name chosen for an export in flight, captured so the
+        # QSF-and-reload path can carry it into _pending_export.
+        self._pending_profile_name = None
 
         self.selection = (
             SelectionManager()
@@ -325,6 +329,10 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(
             root
         )
+        # Accept video files dropped onto the window (see dragEnterEvent /
+        # dropEvent below): one file opens in the editor, several go to the
+        # joiner, mirroring Open Video.
+        self.setAcceptDrops(True)
 
         layout = QVBoxLayout(
             root
@@ -2254,6 +2262,58 @@ class MainWindow(QMainWindow):
             "showing stream info need ffmpeg and ffprobe.\n\n") + "\n\n".join(issues),
         )
 
+    # Accepted extensions for drag-and-drop (lower-case, with the dot).
+    _DND_EXTS = (".ts", ".m2ts", ".mkv", ".mp4", ".mov", ".avi", ".mpg",
+                 ".mpeg", ".vprj")
+
+    def _dropped_paths(self, mime):
+        """Local file paths from a drop's MIME data whose extensions we accept,
+        in the order they were dropped."""
+        paths = []
+        for url in mime.urls():
+            p = url.toLocalFile()
+            if p and os.path.splitext(p)[1].lower() in self._DND_EXTS:
+                paths.append(p)
+        return paths
+
+    def dragEnterEvent(self, event):
+        """Accept the drag only if it carries files we can open - so the cursor
+        shows the right feedback and unrelated drags are ignored."""
+        if event.mimeData().hasUrls() and self._dropped_paths(event.mimeData()):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """Open dropped files: a single video (or .vprj) opens in the editor,
+        several videos go to the joiner - the same routing as Open Video."""
+        paths = self._dropped_paths(event.mimeData())
+        if not paths:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+
+        # A single .vprj project loads through the project loader; a single
+        # video opens in the editor; multiple videos fill the joiner.  (A mixed
+        # or multi-.vprj drop just opens the first item, the least surprising
+        # thing to do.)
+        if len(paths) == 1:
+            path = paths[0]
+            self._remember_dir("open", path)
+            if path.lower().endswith(".vprj"):
+                self.load_project_file(path)
+            else:
+                self._open_video_path(path)
+            return
+
+        videos = [p for p in paths if not p.lower().endswith(".vprj")]
+        if len(videos) == 1:
+            self._remember_dir("open", videos[0])
+            self._open_video_path(videos[0])
+        elif videos:
+            self._remember_dir("open", videos[0])
+            self._add_files_to_joiner(videos)
+
     def _open_video_path(self, filename):
         """Open a video by path - shared by Open Video and the Recent menu."""
         if not os.path.exists(filename):
@@ -2686,6 +2746,7 @@ class MainWindow(QMainWindow):
 
         pending = self._pending_export
         default_container = pending[1] if pending else "match"
+        preselect_profile = pending[2] if pending and len(pending) > 2 else None
         source_ext = (
             os.path.splitext(self.original_source or self.current_filename)[1]
             or ".ts"
@@ -2709,6 +2770,7 @@ class MainWindow(QMainWindow):
         dialog = SaveVideoDialog(
             self.config, suggested, source_ext, self,
             default_container=default_container,
+            preselect_profile=preselect_profile,
             sample_source=getattr(self, "current_filename", "") or "",
         )
         if dialog.exec() != QDialog.Accepted:
@@ -2740,8 +2802,16 @@ class MainWindow(QMainWindow):
 
         # Consume the pending-export defaults once used.
         self._pending_export = None
+        self._pending_profile_name = None
 
         self._remember_dir("export", out_path)
+
+        # Remember which profile was chosen, so if this export turns out to
+        # need a Quick Stream Fix first, the Save dialog that reopens after the
+        # repair-and-reload can preselect the very same profile - not just its
+        # container (which used to land on whichever matching profile happened
+        # to be last in the list).
+        self._pending_profile_name = profile.name
 
         self._run_export(
             out_path,
@@ -3395,8 +3465,11 @@ class MainWindow(QMainWindow):
                 self._refresh_scenes_from_selection()
 
                 # Remember the intended output so the next Save can default to
-                # the same destination/format the user already chose.
-                self._pending_export = (out_path, out_format)
+                # the same destination/format/profile the user already chose.
+                self._pending_export = (
+                    out_path, out_format,
+                    getattr(self, "_pending_profile_name", None),
+                )
 
                 self.statusBar().showMessage(
                     self.tr("Stream repaired and reloaded - check your scene markers, "
@@ -5193,6 +5266,43 @@ except Exception:
     pass
 
 window.show()
+
+# Open a file passed on the command line (e.g. "Open with VRD Next" from the
+# file manager, which the .desktop entry forwards via %f).  A video opens in
+# the editor; a .vprj/.edl project loads its video and cuts.  Anything we don't
+# recognise is ignored - the app just opens empty.  Done after show() so the
+# window exists to receive it and any error dialog has a parent.
+def _open_launch_argument():
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    if not args:
+        return
+    path = args[0]
+    if not os.path.isfile(path):
+        return
+    ext = os.path.splitext(path)[1].lower()
+    try:
+        if ext == ".vprj":
+            # A project carries its own source video and cuts.
+            window.load_project_file(path)
+        elif ext == ".edl":
+            # An EDL is only a cut list - it has no video of its own - so we
+            # can't open it standalone.  Tell the user rather than fail mutely.
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                window, "Open EDL",
+                "An EDL file contains only a cut list, not a video.\n\n"
+                "Open the video first, then load the EDL from "
+                "File \u2192 Import \u2192 EDL.")
+        elif ext in MainWindow._DND_EXTS:
+            window._open_video_path(path)
+        else:
+            # Unknown extension: try it as a video rather than refuse outright,
+            # since the user explicitly asked us to open it.
+            window._open_video_path(path)
+    except Exception:
+        log.exception("Failed to open launch argument: %s", path)
+
+_open_launch_argument()
 
 sys.exit(
     app.exec()

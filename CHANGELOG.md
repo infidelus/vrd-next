@@ -5,6 +5,47 @@ All notable changes to VRD Next are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-07-14
+
+### Added
+
+- **Lossless LATM audio passthru.** UK broadcast AAC (LATM/LOAS framing) is now
+  unwrapped to plain AAC as the cut is made — byte-for-byte identical audio,
+  verified on real BBC recordings including HE-AACv2 audio-description tracks —
+  so the post-cut audio graft no longer runs in the common case and stays only
+  as a verified fallback. Mid-programme configuration changes are handled
+  transparently.
+- **Drag and drop.** Drop a video onto the window to open it, several to fill
+  the joiner, or a `.vprj` to open its project.
+- **"Open with VRD Next" opens the file.** File-manager launches now load the
+  passed file (previously the app opened empty), and the desktop registration
+  covers `.mp4`, `.mpg`, `.mov`, `.avi` and `.vprj` as well as `.ts`/`.mkv`.
+
+### Changed
+
+- **Packet interleaving moved into the cut**, retiring the separate post-export
+  re-interleave pass — exports finish sooner. The `.ts` finalise step now runs
+  only when there are audio dispositions to restore.
+- **Audio-description labelling mirrors the source faithfully** (language and
+  dispositions, including the visual-impaired flag, with no invented track
+  names), consolidated into one helper shared by all container writers. This
+  also fixes the main track showing as a bare index when only the description
+  track was named.
+- Batch Manager: the progress bar seeds immediately when opened mid-run; queued
+  jobs can be reordered during a run; Clear Finished works mid-run.
+
+### Fixed
+
+- **Interlaced cut boundaries** on 1080i and 576i recordings were re-encoded
+  progressive, causing combing on motion for the re-encoded stretch after each
+  cut. The boundary encoder now matches the source's interlacing, handling
+  mixed MBAFF content frame by frame; progressive sources are unaffected.
+- **Quick Stream Fix**: no longer strips secondary audio tracks, fails on data
+  or unrecognised streams, displaces audio-description timing, or fails on
+  recordings with a declared-but-dead audio PID ("sample rate not set").
+- The chosen output profile is remembered across a Quick Stream Fix instead of
+  resetting to the last container match.
+
 ## [1.6.0] - 2026-07-12
 
 ### Added
@@ -253,6 +294,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 - Initial public release.
 
+[1.7.0]: https://github.com/infidelus/vrd-next/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/infidelus/vrd-next/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/infidelus/vrd-next/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/infidelus/vrd-next/compare/v1.4.0...v1.5.0
