@@ -161,6 +161,17 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+        # Purge old renamer matches too (its own age setting, default 0 = keep).
+        try:
+            from addons.match_cache import purge_old
+            purge_old(
+                self.config,
+                self.config.get("settings", {}).get(
+                    "renamer_cache_max_age_days", 0),
+            )
+        except Exception:
+            pass
+
         self.keys = (
             ShortcutManager(
                 self.config

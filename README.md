@@ -72,13 +72,17 @@ the handful of system dependencies with your own package manager first
 (`python3`, `ffmpeg`, `mkvtoolnix`, and the Qt/`xcb` runtime libraries), then
 run the installer to set up the Python side and the menu shortcuts.
 
-**Windows 10 / 11:** clone or download the repository, then right-click
-`src/packaging/install-windows.ps1` and choose **Run with PowerShell** (it uses
-winget to fetch Python, ffmpeg and mkvmerge if they're missing). Windows may
-first warn that the script is from an untrusted source and ask you to confirm —
-answer **Y** (or, if it's blocked outright, run
-`Set-ExecutionPolicy -Scope Process RemoteSigned` in the same PowerShell window
-first, which lifts the restriction for that one session only).
+**Windows 10 / 11:** clone or download the repository, then run the installer.
+The simplest way is to double-click `src/packaging/install-windows.bat` (or run
+it from a Command Prompt) — it launches the setup without you needing to touch
+PowerShell's execution policy. It uses winget to fetch Python, ffmpeg and
+mkvmerge if they're missing.
+
+If you prefer PowerShell directly, you can instead right-click
+`src/packaging/install-windows.ps1` and choose **Run with PowerShell**; if it's
+blocked, run `Set-ExecutionPolicy -Scope Process Bypass` in that same PowerShell
+window first (this lifts the restriction for that one session only), then run
+the script.
 
 See [`src/packaging/README.md`](src/packaging/README.md) for details.
 
@@ -144,14 +148,11 @@ thoroughly.
 It's had basic testing on Windows — it installs (via the installer above) and
 runs — though it hasn't been through extensive functionality testing there. The
 core is cross-platform Python (PySide6 and PyAV), so the editor and cutting work
-as expected. Two conveniences differ on Windows: the settings land in a
-`.config` folder under your user profile rather than the usual location, and the
-Watcher's **start-on-login** checkbox has no effect yet (it's implemented for
-Linux's autostart mechanism only). To start the Watcher automatically on Windows
-in the meantime, press <kbd>Win</kbd>+<kbd>R</kbd>, enter `shell:startup`, and
-place a shortcut to it in the folder that opens — Windows launches everything
-there at login. Proper support for the checkbox on Windows is on the to-do
-list.
+as expected. One convenience differs on Windows: the settings land in a
+`.config` folder under your user profile rather than the usual location. The
+Watcher's **start-on-login** checkbox works on Windows as well as Linux — it
+places a small launcher in your Startup folder (and removes it when you untick
+the option), so no manual setup is needed.
 
 It's shared as-is, in the hope that others find it useful. The issue tracker is
 turned off, and updates are likely to be occasional — chiefly the odd bug fix

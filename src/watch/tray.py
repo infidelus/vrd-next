@@ -248,6 +248,12 @@ class WatchControlDialog(QDialog):
         self.autostart_chk = QCheckBox(
             self.tr("Start the watcher automatically on login")
         )
+        if not autostart.supported():
+            # macOS or anything without a start-on-login backend: show the
+            # option greyed rather than offer a toggle that does nothing.
+            self.autostart_chk.setEnabled(False)
+            self.autostart_chk.setToolTip(
+                self.tr("Start-on-login isn't available on this platform."))
         scan_v.addWidget(self.autostart_chk)
         outer.addWidget(scan_box)
 

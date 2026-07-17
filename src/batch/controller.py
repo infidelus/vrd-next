@@ -90,12 +90,66 @@ class BatchController(QObject):
             pass
 
     def _load_queue(self):
-        for data in self.config.get("batch", {}).get("queue", []):
+        # The queue lives in its own file (queue.json) rather than in
+        # settings.json - it's transient state, and keeping it separate means a
+        # problem with one file can't take the other down.  Migrate any queue
+        # an older version stored inline under config["batch"]["queue"].
+        from config.loader import load_sidecar, save_sidecar
+        entries = load_sidecar("queue.json", default=None)
+        if entries is None:
+            legacy = self.config.get("batch", {}).get("queue")
+            if legacy:
+                entries = legacy
+                save_sidecar("queue.json", entries)
+                self.config.get("batch", {}).pop("queue", None)
+                self._persist()          # drop the old key from settings.json
+            else:
+                entries = []
+        for data in entries:
             self.jobs.append(BatchJob.from_dict(data))
+        # Drop entries whose files are gone - but only finished ones.  A DONE
+        # job is just a record; if its source or output has since been deleted
+        # there's nothing to keep.  A QUEUED job is left alone even if its file
+        # isn't reachable right now, because that's often a temporarily
+        # unmounted drive (an NFS/SMB share), not a real deletion - purging it
+        # would silently lose pending work the moment a network share was down
+        # at startup.
+        before = len(self.jobs)
+        self.jobs = [j for j in self.jobs if self._job_worth_keeping(j)]
+        if len(self.jobs) != before:
+            self.save_queue()            # persist the pruned list immediately
+
+    @staticmethod
+    def _job_worth_keeping(job):
+        """Whether a loaded job should stay in the queue.  Finished jobs are
+        dropped once their referenced files no longer exist; unfinished jobs
+        are always kept (a missing file may just be an unmounted drive)."""
+        if job.status != DONE:
+            return True
+        # A finished job: keep it only while something it refers to still
+        # exists - the output if we recorded one, otherwise the source project.
+        ref = job.dest_path or job.vprj_path
+        return bool(ref and os.path.exists(ref))
 
     def save_queue(self):
-        self._cfg()["queue"] = [j.to_dict() for j in self.jobs]
-        self._persist()
+        from config.loader import save_sidecar
+        save_sidecar("queue.json", [j.to_dict() for j in self.jobs])
+
+    def persist_now(self):
+        """Write the queue to disk immediately, callable from the runner
+        thread the instant a job reaches a terminal status.
+
+        The dialog's normal save happens via the job_done/job_failed signals,
+        which are delivered on the main thread by the event loop - but if the
+        app or Batch Manager is torn down before that delivery drains (for
+        example the user stops "after current job" and closes straight away),
+        the finished status would never reach disk and the job would come back
+        as queued on next launch.  Writing here, synchronously, closes that
+        window.  save_config already serialises to a temp file and renames, so
+        a concurrent main-thread save can't corrupt it - last write wins, and
+        both write the same DONE state.
+        """
+        self.save_queue()
 
     # ------------------------------------------------------------------ #
     # Queue editing
@@ -184,6 +238,14 @@ class BatchController(QObject):
 
     def is_running(self):
         return self.runner is not None
+
+    def is_finishing(self):
+        """True when a stop-after-current-job is pending: the batch is still
+        running but will halt once the job in progress completes.  Lets the
+        dialog restore the "stopping after the current file" message when it's
+        reopened, instead of reverting to plain "batch running"."""
+        return (self.runner is not None
+                and getattr(self.runner, "_finish_current", False))
 
     def pending_count(self):
         # Jobs that Start would actually process: not already done, and not

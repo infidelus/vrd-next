@@ -596,7 +596,15 @@ class BatchManagerDialog(QDialog):
         self._start_btn.setText(self.tr("Stop") if running else self.tr("Start"))
         self._set_controls_enabled(not running)
         if running:
-            self._status_label.setText(self.tr("Batch running…"))
+            if self.controller.is_finishing():
+                # A stop-after-current is already pending - keep showing that,
+                # not the plain running message, and keep Stop disabled since
+                # it's already been actioned.
+                self._status_label.setText(
+                    self.tr("Stopping after the current file…"))
+                self._start_btn.setEnabled(False)
+            else:
+                self._status_label.setText(self.tr("Batch running…"))
 
     def _set_controls_enabled(self, on):
         # Adding more projects is always allowed (queue while it runs), and so

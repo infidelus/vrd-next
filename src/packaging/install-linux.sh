@@ -103,12 +103,34 @@ fi
 PY="$VENV/bin/python"
 
 info "Installing the Python dependencies into the environment…"
-"$PY" -m pip install --upgrade pip >/dev/null
-if [ -f "$REQ" ]; then
-    "$PY" -m pip install -r "$REQ"
-else
-    info "requirements.txt not found at $REQ - installing the known set instead."
-    "$PY" -m pip install PySide6 av numpy bitstring tqdm
+"$PY" -m pip install --upgrade pip
+
+# Install the dependencies.  Prefer requirements.txt, fall back to the known
+# set.  We do NOT hide pip's output or let a failure pass silently - a partial
+# install (an interrupted download of the large PySide6 wheels, say) is exactly
+# what leaves a venv that looks present but can't import PySide6.
+install_deps() {
+    if [ -f "$REQ" ]; then
+        "$PY" -m pip install -r "$REQ"
+    else
+        info "requirements.txt not found at $REQ - installing the known set instead."
+        "$PY" -m pip install PySide6 av numpy bitstring tqdm
+    fi
+}
+install_deps
+
+# Verify the dependencies actually import.  A reused venv from a previously
+# interrupted install can have some packages but not others, and pip won't
+# reinstall what it thinks is already there - so if the import check fails,
+# force a clean reinstall before giving up.
+if ! "$PY" -c 'import PySide6, av, numpy, bitstring, tqdm' >/dev/null 2>&1; then
+    info "Some dependencies are missing or incomplete - reinstalling them cleanly…"
+    if [ -f "$REQ" ]; then
+        "$PY" -m pip install --force-reinstall --no-cache-dir -r "$REQ"
+    else
+        "$PY" -m pip install --force-reinstall --no-cache-dir \
+            PySide6 av numpy bitstring tqdm
+    fi
 fi
 
 # --- 3. menu entries ------------------------------------------------------

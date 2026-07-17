@@ -29,6 +29,13 @@ DEFAULT_CONFIG = {
         # once it hasn't been used for this many days.  0 = keep forever.
         "cache_max_age_days": 30,
 
+        # Delete remembered renamer matches (the TMDB/IMDb lookups) older than
+        # this many days, purged at startup.  0 = keep forever (the default,
+        # since renaming is usually one-and-done and the matches are worth
+        # keeping; raise it above 0 if you re-process libraries and don't want
+        # the cache growing indefinitely).
+        "renamer_cache_max_age_days": 0,
+
         # Delete log files older than this many days at startup.  0 = keep
         # forever.
         "log_max_age_days": 30,

@@ -32,7 +32,7 @@ Icon=$ICON
 Terminal=false
 StartupWMClass=vrd-next
 Categories=AudioVideo;Video;AudioVideoEditing;
-MimeType=video/mp2t;video/x-matroska;video/mp4;video/mpeg;video/quicktime;video/x-msvideo;video/x-vrd-project;
+MimeType=video/mp2t;video/x-matroska;video/mp4;video/mpeg;video/quicktime;video/x-msvideo;application/x-vrd-project;
 StartupNotify=true
 EOF
 
@@ -44,16 +44,39 @@ mkdir -p "$MIME/packages"
 cat > "$MIME/packages/vrd-next.xml" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-  <mime-type type="video/x-vrd-project">
+  <mime-type type="application/x-vrd-project">
     <comment>VideoReDo project</comment>
     <glob pattern="*.vprj"/>
     <glob pattern="*.VPRJ"/>
+    <generic-icon name="application-x-vrd-project"/>
   </mime-type>
 </mime-info>
 EOF
 if command -v update-mime-database >/dev/null 2>&1; then
     update-mime-database "$MIME" >/dev/null 2>&1 || true
 fi
+
+# Install the project-file icon into the user's icon theme under the MIME-type
+# name, so file managers show it on .vprj files.  The scalable SVG covers all
+# sizes; we drop it into hicolor/scalable/mimetypes where the desktop looks.
+ICONS="$HOME/.local/share/icons/hicolor/scalable/mimetypes"
+if [ -f "$SRC/assets/project_icon.svg" ]; then
+    mkdir -p "$ICONS"
+    cp "$SRC/assets/project_icon.svg" "$ICONS/application-x-vrd-project.svg"
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" \
+            >/dev/null 2>&1 || true
+    fi
+fi
+
+# We define application/x-vrd-project (above) with the *.vprj glob, so the
+# desktop entry's MimeType line is enough to make VRD Next appear in the file
+# manager's "Open With" list for .vprj files.  We deliberately do NOT call
+# `xdg-mime default` here: that would make VRD Next the sole handler and remove
+# whatever the user already had (e.g. a text editor for editing .vprj by hand).
+# Offering it as a choice is friendlier - the user can set it as default
+# themselves if they want to.  (update-desktop-database is run once below,
+# after the watcher entry is written too.)
 
 cat > "$APPS/vrd-next-watcher.desktop" <<EOF
 [Desktop Entry]

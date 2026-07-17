@@ -34,6 +34,27 @@ class MaintenancePage(SettingsPage):
             "(never) to keep them indefinitely.")
         ))
 
+        # Renamer match cache - separate age limit (it defaults to "never",
+        # since renamer matches are usually worth keeping).
+        rn_row = QHBoxLayout()
+        rn_row.addWidget(QLabel(self.tr("Delete remembered renamer matches older than")))
+        self._renamer_age = QSpinBox()
+        self._renamer_age.setRange(0, 3650)
+        self._renamer_age.setSuffix(" days")
+        self._renamer_age.setSpecialValueText("never")
+        self._renamer_age.setValue(int(s.get("renamer_cache_max_age_days", 0)))
+        rn_row.addWidget(self._renamer_age)
+        rn_row.addStretch(1)
+        clear_rn = QPushButton(self.tr("Delete now"))
+        clear_rn.clicked.connect(self._clear_renamer_cache)
+        rn_row.addWidget(clear_rn)
+        self.add_layout(rn_row)
+        self.add(hint(
+            self.tr("The TV and film renamer remember each TMDB/IMDb match so they "
+            "don't look it up again. These are kept in their own file; purge "
+            "old ones here, or set to 0 (never) to keep them indefinitely.")
+        ))
+
         edit_row = QHBoxLayout()
         edit_cfg = QPushButton(self.tr("Edit config.json"))
         edit_cfg.setFocusPolicy(Qt.NoFocus)
@@ -59,6 +80,15 @@ class MaintenancePage(SettingsPage):
             "back to its default. Your recordings and projects aren't affected.")
         ))
 
+    def _clear_renamer_cache(self):
+        from PySide6.QtWidgets import QMessageBox
+        from addons.match_cache import clear as clear_renamer_cache
+        clear_renamer_cache(self._config)
+        QMessageBox.information(
+            self, self.tr("Renamer cache cleared"),
+            self.tr("The remembered renamer matches have been deleted."))
+
     def save(self, config):
         settings = config.setdefault("settings", {})
         settings["cache_max_age_days"] = self._cache_age.value()
+        settings["renamer_cache_max_age_days"] = self._renamer_age.value()

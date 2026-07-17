@@ -37,6 +37,7 @@ $Root = Split-Path -Parent $Src
 $Venv = Join-Path $Root ".venv"
 $Req  = Join-Path $Root "requirements.txt"
 $Icon = Join-Path $Src  "assets\app_icon.ico"
+$ProjIcon = Join-Path $Src "assets\project_icon.ico"
 Info "Project root: $Root"
 
 # Find a Python that actually runs.  This deliberately ignores the Microsoft
@@ -125,16 +126,43 @@ if (-not (Test-Path $venvPy)) {
     Warn "Check the messages above and try again."
     Pause-Exit; return
 }
+# pythonw.exe (windowless) isn't created by every venv/Python build.  If it's
+# missing, fall back to python.exe for the shortcut target - a console window
+# will flash, but the app launches, which is far better than a dead shortcut
+# pointing at a pythonw.exe that doesn't exist.
+if (-not (Test-Path $venvPyw)) {
+    Warn "pythonw.exe not found in the venv; the shortcut will use python.exe"
+    Warn "(a console window will appear briefly when launching)."
+    $venvPyw = $venvPy
+}
 Info "Installing Python dependencies (this can take a minute)..."
 & $venvPy -m pip install --upgrade pip
-if (Test-Path $Req) {
+
+# Install dependencies.  A requirements.txt that's empty or missing (it has
+# been seen to extract as 0 bytes) would make "pip install -r" a silent no-op,
+# leaving a venv that can't import anything - so treat an empty file as absent
+# and use the known package list instead.
+$useReq = (Test-Path $Req) -and ((Get-Item $Req).Length -gt 0)
+if ($useReq) {
     & $venvPy -m pip install -r "$Req"
 } else {
     & $venvPy -m pip install PySide6 av numpy bitstring tqdm
 }
+
+# Verify the dependencies actually import.  A reused venv from a previously
+# interrupted install can be missing some packages, and pip won't reinstall
+# what it thinks is present - so if the check fails, force a clean reinstall
+# before creating shortcuts.
+& $venvPy -c "import PySide6, av, numpy, bitstring, tqdm" 2>$null
 if ($LASTEXITCODE -ne 0) {
-    Warn "pip reported a problem (exit $LASTEXITCODE).  The shortcuts will still"
-    Warn "be created, but check the messages above if VRD Next won't start."
+    Warn "Some dependencies are missing or incomplete - reinstalling cleanly..."
+    & $venvPy -m pip install --force-reinstall --no-cache-dir PySide6 av numpy bitstring tqdm
+}
+& $venvPy -c "import PySide6, av, numpy, bitstring, tqdm" 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Warn "Python dependencies still aren't importing.  The shortcuts will be"
+    Warn "created, but VRD Next may not start until this is resolved - check the"
+    Warn "messages above."
 }
 
 # --- 3. shortcuts ---------------------------------------------------------
@@ -165,6 +193,67 @@ foreach ($dir in @($startMenu, $desktop)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
     New-AppShortcut (Join-Path $dir "VRD Next.lnk")
+}
+
+# --- .vprj association (per-user, non-destructive) ------------------------
+# Register VRD Next as an available handler for .vprj so it shows up under
+# "Open with", WITHOUT making it the default - VideoReDo (or whatever the user
+# already has) keeps the default.  All under HKCU, so no admin is needed and
+# nothing system-wide changes.  Mirrors what the Linux installer does.
+try {
+    $progId = "VRDNext.Project"
+    $classes = "HKCU:\Software\Classes"
+
+    # Define the ProgID: how to open a .vprj with VRD Next.
+    $cmd = "`"$venvPyw`" `"$mainPy`" `"%1`""
+    New-Item -Path "$classes\$progId\shell\open\command" -Force | Out-Null
+    # The ProgID's (default) is the file-type description (details column).
+    Set-ItemProperty -Path "$classes\$progId" -Name "(default)" -Value "VideoReDo Project"
+    Set-ItemProperty -Path "$classes\$progId\shell\open\command" -Name "(default)" -Value $cmd
+    # FriendlyAppName is what Windows shows in the "Open with" menu.  Without
+    # it, Windows reads the command, sees pythonw.exe, and labels the entry
+    # "Python" - so set it explicitly on both the ProgID and its open verb
+    # (different Windows versions read it from different places).
+    Set-ItemProperty -Path "$classes\$progId" -Name "FriendlyAppName" -Value "VRD Next"
+    Set-ItemProperty -Path "$classes\$progId\shell\open" -Name "FriendlyAppName" -Value "VRD Next"
+    # Use the project-file icon (a document, distinct from the app icon) for
+    # .vprj files themselves.  Falls back to the app icon if it's not present.
+    $vprjIcon = if (Test-Path $ProjIcon) { $ProjIcon } else { $Icon }
+    if (Test-Path $vprjIcon) {
+        New-Item -Path "$classes\$progId\DefaultIcon" -Force | Out-Null
+        # DefaultIcon wants "path,index" - without the ,0 index some Windows
+        # versions fail to resolve a standalone .ico and fall back to the
+        # launching interpreter's icon (pythonw.exe's), which is why .vprj
+        # files showed the Python icon.
+        Set-ItemProperty -Path "$classes\$progId\DefaultIcon" -Name "(default)" -Value "$vprjIcon,0"
+    }
+
+    # Add our ProgID to the .vprj extension's "Open with" list, leaving any
+    # existing default untouched.
+    New-Item -Path "$classes\.vprj\OpenWithProgids" -Force | Out-Null
+    Set-ItemProperty -Path "$classes\.vprj\OpenWithProgids" -Name $progId -Value ([byte[]]@()) -Type Binary
+
+    # The "Open with" MENU entry's icon and name come from the application
+    # registration, not the ProgID - and because we launch via pythonw.exe,
+    # Windows would otherwise show Python's icon and name there.  Registering a
+    # named Applications entry with its own FriendlyAppName and DefaultIcon,
+    # and listing it in the extension's OpenWithList, gives the menu entry the
+    # VRD Next icon and name.
+    $appKey = "$classes\Applications\vrd-next.exe"
+    New-Item -Path "$appKey\shell\open\command" -Force | Out-Null
+    Set-ItemProperty -Path "$appKey" -Name "FriendlyAppName" -Value "VRD Next"
+    Set-ItemProperty -Path "$appKey\shell\open\command" -Name "(default)" -Value $cmd
+    if (Test-Path $Icon) {
+        New-Item -Path "$appKey\DefaultIcon" -Force | Out-Null
+        Set-ItemProperty -Path "$appKey\DefaultIcon" -Name "(default)" -Value "$Icon,0"
+    }
+    # Let .vprj offer this application under "Open with".
+    New-Item -Path "$classes\.vprj\OpenWithList\vrd-next.exe" -Force | Out-Null
+
+    Info "Registered VRD Next as an option for .vprj files (not as the default)."
+} catch {
+    Warn "Couldn't register the .vprj file association - $($_.Exception.Message)"
+    Warn "(VRD Next still runs; you can open projects from File > Import Project.)"
 }
 
 Section "Done."

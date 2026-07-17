@@ -122,15 +122,60 @@ def ensure_config():
     return config
 
 
-def save_config(config):
-    CONFIG_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+def _atomic_write_json(path, obj):
+    """Write ``obj`` as JSON to ``path`` atomically (temp file + rename).
 
-    CONFIG_FILE.write_text(
-        json.dumps(
-            config,
-            indent=4,
-        )
-    )
+    Shared by the main config and the sidecar cache files so all of them get
+    the same protection: a reader always sees either the old file or the
+    complete new one, never a truncated half-write.
+    """
+    import os
+    import tempfile
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = json.dumps(obj, indent=4)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".tmp-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, str(path))
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def load_sidecar(name, default=None):
+    """Load a sidecar JSON file (e.g. the renamer cache) from the config dir.
+
+    Kept separate from the main config so bulky, disposable data doesn't bloat
+    settings.json.  Returns ``default`` if the file is missing or unreadable -
+    note ``default`` is returned as given (including ``None``), so a caller can
+    pass ``default=None`` to tell "file absent" apart from "file present but
+    empty", which matters for one-time migrations.  A corrupt cache should
+    never stop the app.
+    """
+    p = CONFIG_DIR / name
+    try:
+        if p.exists():
+            return json.loads(p.read_text())
+    except Exception:
+        pass
+    return default
+
+
+def save_sidecar(name, obj):
+    """Atomically write a sidecar JSON file to the config dir."""
+    try:
+        _atomic_write_json(CONFIG_DIR / name, obj)
+    except Exception:
+        pass
+
+
+def save_config(config):
+    _atomic_write_json(CONFIG_FILE, config)

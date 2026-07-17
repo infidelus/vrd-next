@@ -5,6 +5,59 @@ All notable changes to VRD Next are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [1.8.0] - 2026-07-17
+
+A robustness, cross-platform and housekeeping release: hardened installers on
+both Linux and Windows, working start-on-login and file associations on
+Windows, safer configuration storage, and a batch of Batch Manager and audio
+fixes.
+
+### Added
+
+- **Windows start-on-login.** The Watcher's "start on login" checkbox now works
+  on Windows as well as Linux, placing a launcher in the Startup folder (and
+  removing it when unticked). No manual `shell:startup` setup needed.
+- **`.vprj` file association on Windows** and a distinct project-file icon on
+  both platforms, so project files are recognisable at a glance and offer
+  VRD Next under "Open with" (without displacing an existing default such as
+  VideoReDo or a text editor).
+- **Command Prompt installer for Windows** (`install-windows.bat`) that runs the
+  setup without needing to change PowerShell's execution policy.
+- **Renamer cache age limit.** Settings → Maintenance can purge remembered
+  TV/film matches older than a chosen number of days (0 = keep forever), with a
+  "delete now" button.
+
+### Changed
+
+- **Configuration is split by purpose.** The renamer match cache and the batch
+  queue now live in their own files (`renamer-cache.json`, `queue.json`) instead
+  of bloating `settings.json`, each migrated automatically on first run.
+- **Output paths use the platform's native separator** — no more mixed
+  `C:/Users/...ile.mkv` on Windows.
+- **Audio device status is logged at startup**, so a sound problem can be
+  diagnosed from the log ("output device ready …" or "no default output
+  device found").
+- Batch Manager: the progress bar seeds immediately when opened mid-run; queued
+  jobs can be reordered during a run; Clear Finished works mid-run; and the
+  "stopping after the current file" message survives reopening the window.
+
+### Fixed
+
+- **No audio in the preview player until the app was restarted.** If the audio
+  device wasn't ready the moment VRD Next started, the playback sink came up
+  dead and stayed silent for the session regardless of the volume control. It's
+  now rebuilt automatically when playback starts, so sound recovers without a
+  restart.
+- **Finished batch jobs could return as queued** (and re-process, producing a
+  duplicate) if the app closed at the wrong moment. Terminal status is now
+  written to disk synchronously as each job finishes.
+- **Configuration writes are atomic**, so an interrupted or concurrent write can
+  no longer truncate or corrupt `settings.json` and lose every setting.
+- **The Linux and Windows installers no longer fail silently** when
+  `requirements.txt` is empty or a dependency download is interrupted — they
+  verify the packages actually import and reinstall if not.
+- The chosen output profile is remembered across a Quick Stream Fix.
+
 ## [1.7.0] - 2026-07-14
 
 ### Added
@@ -294,6 +347,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 - Initial public release.
 
+[1.8.0]: https://github.com/infidelus/vrd-next/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/infidelus/vrd-next/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/infidelus/vrd-next/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/infidelus/vrd-next/compare/v1.5.0...v1.5.1

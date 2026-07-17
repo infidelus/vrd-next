@@ -35,6 +35,7 @@ except Exception:
 
 try:
     from PySide6.QtMultimedia import (
+        QAudio,
         QAudioFormat,
         QAudioSink,
         QMediaDevices,
@@ -348,22 +349,71 @@ class AudioController:
             self._fmt.setChannelCount(_CHANNELS)
             self._fmt.setSampleFormat(QAudioFormat.SampleFormat.Int16)
 
-            try:
-                device = QMediaDevices.defaultAudioOutput()
-                self._sink = QAudioSink(device, self._fmt)
-                self._sink.setVolume(self._volume)
-                # A small internal buffer (~quarter second) for smooth pacing.
-                try:
-                    self._sink.setBufferSize(_RATE * _FRAME_BYTES // 4)
-                except Exception:
-                    pass
+            self._create_sink()
 
-                self._src = _AudioSource(self._buffer)
-                self._src.open(QIODevice.OpenModeFlag.ReadOnly)
+    def _create_sink(self):
+        """(Re)create the audio sink against the current default output device.
+
+        Done at startup and again lazily before playback if the sink is
+        missing or in an error state - which happens when the audio device
+        wasn't ready at launch (another app held it, or PulseAudio/PipeWire was
+        mid-switch).  Previously such a sink stayed dead and silent for the
+        whole session with no way back but restarting the app; rebuilding it on
+        demand recovers automatically.  Returns True if a usable sink exists.
+        """
+        if not (_HAVE_AV and _HAVE_QT_AUDIO):
+            log.warning("audio: unavailable (PyAV=%s, Qt multimedia=%s)",
+                        _HAVE_AV, _HAVE_QT_AUDIO)
+            return False
+        # Tear down any existing (possibly dead) sink first.
+        if self._sink is not None:
+            try:
+                self._sink.stop()
             except Exception:
+                pass
+        self._sink = None
+        self._src = None
+        try:
+            device = QMediaDevices.defaultAudioOutput()
+            if device is None or device.isNull():
                 self.available = False
-                self._sink = None
-                self._src = None
+                log.warning(
+                    "audio: no default output device found - sound is off. "
+                    "If a device is connected, it may not have been ready at "
+                    "startup; playback will retry when you press play.")
+                return False
+            self._sink = QAudioSink(device, self._fmt)
+            self._sink.setVolume(self._volume)
+            try:
+                self._sink.setBufferSize(_RATE * _FRAME_BYTES // 4)
+            except Exception:
+                pass
+            self._src = _AudioSource(self._buffer)
+            self._src.open(QIODevice.OpenModeFlag.ReadOnly)
+            self.available = True
+            try:
+                dev_name = device.description()
+            except Exception:
+                dev_name = "?"
+            log.info("audio: output device ready (%s) — %d Hz, %d ch",
+                     dev_name, _RATE, _CHANNELS)
+            return True
+        except Exception as exc:
+            self.available = False
+            self._sink = None
+            self._src = None
+            log.warning("audio: could not open output device (%s) - sound is "
+                        "off; will retry on play", exc)
+            return False
+
+    def _sink_is_healthy(self):
+        """Whether the current sink exists and isn't in an error state."""
+        if self._sink is None:
+            return False
+        try:
+            return self._sink.error() == QAudio.Error.NoError
+        except Exception:
+            return True    # can't tell - assume usable rather than thrash
 
     # -- source ----------------------------------------------------------
 
@@ -415,7 +465,16 @@ class AudioController:
 
     def play_from(self, seconds):
         """Seek to `seconds` and start playing audio from there."""
-        if not self.available or not self._source:
+        if not self._source or not (_HAVE_AV and _HAVE_QT_AUDIO):
+            return
+
+        # If the sink failed to come up at launch (device not ready) or has
+        # since gone into an error state, rebuild it now - the device is very
+        # likely available by the time the user actually presses play.  This is
+        # what lets audio recover without restarting the whole app.
+        if not self._sink_is_healthy():
+            self._create_sink()
+        if not self.available or self._sink is None or self._src is None:
             return
 
         self._halt()

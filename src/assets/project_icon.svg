@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbfcfe"/>
+      <stop offset="1" stop-color="#e8edf3"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4aa8ff"/>
+      <stop offset="1" stop-color="#1f8be8"/>
+    </linearGradient>
+  </defs>
+  <!-- document page with folded top-right corner -->
+  <path d="M48 20 h116 l44 44 v168 a4 4 0 0 1 -4 4 h-156 a4 4 0 0 1 -4 -4 v-208 a4 4 0 0 1 4 -4 z"
+        fill="url(#paper)" stroke="#c4ccd6" stroke-width="4"/>
+  <!-- the fold -->
+  <path d="M164 20 v40 a4 4 0 0 0 4 4 h40 z" fill="#d4dbe4" stroke="#c4ccd6" stroke-width="4" stroke-linejoin="round"/>
+  <!-- film sprockets, left and right edges (lighter, to suit the page) -->
+  <g fill="#c0c8d2">
+    <rect x="40" y="104" width="11" height="15" rx="3"/>
+    <rect x="40" y="146" width="11" height="15" rx="3"/>
+    <rect x="40" y="188" width="11" height="15" rx="3"/>
+    <rect x="205" y="146" width="11" height="15" rx="3"/>
+    <rect x="205" y="188" width="11" height="15" rx="3"/>
+  </g>
+  <!-- slim red lightning bolt: the cut/edit marker -->
+  <polygon points="98,110 84,158 94,158 88,214 108,152 96,152 110,110"
+           fill="#ec2b34" stroke="#ffd9db" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- blue play triangle -->
+  <polygon points="120,124 120,204 186,164" fill="url(#blue)"/>
+</svg>

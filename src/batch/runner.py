@@ -188,6 +188,7 @@ class BatchRunner(QThread):
         self._out_folder = out_folder
         self._modifier = modifier
         self._config = config
+        self._controller = parent    # the BatchController, for synchronous saves
         self._stop = False
         self._finish_current = False
         self._cursor = 0
@@ -195,6 +196,17 @@ class BatchRunner(QThread):
         # The dialog uses this to protect the running job from removal, and
         # note_removed() keeps it correct when earlier rows are deleted.
         self.current_index = -1
+
+    def _persist_now(self):
+        """Write the queue to disk immediately from this worker thread, so a
+        terminal status survives even if the app closes before the queued
+        job_done/job_failed signal reaches the main thread."""
+        c = self._controller
+        if c is not None:
+            try:
+                c.persist_now()
+            except Exception:
+                pass
 
     def note_removed(self, rows):
         """Tell the runner that ``rows`` have just been deleted from the shared
@@ -282,6 +294,7 @@ class BatchRunner(QThread):
                 job.status = DONE
                 job.percent = 100
                 completed += 1
+                self._persist_now()
                 self.job_done.emit(i - 1, stats if isinstance(stats, dict) else {})
             except NeedsReview as exc:
                 if self._stop:
@@ -292,6 +305,7 @@ class BatchRunner(QThread):
                 job.message = str(exc)
                 held += 1
                 log.info("Batch job held for review: %s", job.name)
+                self._persist_now()
                 self.job_held.emit(i - 1, str(exc))
             except JobError as exc:
                 if self._stop:
@@ -302,12 +316,14 @@ class BatchRunner(QThread):
                 job.message = str(exc)
                 failed += 1
                 log.warning("Batch job failed: %s - %s", job.name, exc)
+                self._persist_now()
                 self.job_failed.emit(i - 1, str(exc))
             except Exception as exc:    # never let one job kill the batch
                 job.status = FAILED
                 job.message = str(exc)
                 failed += 1
                 log.exception("Batch job crashed: %s", job.name)
+                self._persist_now()
                 self.job_failed.emit(i - 1, str(exc))
 
         # Nothing is running any more, so nothing is protected from removal.
